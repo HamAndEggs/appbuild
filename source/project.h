@@ -19,7 +19,7 @@
 
 #include "build_task.h"
 #include "dependencies.h"
-#include "arg_list.h"
+#include "configuration.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds all the information about the project file.
@@ -31,9 +31,7 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-class Options;
 class JSONValue;
-class BuildTaskVec;
 
 class Project
 {
@@ -44,35 +42,17 @@ public:
 
 	operator bool ()const{return mOk;}
 
-	bool Build();
+	bool Build(const std::string& pActiveConfig);
 	bool RunOutputFile(bool pAsSudo);
 
 private:
 
-	void ReadGroupFiles(const char* pGroupName,const JSONValue* pFiles);
-	void ReadSettings(const JSONValue* pSettings);
+	void ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles);
+	void ReadConfigurations(const JSONValue* pSettings);
 
-	const std::string MakeOutputFilename(const std::string& pFilename, const std::string& pFolder)const;
+	bool CompileSource(const Configuration* pConfig,StringVec& rOutputFiles);
+	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);
 
-	bool CompileSource();
-	bool LinkTarget();
-
-	bool AddIncludeSearchPaths(const JSONValue* pPaths);
-	void AddIncludeSearchPath(const std::string& pPath);
-
-	bool AddLibrarySearchPaths(const JSONValue* pPaths);
-	void AddLibrarySearchPath(const std::string& pPath);
-
-	bool AddLibraries(const JSONValue* pLibs);
-	void AddLibrary(const std::string& pLib);
-
-	enum eTargetType
-	{
-		TARGET_NOT_SET,
-		TARGET_EXEC,
-		TARGET_LIBRARY,
-		TARGET_SHARED_LIBRARY,
-	};
 
 	// Some options that are passed into the constructor.
 	const size_t mNumThreads;
@@ -82,27 +62,13 @@ private:
 	// This project file, fully pathed.
 	std::string mPathedProjectFilename;
 	std::string mProjectDir;
+	std::string mCurrentConfigName;
 
-	// The file I make to test for dependency changes.
-	// All dates for files built and their dependencies are recorded in here.
-	// Written to the output folder as it's rebuilt if missing.
-	std::string mPathedDatesFilename;
-
-	std::string mOutputPath;
-	std::string mComplier;
-	std::string mLinker;
-	std::string mArchiver;
-	std::string mPathedTargetName;	// This is the final output fully pathed filename.
-
-	BuildTaskStack mBuildTasks;
 	Dependencies mDependencies;
-	ArgList mCompileArguments;
-	ArgList mLinkerArguments;
-	StringVec mLibraryFiles;
-	StringVec mObjectFiles;
+	StringVecMap mSourceFiles;
+	BuildConfigurations mBuildConfigurations;
 
 	bool mOk;	// Project loaded ok.
-	eTargetType mTargetType;
 
 };
 

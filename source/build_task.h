@@ -38,6 +38,7 @@ public:
 
 	void Execute();
 	const std::string& GetResults()const{return mResults;}
+	const std::string& GetOutputFilename()const{return mOutputFilename;}
 	bool GetIsCompleted()const{return mCompleted;}
 	bool GetOk(){return mOk;}
 
@@ -60,8 +61,13 @@ private:
 	std::thread thread;
 };
 
-typedef std::stack<BuildTask*>BuildTaskStack;
-typedef std::list<BuildTask*>RunningBuildTasks;
+class BuildTaskStack : public std::stack<BuildTask*>
+{
+};
+
+class RunningBuildTasks : public std::list<BuildTask*>
+{
+};
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

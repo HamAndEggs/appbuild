@@ -24,5 +24,6 @@
 typedef std::vector<std::string> StringVec;
 typedef std::map<std::string,std::string> StringMap;
 typedef std::set<std::string> StringSet;
+typedef std::map<std::string,StringVec> StringVecMap;
 
 #endif

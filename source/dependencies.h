@@ -43,11 +43,12 @@ private:
 	typedef struct stat FileStats;
 	typedef std::unordered_map<std::string,timespec> FileTimeMap;
 	typedef std::unordered_map<std::string,StringSet> DependencyMap;
-	typedef std::unordered_map<std::string,bool> FileDependencyState;	// True if it is out of date and thus the source file needs building, false it is not. If not found we have not checked it yet.
+	typedef std::unordered_map<std::string,bool> FileState;	// True if it is out of date and thus the source file needs building, false it is not. If not found we have not checked it yet.
 
 	DependencyMap mDependencies;
 	FileTimeMap mFileTimes;
-	FileDependencyState mFileDependencyState;
+	FileState mFileDependencyState;
+	FileState mFileCheckedState;
 	timespec mProjectFileTime;	// All files have their dates compared against this so that if you touch the project file it does a rebuild all.
 
 };

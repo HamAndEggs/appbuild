@@ -40,6 +40,7 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 	// After that it is added with the state of being older or newer. This also prevents it being parsed a second time.
 	// File headers found in a file are cached for each file and don't need to be and are not cleared. So the header is only parsed once.
 	mFileDependencyState.clear();
+	mFileCheckedState.clear();// This one is used to stop recursion.
 
 	// Get the object files info, if this fails then the file is not there, if it is not a regular file then that is wrong and so will rebuild it too.
 	if( GetFileTime(pObjectFile,ObjFileTime) )
@@ -58,7 +59,7 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 bool Dependencies::CheckDependencies(const std::string& pSourceFile,const timespec& pObjFileTime,const StringVec& pIncludePaths)
 {
 	// Check that we have not already checked this file.
-	FileDependencyState::const_iterator found = mFileDependencyState.find(pSourceFile);
+	auto found = mFileDependencyState.find(pSourceFile);
 	if( found != mFileDependencyState.end() )
 	{// File already been processed so stop and return the outcome.
 		return found->second;
@@ -72,13 +73,17 @@ bool Dependencies::CheckDependencies(const std::string& pSourceFile,const timesp
 	StringSet Includes;
 	if( GetIncludesFromFile(pSourceFile,pIncludePaths,Includes) )
 	{
-		// Now check their dependcies.....
+		// Now check their dependencies.....
 		for( std::string filename : Includes )
 		{
-			bool result = CheckDependencies(filename,pObjFileTime,pIncludePaths);
-			mFileDependencyState[filename] = result;
-			if( result )
-				return true;
+			if( mFileCheckedState[filename] == false )
+			{
+				mFileCheckedState[filename] = true;
+				bool result = CheckDependencies(filename,pObjFileTime,pIncludePaths);
+				mFileDependencyState[filename] = result;
+				if( result )
+					return true;
+			}
 		}
 	}
 
@@ -87,7 +92,7 @@ bool Dependencies::CheckDependencies(const std::string& pSourceFile,const timesp
 }
 
 bool Dependencies::GetFileTime(const std::string& pFilename,timespec& rFileTime)
-{
+{// I cache file times and the headers found in a file. Gives a very nice speed up.
 	FileTimeMap::iterator found = mFileTimes.find(pFilename);
 	if( found != mFileTimes.end() )
 	{
@@ -130,13 +135,23 @@ bool Dependencies::FileYoungerThanObjectFile(const timespec& pOtherTime,const ti
 
 bool Dependencies::GetIncludesFromFile(const std::string& pFilename,const StringVec& pIncludePaths,StringSet& rIncludes)
 {
+	assert( pFilename.size() > 0 );
+	assert( pIncludePaths.size() > 0 );
+	assert( rIncludes.size() < 1000  );
+
 	// First see if we have not already parsed this header, if so send back the stuff we found.
+	// Caches the found headers in a file between each dependency check is a very nice speed up.
 	DependencyMap::const_iterator already_done = mDependencies.find(pFilename);
 	if( already_done != mDependencies.end() )
 	{
 		rIncludes = already_done->second;
 		return true;
 	}
+
+//	std::cout << "GetIncludesFromFile(" << pFilename << ")" << std::endl;
+
+
+	assert(mDependencies.size() < 1000 );
 
 	std::ifstream file(pFilename);
 	if( file.is_open() )

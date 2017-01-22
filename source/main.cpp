@@ -34,6 +34,7 @@ public:
 	bool GetReBuild()const{return mReBuild;}
 	int  GetNumThreads()const{return mNumThreads;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
+	const std::string& GetActiveConfig()const{return mActiveConfig;}
 
 	void PrintHelp()const;
 	void PrintVersion()const;
@@ -48,6 +49,7 @@ private:
 	bool mReBuild;
 	int  mNumThreads;
 	std::vector<std::string> mProjectFiles;
+	std::string mActiveConfig;
 };
 
 
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
 			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild());
 			if( TheProject )
 			{
-				if( TheProject.Build() && Args.GetRunAfterBuild() )
+				if( TheProject.Build(Args.GetActiveConfig()) && Args.GetRunAfterBuild() )
 				{
 					TheProject.RunOutputFile(Args.GetSudoRunAfterBuild());
 				}
@@ -100,6 +102,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'r',"run-after-build","           If the build is successful then run the app, but only if one project file submitted.")			\
 		DEF_ARG(ARG_SUDO_RUN_AFTER_BUILD,no_argument,	'R',"sudo-run-after-build","      If the build is successful then run the app as SUDO, but only if one project file submitted.")	\
 		DEF_ARG(ARG_REBUILD,no_argument,				'B',"rebuild","                   Clean and rebuild all the source files.")															\
+		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","             Builds the given configuration, if found.")															\
 
 
 enum eArguments
@@ -119,7 +122,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mNumThreads(std::thread::hardware_concurrency())
 {
 	std::string short_options;
-#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC)	short_options += ARG_SHORT_NAME;
+#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC)	short_options += ARG_SHORT_NAME;if( TAKES_ARGUMENT == required_argument ){short_options+=":";}
 	ARGUMENTS
 #undef DEF_ARG
 
@@ -137,7 +140,10 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 		switch(c)
 		{
 		case ARG_NUM_THREADS:
-			mNumThreads = std::atoi(optarg);
+			if( optarg )
+				mNumThreads = std::atoi(optarg);
+			else
+				std::cout << "Option -n (num-threads) was not passed correct value. -n 4 or --num-threads=4" << std::endl;
 			break;
 
 		case ARG_HELP:
@@ -162,6 +168,13 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_REBUILD:
 			mReBuild = true;
+			break;
+
+		case ARG_ACTIVE_CONFIG:
+			if( optarg )
+				mActiveConfig = optarg;
+			else
+				std::cout << "Option -c (active-config) was not passed correct value. -c release or --active-config=release" << std::endl;
 			break;
 
 		default:

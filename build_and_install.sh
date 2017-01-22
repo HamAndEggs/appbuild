@@ -32,8 +32,11 @@ gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/project.cpp -o bin/project
 echo "json.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json.cpp -o bin/json.o
 
+echo "configuration.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/configuration.cpp -o bin/configuration.o
+
 echo "Linking"
-gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/json.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/json.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"

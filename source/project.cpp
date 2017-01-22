@@ -30,7 +30,12 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild):mNumThreads(pNumThreads>0?pNumThreads:1),mVerboseOutput(pVerboseOutput),mRebuild(pRebuild),mOutputPath("./bin/"),mComplier("gcc"),mLinker("gcc"),mArchiver("ar"),mDependencies(pFilename),mOk(true),mTargetType(TARGET_NOT_SET)
+Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild):
+		mNumThreads(pNumThreads>0?pNumThreads:1),
+		mVerboseOutput(pVerboseOutput),
+		mRebuild(pRebuild),
+		mDependencies(pFilename),
+		mOk(true)
 {
 	assert( pNumThreads > 0 );
 
@@ -44,9 +49,6 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 	if(mProjectDir.back() != '/')
 		mProjectDir += "/";
 
-	AddIncludeSearchPath("/usr/include");
-	mCompileArguments.AddArg("-g");
-
 	// Build pathed filename for the project file.
 	mPathedProjectFilename = pFilename;
 	Debug("Reading project file %s",mPathedProjectFilename.c_str());
@@ -56,20 +58,28 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 	Json ProjectJson(ProjectFile);
     if( ProjectJson )
     {
-		// Read the settings.
-		const JSONValue* settings = ProjectJson.Find("settings");
-		if( settings )
-			ReadSettings(settings);
+		// Read the configs.
+		const JSONValue* configs = ProjectJson.Find("configurations");
+		if( configs )
+			ReadConfigurations(configs);
+
+		// At least one config must be defined.
+		if( mBuildConfigurations.size() == 0 )
+		{
+			std::cout << "The \'configurations\' object in this project file \'" << mPathedProjectFilename << "\' was not found, unable to continue." << std::endl;
+			// No configs, so we're done. No point continuing.
+			return;
+		}
 
 		// Add the files, building the make commands.
 		// We do the files last as we now have all the information. They can be anywhere in the file, that's ok.
-		const JSONValue* groups = ProjectJson.Find("groups");
+		const JSONValue* groups = ProjectJson.Find("source_files");
 		if( groups )
 		{// Instead of looking for specific items here we'll enumerate them.
 			for( auto group : groups->GetObject()->GetChildren() )
 			{// Can be any number of json elements with the same name at the same level. So we have a vector.
 				for(auto x : group.second)
-					ReadGroupFiles(group.first,x);
+					ReadSourceFiles(group.first,x);
 			}
 		}
 		else
@@ -86,35 +96,54 @@ Project::~Project()
 
 }
 
-bool Project::Build()
+bool Project::Build(const std::string& pActiveConfig)
 {
-	if( CompileSource() )
+	const Configuration* config = mBuildConfigurations[pActiveConfig];
+	if( config )
 	{
-		return LinkTarget();
+		std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
+		StringVec OutputFiles;
+		if( CompileSource(config,OutputFiles) )
+		{
+			return LinkTarget(config,OutputFiles);
+		}
+		return false;
 	}
-    return false;
+	std::cout << "The configuration \'" << pActiveConfig << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+	return false;
 }
 
 bool Project::RunOutputFile(bool pAsSudo)
 {
-	if( mTargetType == TARGET_EXEC )
+	std::string PathedTargetName;
+
+	BuildConfigurations::const_iterator found = mBuildConfigurations.find(mCurrentConfigName);
+	if( found == mBuildConfigurations.end() )
+		return false;// Config not found.
+
+	const Configuration* Config = found->second;
+
+	if( Config )
 	{
-		char command[256];
-		command[0] = 0;
-		if( pAsSudo )
-			strcat(command,"sudo ");
+		if( Config->GetTargetType() == TARGET_EXEC )
+		{
+			char command[256];
+			command[0] = 0;
+			if( pAsSudo )
+				strcat(command,"sudo ");
 
-		strcat(command,mPathedTargetName.c_str());
+			strcat(command,Config->GetPathedTargetName().c_str());
 
-		char* TheArgs[]={command,NULL};
-		return execvp(TheArgs[0],TheArgs) == 0;
+			char* TheArgs[]={command,NULL};
+			return execvp(TheArgs[0],TheArgs) == 0;
+		}
 	}
 	return false;
 }
 
-void Project::ReadGroupFiles(const char* pGroupName,const JSONValue* pFiles)
+void Project::ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles)
 {
-	if(pFiles)// Can be null.
+	if(pFiles && pGroupName)// Can be null.
 	{
 		if( pFiles->GetType() != JSONValue::ARRAY )
 		{
@@ -123,171 +152,89 @@ void Project::ReadGroupFiles(const char* pGroupName,const JSONValue* pFiles)
 		}
 		else
 		{
-			// Make sure output path is there.
-			MakeDir(mOutputPath + pGroupName);
-
 			for( int n = 0 ; n < pFiles->GetArraySize() ; n++ )
 			{
 				const char* filename = pFiles->GetString(n);
 				if(filename)
-				{// Lets make a compile command.
+				{
 					const std::string InputFilename = mProjectDir + filename;
 					// If the source file exists then we'll continue, else show an error.
 					if( FileExists(InputFilename) )
 					{
-						const std::string OutputFilename = MakeOutputFilename(filename, pGroupName);
-
-						// Record the object filenames created.
-						mObjectFiles.push_back(OutputFilename);
-
-						if( mRebuild || mDependencies.RequiresRebuild(InputFilename,OutputFilename,mCompileArguments.GetIncludePaths()) )
-						{
-							// Going to build the file, so delete the obj that is there.
-							// If we do not do this then it can effect the dependency system.
-							std::remove(OutputFilename.c_str());
-
-							ArgList args(mCompileArguments);
-							args.AddArg("-o");
-							args.AddArg(OutputFilename);
-							args.AddArg("-c");
-							args.AddArg(InputFilename);
-
-							mBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args));
-						}
+						mSourceFiles[pGroupName].push_back(filename);
 					}
 					else
 					{
-						std::cout << "Input filename not found " << InputFilename << std::endl;
+						std::cout << "Input filename \'" << filename << "\' in group \'" << pGroupName << "\' not found at \'" << InputFilename << "\'" << std::endl;
 					}
 				}
 			}
 		}
-
 	}
 }
 
-void Project::ReadSettings(const JSONValue* pSettings)
+void Project::ReadConfigurations(const JSONValue* pSettings)
 {
 	assert(pSettings);
 
-	const JSONValue* includes = pSettings->Find("include");
-	if( includes && AddIncludeSearchPaths(includes) == false )
+	for(auto& configs : pSettings->GetObject()->GetChildren() )
 	{
-		std::cout << "The \'include\' object in the \'settings\' object of this project file \'" << mPathedProjectFilename << "\' is not an array" << std::endl;
-		mOk = false;
-	}
-
-	// These can be added to the args now as they need to come before libs.
-	const JSONValue* libpaths = pSettings->Find("libpaths");
-	if( libpaths && AddLibrarySearchPaths(libpaths) == false )
-	{
-		std::cout << "The \'libpaths\' object in the \'settings\' object of this project file \'" << mPathedProjectFilename << "\' is not an array" << std::endl;
-		mOk = false;
-	}
-
-	// These go into a different place for now as they have to be adde to the args after the object files have been.
-	// This is because of the way linkers work.
-	const JSONValue* libraries = pSettings->Find("libs");
-	if( libraries &&AddLibraries(libraries) == false )
-	{
-		std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << mPathedProjectFilename << "\' is not an array" << std::endl;
-		mOk = false;
-	}
-
-	// Find out what they wish to build.
-	const JSONValue* target = pSettings->Find("target");
-	if( target )
-	{
-		if( CompareNoCase("executable",target->GetString()) )
-			mTargetType = TARGET_EXEC;
-		else if( CompareNoCase("library",target->GetString()) )
-			mTargetType = TARGET_LIBRARY;
-		else if( CompareNoCase("sharedlibrary",target->GetString()) )
-			mTargetType = TARGET_SHARED_LIBRARY;
-
-		if( mTargetType == TARGET_NOT_SET )
-			mOk = false;
-	}
-
-	const JSONValue* output_name = pSettings->Find("output_name");
-	if( output_name && output_name->GetType() == JSONValue::STRING )
-	{
-		mPathedTargetName = mProjectDir + mOutputPath + output_name->GetString();
-	}
-	else
-	{
-		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << mPathedProjectFilename << "\' is missing, how could I know the destination filename?" << std::endl;
-		mOk = false;
-	}
-
-	// Read optimisation / optimization settings
-	const JSONValue* optimisation = pSettings->Find("optimisation");
-	if( !optimisation )
-		optimisation = pSettings->Find("optimization");
-	if( optimisation )
-	{
-		std::string level="0";
-		if(optimisation->GetType() == JSONValue::INT32)
+		const char* name = configs.first;
+		if( name )
 		{
-			level = std::to_string(optimisation->GetInt32());
-		}
-		else if(optimisation->GetType() == JSONValue::STRING)
-		{
-			level = optimisation->GetString();
+			if( configs.second.size() > 1 )
+			{
+				std::cout << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
+			}
+			else if( configs.second.size() < 1 )
+			{
+				std::cout << "Configuration \'"<< name << "\' has no body to the object, check syntax. Error in project " << mPathedProjectFilename << std::endl;
+			}
+			else
+			{
+				const JSONValue* Obj = configs.second[0];
+				if(Obj)
+				{
+					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir);
+				}
+			}
 		}
 		else
 		{
-			std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << mPathedProjectFilename << "\' is missing, how could I know the destination filename?" << std::endl;
+			std::cout << "Malformed configuration in project without a name in project" << mPathedProjectFilename << std::endl;
 		}
-		mCompileArguments.AddArg("-o" + level);
 	}
+}
 
-	// Check for the c standard settings.
-	// Read optimisation / optimization settings
-	const JSONValue* standard = pSettings->Find("standard");
-	if( standard && standard->GetType() == JSONValue::STRING )
+
+
+bool Project::CompileSource(const Configuration* pConfig,StringVec& rOutputFiles)
+{
+	assert(pConfig);
+	if( !pConfig )
+		return false;
+
+	BuildTaskStack BuildTasks;
+	if( !pConfig->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,rOutputFiles) )
 	{
-		std::string level = standard->GetString();
-		mCompileArguments.AddArg("-std=" + level);
+		std::cout << "Unable to create build tasks for the configuration \'" << pConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+		return false;
 	}
 
-
-}
-
-const std::string Project::MakeOutputFilename(const std::string& pFilename, const std::string& pFolder)const
-{
-	assert(pFilename.size() > 0);
-
-// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
- // pFolder can be null. This is normally the group name.
-	std::string path = mProjectDir + mOutputPath + pFolder;
-	std::string fname = GetFileName(pFilename);
-
-	if( path.back() != '/' )
-		path += '/';
-	path += fname;
-	path += ".obj";
-
-	return path;
-}
-
-bool Project::CompileSource()
-{
-	std::cout << "Building: Num Threads " << mNumThreads << std::endl;
-
-	RunningBuildTasks RunningTasks;
+	std::cout << "Building:"<< BuildTasks.size() <<" files with " << mNumThreads << " threads." << std::endl;
 	bool CompileOk = true;
 
 	// I always delete the target if something needs to be build so there is no exec to run if the source has failed to build.
-	remove(mPathedTargetName.c_str());
+	remove(pConfig->GetPathedTargetName().c_str());
 
-	while( mBuildTasks.size() > 0 || RunningTasks.size() > 0 )
+	RunningBuildTasks RunningTasks;
+	while( BuildTasks.size() > 0 || RunningTasks.size() > 0 )
 	{
 		// Make sure at least N tasks are running.
-		if( mBuildTasks.size() > 0 && RunningTasks.size() < mNumThreads )
+		if( BuildTasks.size() > 0 && RunningTasks.size() < mNumThreads )
 		{
-			BuildTask* task = mBuildTasks.top();
-			mBuildTasks.pop();
+			BuildTask* task = BuildTasks.top();
+			BuildTasks.pop();
 			RunningTasks.push_back(task);
 			task->Execute();
 		}
@@ -304,25 +251,29 @@ bool Project::CompileSource()
 		{
 			if( (*task)->GetIsCompleted() )
 			{
-				CompileOk = CompileOk && (*task)->GetOk();
+				// Print the results.
 				std::string res = (*task)->GetResults();
 				if( res.size() > 1 )
 					std::cout << res << std::endl;
-				delete (*task);
-				task = RunningTasks.erase(task);
 
-				// If the compile failed, clean up the tasks that are waiting to start and then just wait for the ones in progress to finish.
-				if( !CompileOk )
+				// See if it worked ok.
+				if( (*task)->GetOk() == false )
 				{
-					while( !mBuildTasks.empty() )
+					CompileOk = false;
+					// If the compile failed, clean up the tasks that are waiting to start and then just wait for the ones in progress to finish.
+					while( !BuildTasks.empty() )
 					{
-						delete mBuildTasks.top();
-						mBuildTasks.pop();
+						delete BuildTasks.top();
+						BuildTasks.pop();
 					}
 				}
+
+				delete (*task);
+				task = RunningTasks.erase(task);// This removes the one just deleted and advances our linked list pointer.
+
 			}
 			else
-			{
+			{// Go to the next running task.
 				++task;
 			}
 		};
@@ -332,81 +283,38 @@ bool Project::CompileSource()
 	return CompileOk;
 }
 
-bool Project::LinkTarget()
+bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles)
 {
+	assert(pConfig);
+	if( !pConfig )
+		return false;
+
+	ArgList LinkerArguments(pConfig->GetLibrarySearchPaths());
+
 	// Add the object files.
-	mLinkerArguments.AddArg(mObjectFiles);
+	LinkerArguments.AddArg(pOutputFiles);
 
 	// Add the libs, must come after the object files.
-	mLinkerArguments.AddArg(mLibraryFiles);
+	LinkerArguments.AddArg(pConfig->GetLibraryFiles());
 
 	// And add the output.
-	mLinkerArguments.AddArg("-o");
-	mLinkerArguments.AddArg(mPathedTargetName);
+	LinkerArguments.AddArg("-o");
+	LinkerArguments.AddArg(pConfig->GetPathedTargetName());
 
-	std::cout << "Linking: " << mPathedTargetName << std::endl;
+	std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
+
+/*	const StringVec& check = LinkerArguments;
+	for(auto arg : check )
+		std::cout << "Args: \'" << arg <<  "\'" << std::endl;*/
 
 	std::string LinkerResults;
-	bool ok = ExecuteShellCommand(mLinker,mLinkerArguments,LinkerResults);
+	bool ok = ExecuteShellCommand(pConfig->GetLinker(),LinkerArguments,LinkerResults);
 	if( LinkerResults.size() < 1 )
 		LinkerResults = "Linked ok";
 	std::cout << LinkerResults << std::endl;
 	return ok;
 }
 
-bool Project::AddIncludeSearchPaths(const JSONValue* pPaths)
-{
-	if( pPaths->GetType() == JSONValue::ARRAY )
-	{
-		for( int n = 0 ; n < pPaths->GetArraySize() ; n++ )
-		{
-			AddIncludeSearchPath(pPaths->GetString(n));
-		}
-		return true;
-	}
-	return false;
-}
-
-void Project::AddIncludeSearchPath(const std::string& pPath)
-{
-	mCompileArguments.AddIncludeSearchPath(pPath,mProjectDir);
-}
-
-bool Project::AddLibrarySearchPaths(const JSONValue* pPaths)
-{
-	if( pPaths->GetType() == JSONValue::ARRAY )
-	{
-		for( int n = 0 ; n < pPaths->GetArraySize() ; n++ )
-		{
-			AddLibrarySearchPath(pPaths->GetString(n));
-		}
-		return true;
-	}
-	return false;
-}
-
-void Project::AddLibrarySearchPath(const std::string& pPath)
-{
-	mLinkerArguments.AddLibrarySearchPath(pPath,mProjectDir);
-}
-
-bool Project::AddLibraries(const JSONValue* pLibs)
-{
-	if( pLibs->GetType() == JSONValue::ARRAY )
-	{
-		for( int n = 0 ; n < pLibs->GetArraySize() ; n++ )
-		{
-			AddLibrary(pLibs->GetString(n));
-		}
-		return true;
-	}
-	return false;
-}
-
-void Project::AddLibrary(const std::string& pLib)
-{
-	mLibraryFiles.push_back("-l" + pLib);
-}
 
 
 //////////////////////////////////////////////////////////////////////////
