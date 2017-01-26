@@ -44,6 +44,7 @@ class BuildTaskStack;
 class Configuration
 {
 public:
+	Configuration(const std::string& pProjectDir,const std::string& pProjectName);// Creates a default configuration suitable for simple c++11 projects.
 	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir);
 	~Configuration();
 

@@ -79,20 +79,31 @@ bool MakeDir(const std::string& pPath)
 	return true;
 }
 
-std::string GetFileName(const std::string& pPathedFileName)
+std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension/* = false*/)
 {
-	// If it's the last char then it is just a path, so send back nothing.
-	if (pPathedFileName.back() == '/' )
-		return std::string("");
-
-		// String after the last / char is the file name.
-	std::size_t found = pPathedFileName.rfind("/");
-	if(found != std::string::npos)
+	std::string result = pPathedFileName;
+	// If / is the last char then it is just a path, so do nothing.
+	if(result.back() != '/' )
 	{
-		return pPathedFileName.substr(found+1);
+			// String after the last / char is the file name.
+		std::size_t found = result.rfind("/");
+		if(found != std::string::npos)
+		{
+			result = result.substr(found+1);
+		}
+
+		if( RemoveExtension )
+		{
+			found = result.rfind(".");
+			if(found != std::string::npos)
+			{
+				result = result.substr(0,found);
+			}
+		}
 	}
+
 	// Not found, and so is just the file name.
-	return pPathedFileName;
+	return result;
 }
 
 std::string GetCurrentWorkingDirectory()
@@ -280,6 +291,34 @@ StringVec SplitString(const std::string& pString, const char* pSeperator)
 	return res;
 }
 
+
+std::string ReplaceString(const std::string& pString,const std::string& pSearch,const std::string& pReplace)
+{
+	std::string Result = pString;
+	// Make sure we can't get stuck in an infinite loop if replace includes the search string or both are the same.
+	if( pSearch != pReplace && pSearch.find(pReplace) != pSearch.npos )
+	{
+		for( std::size_t found = Result.find(pSearch) ; found != Result.npos ; found = Result.find(pSearch) )
+		{
+			Result.erase(found,pSearch.length());
+			Result.insert(found,pReplace);
+		}
+	}
+	return Result;
+}
+
+std::string TrimWhiteSpace(const std::string &s)
+{
+	std::string::const_iterator it = s.begin();
+	while (it != s.end() && isspace(*it))
+		it++;
+
+	std::string::const_reverse_iterator rit = s.rbegin();
+	while (rit.base() != it && isspace(*rit))
+		rit++;
+
+	return std::string(it, rit.base());
+}
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild

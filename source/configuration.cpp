@@ -27,6 +27,23 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
+Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName):// Creates a default configuration suitable for simple c++11 projects.
+	mConfigName("default"),
+	mProjectDir(pProjectDir),
+	mOk(true),
+	mTargetType(TARGET_EXEC),
+	mComplier("gcc"),
+	mLinker("gcc"),
+	mArchiver("ar"),
+	mOutputPath("./bin/")
+{
+	AddIncludeSearchPath("/usr/include");
+	AddLibrary("stdc++");
+	mCompileArguments.AddArg("-o0");
+	mCompileArguments.AddArg("-std=c++11");
+	mPathedTargetName = ReplaceString(mProjectDir + mOutputPath + pProjectName,"././","./");
+}
+
 Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
@@ -145,26 +162,47 @@ Configuration::~Configuration()
 
 bool Configuration::GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
+	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
 	for( const auto& group : pSourceFiles )
 	{
+		// This is used to uniquify source files that could create the same output file. (same file name in different folders)
+		// It is important that this is updated even when files don't need to be compiled.
+		// This is done in a predictable way that will always generate the same result.
+		// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
+		StringIntMap FileUseCount;
+
 		// Make sure output path is there.
 		MakeDir(mOutputPath + group.first);
 
 		for( const auto& filename : group.second )
 		{
 			// Lets make a compile command.
-			const std::string InputFilename = mProjectDir + filename;
-			// If the source file exists then we'll continue, else show an error.
-			if( FileExists(InputFilename) )
+			// Little tidy up, replace any ././ in the path with ./
+			const std::string InputFilename = ReplaceString(mProjectDir + filename,"././","./");
+
+			// See if the file has already been seen, if not continue.
+			if( InputFilesSeen.find(InputFilename) != InputFilesSeen.end() )
+			{
+				std::cout << "Source file \'" << InputFilename << "\' is in the project twice." << std::endl;
+				return false;
+			}
+			else if( FileExists(InputFilename) )			// If the source file exists then we'll continue, else show an error.
 			{
 				// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 				// pFolder can be null. This is normally the group name.
 				std::string OutputFilename = mProjectDir + mOutputPath + group.first;
 				std::string fname = GetFileName(filename);
+				const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
 
 				if( OutputFilename.back() != '/' )
 					OutputFilename += '/';
 				OutputFilename += fname;
+				if( UseIndex > 0 )
+				{
+					OutputFilename += ".";
+					OutputFilename += UseIndex;
+					OutputFilename += ".";
+				}
 				OutputFilename += ".obj";
 
 				rOutputFiles.push_back(OutputFilename);// Need to record all the output files even if not built as we need that for the linker.

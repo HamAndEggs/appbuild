@@ -36,7 +36,7 @@ inline bool DirectoryExists(const std::string& pDirname){return DirectoryExists(
 // Returns true if all was ok. 
 bool MakeDir(const std::string& pPath);
 
-std::string GetFileName(const std::string& pPathedFileName);
+std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension = false);
 std::string GetCurrentWorkingDirectory();
 
 /**
@@ -62,19 +62,8 @@ bool CompareNoCase(const char* pA,const char* pB,int pLength=0);
 char* CopyString(const char* pString);
 inline char* CopyString(const std::string& pString){return CopyString(pString.c_str());}
 StringVec SplitString(const std::string& pString,const char* pSeperator);
-
-inline std::string TrimWhiteSpace(const std::string &s)
-{
-	std::string::const_iterator it = s.begin();
-	while (it != s.end() && isspace(*it))
-		it++;
-
-	std::string::const_reverse_iterator rit = s.rbegin();
-	while (rit.base() != it && isspace(*rit))
-		rit++;
-
-	return std::string(it, rit.base());
-}
+std::string ReplaceString(const std::string& pString,const std::string& pSearch,const std::string& pReplace);
+std::string TrimWhiteSpace(const std::string &s);
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild

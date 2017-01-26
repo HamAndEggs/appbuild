@@ -63,13 +63,14 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		if( configs )
 			ReadConfigurations(configs);
 
-		// At least one config must be defined.
 		if( mBuildConfigurations.size() == 0 )
 		{
-			std::cout << "The \'configurations\' object in this project file \'" << mPathedProjectFilename << "\' was not found, unable to continue." << std::endl;
-			// No configs, so we're done. No point continuing.
-			return;
+			std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
+			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true));
+			mBuildConfigurations[config->GetName()] = config;
 		}
+
+		assert( mBuildConfigurations.size() > 0 );
 
 		// Add the files, building the make commands.
 		// We do the files last as we now have all the information. They can be anywhere in the file, that's ok.
@@ -98,18 +99,41 @@ Project::~Project()
 
 bool Project::Build(const std::string& pActiveConfig)
 {
-	const Configuration* config = mBuildConfigurations[pActiveConfig];
-	if( config )
+	const Configuration* config = mBuildConfigurations.find(pActiveConfig)->second;
+	if( !config )
 	{
-		std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
-		StringVec OutputFiles;
-		if( CompileSource(config,OutputFiles) )
+		// If there is only one config, then just used that.
+		if( mBuildConfigurations.size() == 1 )
+			config = mBuildConfigurations.begin()->second;
+
+		if( !config )
 		{
-			return LinkTarget(config,OutputFiles);
+			if( pActiveConfig.size() > 0 )
+				std::cout << "The configuration \'" << pActiveConfig << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+			else if( mBuildConfigurations.size() < 1 )
+			{//Should not get here, but just incase, show an error.
+				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
+			}
+			else
+			{
+				std::cout << "No configuration was specified to build, your choices are:-" << std::endl;
+				for(auto conf : mBuildConfigurations )
+				{
+					std::cout << conf.first << std::endl;
+				}
+				std::cout << "Use -c [config name] to specify which to build." << std::endl;
+			}
+			return false;
 		}
-		return false;
 	}
-	std::cout << "The configuration \'" << pActiveConfig << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+
+	// We know what config to build with, lets go.
+	std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
+	StringVec OutputFiles;
+	if( CompileSource(config,OutputFiles) )
+	{
+		return LinkTarget(config,OutputFiles);
+	}
 	return false;
 }
 
