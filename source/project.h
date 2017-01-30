@@ -50,7 +50,7 @@ private:
 	void ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles);
 	void ReadConfigurations(const JSONValue* pSettings);
 
-	bool CompileSource(const Configuration* pConfig,StringVec& rOutputFiles);
+	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);
 
 

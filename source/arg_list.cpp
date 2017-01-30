@@ -61,7 +61,7 @@ void ArgList::AddIncludeSearchPath(const std::string& pPath,const std::string& p
 	}
 	else
 	{
-		std::cout << "Include Arg path not found, make sure it's a folder and not a file: " << path << std::endl;
+		std::cout << "Include Arg path not found, make sure it's a folder and not a file: " << pPath << std::endl;
 	}
 }
 
@@ -74,7 +74,7 @@ void ArgList::AddLibrarySearchPath(const std::string& pPath,const std::string& p
 	}
 	else
 	{
-		std::cout << "Library search path not found, make sure it's a folder and not a file: " << path << std::endl;
+		std::cout << "Library search path not found, make sure it's a folder and not a file: " << pPath << std::endl;
 	}
 }
 

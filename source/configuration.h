@@ -54,6 +54,7 @@ public:
 	const std::string& GetPathedTargetName()const{return mPathedTargetName;}
 	const std::string& GetName()const{return mConfigName;}
 	const std::string& GetLinker()const{return mLinker;}
+	const std::string& GetOutputPath()const{return mOutputPath;}
 	const StringVec& GetLibraryFiles()const{return mLibraryFiles;}
 	const ArgList& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 

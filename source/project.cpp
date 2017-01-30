@@ -99,8 +99,14 @@ Project::~Project()
 
 bool Project::Build(const std::string& pActiveConfig)
 {
-	const Configuration* config = mBuildConfigurations.find(pActiveConfig)->second;
-	if( !config )
+	const Configuration* config = NULL;
+
+	auto FoundConfig = mBuildConfigurations.find(pActiveConfig);
+	if( FoundConfig != mBuildConfigurations.end() )
+	{
+		config = FoundConfig->second;
+	}
+	else
 	{
 		// If there is only one config, then just used that.
 		if( mBuildConfigurations.size() == 1 )
@@ -129,11 +135,26 @@ bool Project::Build(const std::string& pActiveConfig)
 
 	// We know what config to build with, lets go.
 	std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
+
+	BuildTaskStack BuildTasks;
 	StringVec OutputFiles;
-	if( CompileSource(config,OutputFiles) )
+	if( config->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
 	{
+		if( BuildTasks.size() > 0 )
+		{
+			if( !CompileSource(config,BuildTasks) )
+			{
+				return false;
+			}
+		}
+		// Link. May just do a link if none of the source files needed to be build.
 		return LinkTarget(config,OutputFiles);
 	}
+	else
+	{
+		std::cout << "Unable to create build tasks for the configuration \'" << config->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+	}
+
 	return false;
 }
 
@@ -232,33 +253,34 @@ void Project::ReadConfigurations(const JSONValue* pSettings)
 
 
 
-bool Project::CompileSource(const Configuration* pConfig,StringVec& rOutputFiles)
+bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks)
 {
 	assert(pConfig);
 	if( !pConfig )
 		return false;
 
-	BuildTaskStack BuildTasks;
-	if( !pConfig->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,rOutputFiles) )
-	{
-		std::cout << "Unable to create build tasks for the configuration \'" << pConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
-		return false;
-	}
-
-	std::cout << "Building:"<< BuildTasks.size() <<" files with " << mNumThreads << " threads." << std::endl;
-	bool CompileOk = true;
+	assert( pBuildTasks.size() > 0 );
 
 	// I always delete the target if something needs to be build so there is no exec to run if the source has failed to build.
 	remove(pConfig->GetPathedTargetName().c_str());
 
+	std::cout << "Building: " << pBuildTasks.size() << " file" << (pBuildTasks.size()>1?"s.":".");
+	if( mNumThreads > 1 )
+		std::cout << " Num threads " << mNumThreads;
+
+	std::cout << " Output path " << pConfig->GetOutputPath();
+	std::cout << std::endl;
+	bool CompileOk = true;
+
+
 	RunningBuildTasks RunningTasks;
-	while( BuildTasks.size() > 0 || RunningTasks.size() > 0 )
+	while( pBuildTasks.size() > 0 || RunningTasks.size() > 0 )
 	{
 		// Make sure at least N tasks are running.
-		if( BuildTasks.size() > 0 && RunningTasks.size() < mNumThreads )
+		if( pBuildTasks.size() > 0 && RunningTasks.size() < mNumThreads )
 		{
-			BuildTask* task = BuildTasks.top();
-			BuildTasks.pop();
+			BuildTask* task = pBuildTasks.top();
+			pBuildTasks.pop();
 			RunningTasks.push_back(task);
 			task->Execute();
 		}
@@ -285,10 +307,10 @@ bool Project::CompileSource(const Configuration* pConfig,StringVec& rOutputFiles
 				{
 					CompileOk = false;
 					// If the compile failed, clean up the tasks that are waiting to start and then just wait for the ones in progress to finish.
-					while( !BuildTasks.empty() )
+					while( !pBuildTasks.empty() )
 					{
-						delete BuildTasks.top();
-						BuildTasks.pop();
+						delete pBuildTasks.top();
+						pBuildTasks.pop();
 					}
 				}
 
