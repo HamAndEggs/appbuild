@@ -265,8 +265,9 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 	remove(pConfig->GetPathedTargetName().c_str());
 
 	std::cout << "Building: " << pBuildTasks.size() << " file" << (pBuildTasks.size()>1?"s.":".");
-	if( mNumThreads > 1 )
-		std::cout << " Num threads " << mNumThreads;
+	const size_t ThreadCount = std::max((size_t)1,std::min(mNumThreads,pBuildTasks.size()));
+	if( ThreadCount > 1 )
+		std::cout << " Num threads " << ThreadCount;
 
 	std::cout << " Output path " << pConfig->GetOutputPath();
 	std::cout << std::endl;
@@ -277,7 +278,7 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 	while( pBuildTasks.size() > 0 || RunningTasks.size() > 0 )
 	{
 		// Make sure at least N tasks are running.
-		if( pBuildTasks.size() > 0 && RunningTasks.size() < mNumThreads )
+		if( pBuildTasks.size() > 0 && RunningTasks.size() < ThreadCount )
 		{
 			BuildTask* task = pBuildTasks.top();
 			pBuildTasks.pop();
