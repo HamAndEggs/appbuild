@@ -29,16 +29,12 @@ In time I will create proper documentation. But for now here is an example proje
         {
             "include":
             [
-                "/opt/vc/include",
-                "/opt/vc/include/interface/vcos/pthreads",
                 "../i2c/source",
                 "../spi/source",
                 "../gpio/source"
             ],
             "libpaths":
             [
-                "/usr/lib/arm-linux-gnueabihf/",
-                "/usr/lib/x86_64-linux-gnu/",
                 "/usr/include"
             ],
             "libs":

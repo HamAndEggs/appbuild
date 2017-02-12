@@ -2,9 +2,9 @@
 # This script builds and installs the appbuild app. It does a full rebuild each time.
 # Anything in the bin folder will be deleted.
 
-# Make sure bin folder is there, also make sure it is empty before starting.
 echo "Preparing build folder"
 
+# Remove the bin folder then recreate it, this ensures no crap is hanging about that could effect the outcome of the build.
 rm -drf ./bin
 mkdir -p ./bin
 
