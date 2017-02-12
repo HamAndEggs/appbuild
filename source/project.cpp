@@ -147,8 +147,19 @@ bool Project::Build(const std::string& pActiveConfig)
 				return false;
 			}
 		}
-		// Link. May just do a link if none of the source files needed to be build.
-		return LinkTarget(config,OutputFiles);
+
+		switch(config->GetTargetType())
+		{
+		case TARGET_EXEC:
+			// Link. May just do a link if none of the source files needed to be build.
+			return LinkTarget(config,OutputFiles);
+
+		case TARGET_LIBRARY:
+			return ArchiveLibrary(config,OutputFiles);
+
+		case TARGET_SHARED_LIBRARY:
+			return LinkSharedLibrary(config,OutputFiles);
+		}
 	}
 	else
 	{
@@ -336,17 +347,17 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 	if( !pConfig )
 		return false;
 
-	ArgList LinkerArguments(pConfig->GetLibrarySearchPaths());
+	ArgList Arguments(pConfig->GetLibrarySearchPaths());
 
 	// Add the object files.
-	LinkerArguments.AddArg(pOutputFiles);
+	Arguments.AddArg(pOutputFiles);
 
 	// Add the libs, must come after the object files.
-	LinkerArguments.AddArg(pConfig->GetLibraryFiles());
+	Arguments.AddArg(pConfig->GetLibraryFiles());
 
 	// And add the output.
-	LinkerArguments.AddArg("-o");
-	LinkerArguments.AddArg(pConfig->GetPathedTargetName());
+	Arguments.AddArg("-o");
+	Arguments.AddArg(pConfig->GetPathedTargetName());
 
 	std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
 
@@ -354,14 +365,58 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 	for(auto arg : check )
 		std::cout << "Args: \'" << arg <<  "\'" << std::endl;*/
 
-	std::string LinkerResults;
-	bool ok = ExecuteShellCommand(pConfig->GetLinker(),LinkerArguments,LinkerResults);
-	if( LinkerResults.size() < 1 )
-		LinkerResults = "Linked ok";
-	std::cout << LinkerResults << std::endl;
+	std::string Results;
+	bool ok = ExecuteShellCommand(pConfig->GetLinker(),Arguments,Results);
+	if( Results.size() < 1 )
+		Results = "Linked ok";
+	std::cout << Results << std::endl;
 	return ok;
 }
 
+
+bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutputFiles)
+{
+	ArgList Arguments;
+
+	// Add standard params. Maybe I should put this in the project file and have a default.
+	// As I always remove the target before the link stage I 'think' the r opt is not needed.
+	// r[ab][f][u]  - replace existing or insert new file(s) into the archive
+	// [c]          - do not warn if the library had to be created
+	// s            - act as ranlib
+	Arguments.AddArg("rcs");
+
+	// And add the output.
+	Arguments.AddArg(pConfig->GetPathedTargetName());
+
+	// Add the object files.
+	Arguments.AddArg(pOutputFiles);
+
+	std::string Results;
+	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);
+	if( Results.size() < 1 )
+		Results = "Linked ok";
+	std::cout << Results << std::endl;
+	return ok;
+}
+
+bool Project::LinkSharedLibrary(const Configuration* pConfig,const StringVec& pOutputFiles)
+{/*
+	ArgList Arguments("-shared");
+
+	// And add the output.
+	Arguments.AddArg(pConfig->GetPathedTargetName());
+
+	// Add the object files.
+	Arguments.AddArg(pOutputFiles);
+
+	std::string Results;
+	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);
+	if( Results.size() < 1 )
+		Results = "Linked ok";
+	std::cout << Results << std::endl;
+	return ok;*/
+	return false;
+}
 
 
 //////////////////////////////////////////////////////////////////////////

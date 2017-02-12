@@ -52,6 +52,8 @@ private:
 
 	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);
+	bool ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutputFiles);
+	bool LinkSharedLibrary(const Configuration* pConfig,const StringVec& pOutputFiles);
 
 
 	// Some options that are passed into the constructor.

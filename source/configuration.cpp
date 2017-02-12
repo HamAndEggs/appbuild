@@ -112,7 +112,24 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	const JSONValue* output_name = pConfig->Find("output_name");
 	if( output_name && output_name->GetType() == JSONValue::STRING )
 	{
-		mPathedTargetName = mProjectDir + mOutputPath + output_name->GetString();
+		std::string filename = output_name->GetString();
+		// Depending on the target type, we need to make sure the format is right.
+		if( mTargetType == TARGET_LIBRARY )
+		{
+			// Archive libs, by convention, should be libSOMETHING.a format.
+			// I think I should write a class that adds handy functions to std::string. Been trying to avoid doing that.
+			if( CompareNoCase(mPathedTargetName.c_str(),"lib",3) == false )
+			{
+				filename = std::string("lib") + filename;
+			}
+			// This could be a function called mPathedTargetName.ends_with(".a") .......
+			if( CompareNoCase(mPathedTargetName.c_str() + filename.size() - 2,".a") == false )
+			{
+				filename += ".a";
+			}
+		}
+
+		mPathedTargetName = mProjectDir + mOutputPath + filename;
 	}
 	else
 	{
@@ -120,7 +137,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		return; // We're done, no need to continue.
 	}
 
-	// Read optimisation / optimization settings
+	// Read optimisation / optimisation settings
 	const JSONValue* optimisation = pConfig->Find("optimisation");
 	if( !optimisation )
 		optimisation = pConfig->Find("optimization");
