@@ -103,7 +103,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	if(!pActiveConfig)return false;
 
 	// We know what config to build with, lets go.
-	std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
+	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
 
 	BuildTaskStack BuildTasks;
 	StringVec OutputFiles;
