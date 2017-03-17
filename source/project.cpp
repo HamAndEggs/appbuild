@@ -97,104 +97,100 @@ Project::~Project()
 
 }
 
-bool Project::Build(const std::string& pActiveConfig)
+bool Project::Build(const Configuration* pActiveConfig)
 {
-	const Configuration* config = NULL;
-
-	auto FoundConfig = mBuildConfigurations.find(pActiveConfig);
-	if( FoundConfig != mBuildConfigurations.end() )
-	{
-		config = FoundConfig->second;
-	}
-	else
-	{
-		// If there is only one config, then just used that.
-		if( mBuildConfigurations.size() == 1 )
-			config = mBuildConfigurations.begin()->second;
-
-		if( !config )
-		{
-			if( pActiveConfig.size() > 0 )
-				std::cout << "The configuration \'" << pActiveConfig << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
-			else if( mBuildConfigurations.size() < 1 )
-			{//Should not get here, but just incase, show an error.
-				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
-			}
-			else
-			{
-				std::cout << "No configuration was specified to build, your choices are:-" << std::endl;
-				for(auto conf : mBuildConfigurations )
-				{
-					std::cout << conf.first << std::endl;
-				}
-				std::cout << "Use -c [config name] to specify which to build." << std::endl;
-			}
-			return false;
-		}
-	}
+	assert(pActiveConfig);
+	if(!pActiveConfig)return false;
 
 	// We know what config to build with, lets go.
 	std::cout << "Compiling configuration \'" << pActiveConfig << "\'" << std::endl;
 
 	BuildTaskStack BuildTasks;
 	StringVec OutputFiles;
-	if( config->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
+	if( pActiveConfig->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
-			if( !CompileSource(config,BuildTasks) )
+			if( !CompileSource(pActiveConfig,BuildTasks) )
 			{
 				return false;
 			}
 		}
 
-		switch(config->GetTargetType())
+		switch(pActiveConfig->GetTargetType())
 		{
 		case TARGET_EXEC:
 			// Link. May just do a link if none of the source files needed to be build.
-			return LinkTarget(config,OutputFiles);
+			return LinkTarget(pActiveConfig,OutputFiles);
 
 		case TARGET_LIBRARY:
-			return ArchiveLibrary(config,OutputFiles);
+			return ArchiveLibrary(pActiveConfig,OutputFiles);
 
 		case TARGET_SHARED_LIBRARY:
-			return LinkSharedLibrary(config,OutputFiles);
+			return LinkSharedLibrary(pActiveConfig,OutputFiles);
+
+		case TARGET_NOT_SET:
+			std::cout << "Target not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+			break;
 		}
 	}
 	else
 	{
-		std::cout << "Unable to create build tasks for the configuration \'" << config->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cout << "Unable to create build tasks for the configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 	}
 
 	return false;
 }
 
-bool Project::RunOutputFile(bool pAsSudo)
+bool Project::RunOutputFile(const Configuration* pActiveConfig,bool pAsSudo)
 {
+	assert(pActiveConfig);
+	if(!pActiveConfig)return false;
+
 	std::string PathedTargetName;
-
-	BuildConfigurations::const_iterator found = mBuildConfigurations.find(mCurrentConfigName);
-	if( found == mBuildConfigurations.end() )
-		return false;// Config not found.
-
-	const Configuration* Config = found->second;
-
-	if( Config )
+	if( pActiveConfig->GetTargetType() == TARGET_EXEC )
 	{
-		if( Config->GetTargetType() == TARGET_EXEC )
-		{
-			char command[256];
-			command[0] = 0;
-			if( pAsSudo )
-				strcat(command,"sudo ");
+		char command[256];
+		command[0] = 0;
+		if( pAsSudo )
+			strcat(command,"sudo ");
 
-			strcat(command,Config->GetPathedTargetName().c_str());
+		strcat(command,pActiveConfig->GetPathedTargetName().c_str());
 
-			char* TheArgs[]={command,NULL};
-			return execvp(TheArgs[0],TheArgs) == 0;
-		}
+		char* TheArgs[]={command,NULL};
+		return execvp(TheArgs[0],TheArgs) == 0;
 	}
+
 	return false;
+}
+
+const Configuration* Project::FindConfiguration(const std::string& pConfigName)const
+{
+	auto FoundConfig = mBuildConfigurations.find(pConfigName);
+	if( FoundConfig != mBuildConfigurations.end() )
+	{
+		return FoundConfig->second;
+	}
+	else if( mBuildConfigurations.size() == 1 )// If there is only one config, then just used that.
+		return mBuildConfigurations.begin()->second;
+
+	if( pConfigName.size() > 0 )
+		std::cout << "The configuration \'" << pConfigName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+	else if( mBuildConfigurations.size() < 1 )
+	{//Should not get here, but just in case, show an error.
+		std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
+	}
+	else
+	{
+		std::cout << "No configuration was specified to build, your choices are:-" << std::endl;
+		for(auto conf : mBuildConfigurations )
+		{
+			std::cout << conf.first << std::endl;
+		}
+		std::cout << "Use -c [config name] to specify which to build." << std::endl;
+	}
+
+	return NULL;
 }
 
 void Project::ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles)

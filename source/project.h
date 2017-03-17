@@ -42,8 +42,11 @@ public:
 
 	operator bool ()const{return mOk;}
 
-	bool Build(const std::string& pActiveConfig);
-	bool RunOutputFile(bool pAsSudo);
+	bool Build(const Configuration* pActiveConfig);
+	bool RunOutputFile(const Configuration*pActiveConfig,bool pAsSudo);
+	const Configuration* FindConfiguration(const std::string& pConfigName)const;
+
+	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
 private:
 
@@ -64,7 +67,6 @@ private:
 	// This project file, fully pathed.
 	std::string mPathedProjectFilename;
 	std::string mProjectDir;
-	std::string mCurrentConfigName;
 
 	Dependencies mDependencies;
 	StringVecMap mSourceFiles;

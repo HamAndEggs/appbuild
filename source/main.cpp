@@ -73,9 +73,14 @@ int main(int argc, char *argv[])
 			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild());
 			if( TheProject )
 			{
-				if( TheProject.Build(Args.GetActiveConfig()) && Args.GetRunAfterBuild() )
+				const std::string configname = Args.GetActiveConfig();
+				const appbuild::Configuration* ActiveConfig = TheProject.FindConfiguration(configname);
+				if( ActiveConfig )
 				{
-					TheProject.RunOutputFile(Args.GetSudoRunAfterBuild());
+					if( TheProject.Build(ActiveConfig) && Args.GetRunAfterBuild() )
+					{
+						TheProject.RunOutputFile(ActiveConfig,Args.GetSudoRunAfterBuild());
+					}
 				}
 			}
 			else
@@ -184,11 +189,19 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	}
 
 	while (optind < argc)
-		mProjectFiles.push_back(argv[optind++]);
+	{
+		const std::string ProfileFile = argv[optind++];
+		if( appbuild::FileExists(ProfileFile) )
+			mProjectFiles.push_back(ProfileFile);
+		else
+		{
+			std::cout << "Error: Project file " << ProfileFile << " is not found." << std::endl << "Current working dir " << appbuild::GetCurrentWorkingDirectory() << std::endl;
+		}
+	}
 
 	if( GetRunAfterBuild() && mProjectFiles.size() > 1 )
 	{
-		std::cout << "Run after build option is only valid with one project file, ignoring";
+		std::cout << "Run after build option is only valid with one project file, ignoring" << std::endl;
 		mRunAfterBuild = false;
 	}
 }
