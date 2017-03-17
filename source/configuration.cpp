@@ -83,6 +83,8 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	if( outputpath )
 	{
 		mOutputPath = outputpath->GetString();
+		if(mOutputPath.back() != '/')
+			mOutputPath += "/";
 	}
 	else
 	{
