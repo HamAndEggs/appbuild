@@ -26,26 +26,14 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <limits.h>
-
+#include <dirent.h>
+#include <time.h>
 
 #include "misc.h"
 
+
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-void Debug(const char* fmt, ...)
-{
-#ifdef _DEBUG
-	char buf[256];
-
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, args);
-	va_end(args);
-
-	std::cout << "DEBUG: :" << buf << std::endl;
-#endif
-}
-
 bool FileExists(const char* pFileName)
 {
 	struct stat file_info;
@@ -65,16 +53,23 @@ bool DirectoryExists(const char* pDirname)
 bool MakeDir(const std::string& pPath)
 {
 	StringVec folders = SplitString(pPath,"/");
+	
 	std::string CurrentPath;
 	const char* seperator = "";
-	for(std::string path : folders )
+	for(const std::string& path : folders )
 	{
 		CurrentPath += seperator;
 		CurrentPath += path;
 		seperator = "/";
 		if(DirectoryExists(CurrentPath) == false)
-		if( mkdir(CurrentPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 )
-			return false;
+		{
+			if( mkdir(CurrentPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 )
+			{
+				std::cout << "Making folders failed for " << pPath << std::endl;
+				std::cout << "Failed AT " << path << std::endl;
+				return false;
+			}
+		}
 	}
 	return true;
 }
@@ -113,12 +108,56 @@ std::string GetCurrentWorkingDirectory()
 	return path;
 }
 
+std::string CleanPath(const std::string& pPath)
+{
+	return ReplaceString(pPath,"/./","/");
+}
+
+static bool FilterMatch(const std::string& pFilename,const std::string& pFilter)
+{
+	size_t wildcardpos=pFilter.find("*");
+	if( wildcardpos != std::string::npos )
+	{
+		if( wildcardpos > 0 )
+		{
+			wildcardpos = pFilename.find(pFilter.substr(0,wildcardpos));
+			if( wildcardpos == std::string::npos )
+				return false;
+		}
+		return pFilename.find(pFilter.substr(wildcardpos+1)) != std::string::npos;
+	}
+	return pFilename.find(pFilter) != std::string::npos;
+}
+
+
+StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
+{
+	StringVec FoundFiles;
+
+    DIR *dir = opendir(pPath.c_str()); 
+    if(dir) 
+    {
+        struct dirent *ent; 
+        while((ent = readdir(dir)) != NULL) 
+        { 
+			const std::string fname = ent->d_name;
+			if( FilterMatch(fname,pFilter) )
+				FoundFiles.push_back(fname);
+		}
+	}
+	else
+	{
+		std::cout << "FindFiles \'" << pPath << "\' was not found or is not a path." << std::endl;
+	}
+
+	return FoundFiles;
+}
 
 bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, std::string& rOutput)
 {
 	if (pCommand.size() == 0 )
 	{
-		Debug("Command parameter was zero length");
+		std::cout << "ExecuteShellCommand Command parameter was zero length" << std::endl;
 		return false;
 	}
 
@@ -142,7 +181,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		Debug("fork failure");
+		std::cout << "ExecuteShellCommand Fork failed" << std::endl;
 		return false;
 	}
 
@@ -177,8 +216,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 		// This replaces the current process so no need to clearn up the memory leaks before here. ;)
 		execvp(TheArgs[0], TheArgs);
 
-		Debug("execl() failure!\n\n");
-		Debug("This print is after execl() and should not have been executed if execl were successful! \n\n");
+		std::cout << "ExecuteShellCommand execl() failure!" << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;
 		_exit(1);
 	}
 
@@ -208,18 +246,18 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	bool Worked = false;
 	if( wait(&status) == -1 )
 	{
-		Debug("Failed to wait for child process");
+		std::cout << "Failed to wait for child process." << std::endl;
 	}
 	else
 	{
 		if(WIFEXITED(status) && WEXITSTATUS(status) != 0)//did the child terminate normally?
 		{
-			Debug("%ld exited with return code %d\n",(long)pid, WEXITSTATUS(status));
+//			Debug("%ld exited with return code %d\n",(long)pid, WEXITSTATUS(status));
 			Worked = WEXITSTATUS(status) == 0;
 		}
 		else if (WIFSIGNALED(status))// was the child terminated by a signal?
 		{
-			Debug("%ld terminated because it didn't catch signal number %d\n",(long)pid, WTERMSIG(status));
+//			Debug("%ld terminated because it didn't catch signal number %d\n",(long)pid, WTERMSIG(status));
 		}
 		else
 		{// Get here, then all is ok.
@@ -318,6 +356,21 @@ std::string TrimWhiteSpace(const std::string &s)
 		rit++;
 
 	return std::string(it, rit.base());
+}
+
+
+std::string GetTimeString(const char* pFormat)
+{
+	assert(pFormat);
+	if(!pFormat)
+		pFormat = "%d-%m-%Y %X";
+
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[128];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), pFormat, &tstruct);
+    return buf;
 }
 
 //////////////////////////////////////////////////////////////////////////

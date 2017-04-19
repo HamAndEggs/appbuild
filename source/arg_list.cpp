@@ -94,6 +94,8 @@ const std::string ArgList::AddPathArg(const std::string& Opt,const std::string& 
 			if( ArgPath.back() != '/' )
 				ArgPath += "/";
 
+			ArgPath = CleanPath(ArgPath);
+
 			AddArg(Opt + ArgPath);
 			return ArgPath;
 		}

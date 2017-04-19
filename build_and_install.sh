@@ -11,14 +11,20 @@ mkdir -p ./bin
 # Compile the cpp code.
 echo "Compiling"
 
-echo "build_task.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/build_task.cpp -o bin/build_task.o
+echo "project.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/project.cpp -o bin/project.o
 
 echo "dependencies.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/dependencies.cpp -o bin/dependencies.o
 
-echo "arg_list.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/arg_list.cpp -o bin/arg_list.o
+echo "configuration.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/configuration.cpp -o bin/configuration.o
+
+echo "json.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json.cpp -o bin/json.o
+
+echo "build_task.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/build_task.cpp -o bin/build_task.o
 
 echo "misc.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/misc.cpp -o bin/misc.o
@@ -26,14 +32,8 @@ gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/misc.cpp -o bin/misc.o
 echo "main.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/main.cpp -o bin/main.o
 
-echo "project.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/project.cpp -o bin/project.o
-
-echo "json.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json.cpp -o bin/json.o
-
-echo "configuration.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/configuration.cpp -o bin/configuration.o
+echo "arg_list.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/arg_list.cpp -o bin/arg_list.o
 
 echo "Linking"
 gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/json.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild

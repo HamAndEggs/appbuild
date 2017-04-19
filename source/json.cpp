@@ -33,6 +33,7 @@ public:
 	virtual ~JSONValuePrivate();
 
 	virtual Type GetType()const{return theType;}
+	virtual Type GetType(int pIndex)const;
 
 	void Read(char* json,size_t& pos,size_t size);
 	virtual int GetArraySize()const{return data.Array != NULL ? data.Array->size() : 0;}
@@ -208,6 +209,16 @@ void JSONValuePrivate::Read(char* json,size_t& pos,size_t size)
 }
 
 // pIndex can only be non zero for array types. And then the element in the array has to match the type requested. Some types maybe interchangable. And int can be read as a float.
+JSONValue::Type JSONValuePrivate::GetType(int pIndex)const
+{
+	assert( GetType() == STRING );
+	if( GetType() == ARRAY )
+	{
+		return (*data.Array)[pIndex]->GetType();
+	}
+	return GetType();
+}
+
 const char* JSONValuePrivate::GetString(int pIndex)const
 {
 	if( GetType() == ARRAY )

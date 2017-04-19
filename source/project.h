@@ -51,7 +51,7 @@ public:
 private:
 
 	void ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles);
-	void ReadConfigurations(const JSONValue* pSettings);
+	bool ReadConfigurations(const JSONValue* pSettings);
 
 	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);
@@ -72,7 +72,15 @@ private:
 	StringVecMap mSourceFiles;
 	BuildConfigurations mBuildConfigurations;
 
+	ArgList mDependencyLibrarySearchPaths;
+	StringVec mDependencyLibraryFiles;
+
+
 	bool mOk;	// Project loaded ok.
+
+	// Not a fan of statics, but this is a good use case.
+	// I use it to trap dependacy loops.
+	static StringSet sLoadedProjects;
 
 };
 
