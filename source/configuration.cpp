@@ -42,6 +42,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
 	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
 	AddDefine("APP_BUILD_TIME=\"" + GetTimeString("%X") + "\"");
+
 	mCompileArguments.AddArg("-o0");
 	mCompileArguments.AddArg("-std=c++11");
 
