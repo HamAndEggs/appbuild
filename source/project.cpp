@@ -29,13 +29,15 @@
 #include "arg_list.h"
 
 namespace appbuild{
+StringSet Project::sLoadedProjects;
+
 //////////////////////////////////////////////////////////////////////////
 Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mVerboseOutput(pVerboseOutput),
 		mRebuild(pRebuild),
 		mDependencies(pFilename),
-		mOk(true)
+		mOk(false)
 {
 	assert( pNumThreads > 0 );
 
@@ -51,17 +53,31 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 
 	// Build pathed filename for the project file.
 	mPathedProjectFilename = pFilename;
-	Debug("Reading project file %s",mPathedProjectFilename.c_str());
+	if( pVerboseOutput )
+		std::cout << "Reading project file " << mPathedProjectFilename << std::endl;
 
 	// Now build our project object.
 	std::ifstream ProjectFile(mPathedProjectFilename);
 	Json ProjectJson(ProjectFile);
     if( ProjectJson )
     {
+		// Is the project file already loaded, if so then there is a dependancy loop, we have to fail else will compile for ever.
+		if( sLoadedProjects.find(mPathedProjectFilename) != sLoadedProjects.end() )
+		{
+			std::cout << "Dependancy loop detected, the project file \'" << mPathedProjectFilename << "\' has already been referenced as a dependancy." << std::endl;
+			return;
+		}
+
+		// Record this file that we are loaded so we know it is loaded.
+		sLoadedProjects.insert(mPathedProjectFilename);
+
 		// Read the configs.
 		const JSONValue* configs = ProjectJson.Find("configurations");
 		if( configs )
-			ReadConfigurations(configs);
+		{
+			if( !ReadConfigurations(configs) )
+				return;
+		}
 
 		if( mBuildConfigurations.size() == 0 )
 		{
@@ -86,21 +102,69 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		else
 		{
 			std::cout << "The \'groups\' object in this project file \'" << mPathedProjectFilename << "\' is not found" << std::endl;
+			return;
 		}
-
     }
+	else
+	{
+		std::cout << "The project file \'" << mPathedProjectFilename << "\' could not be loaded" << std::endl;
+		return;
+	}
 
+	// Get here all is ok.
+	mOk = true;
 }
 
 Project::~Project()
 {
-
+	// Done with this, can forget it now.
+	sLoadedProjects.erase(mPathedProjectFilename);
 }
 
 bool Project::Build(const Configuration* pActiveConfig)
 {
 	assert(pActiveConfig);
 	if(!pActiveConfig)return false;
+
+	// See if there are any dependant projects that need to be built first.
+	const StringMap& DependantProjects = pActiveConfig->GetDependantProjects();
+	for( auto& proj : DependantProjects )
+	{
+		const std::string ProjectFile = proj.first;
+		std::cout << "Checking dependency \'" << ProjectFile << "\'" << std::endl;
+
+		if( !FileExists(ProjectFile) )
+		{
+			std::cout << "Error: Project file " << ProjectFile << " is not found." << std::endl << "Current working dir " << GetCurrentWorkingDirectory() << std::endl;
+			return false;
+		}
+
+		Project TheProject(ProjectFile,mNumThreads,mVerboseOutput,mRebuild);
+		if( TheProject )
+		{
+			std::string configname = proj.second;
+			if( configname.empty() )
+				configname = pActiveConfig->GetName();
+
+			const appbuild::Configuration* DepConfig = TheProject.FindConfiguration(configname);
+			if( !DepConfig || TheProject.Build(DepConfig) == false )
+			{
+				return false;
+			}
+
+			// That worked, lets add it's output file to our input libs.
+			if( DepConfig->GetTargetType() == TARGET_LIBRARY )
+			{
+				mDependencyLibraryFiles.push_back("-l" + DepConfig->GetOutputName());
+				mDependencyLibrarySearchPaths.AddLibrarySearchPath(DepConfig->GetOutputPath(),TheProject.mProjectDir);
+			}
+		}
+		else
+		{
+			std::cout << "There was an error in the project file \'" << ProjectFile << "\'" << std::endl;
+			return false;
+		}		
+	}
 
 	// We know what config to build with, lets go.
 	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
@@ -225,7 +289,7 @@ void Project::ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles)
 	}
 }
 
-void Project::ReadConfigurations(const JSONValue* pSettings)
+bool Project::ReadConfigurations(const JSONValue* pSettings)
 {
 	assert(pSettings);
 
@@ -237,25 +301,30 @@ void Project::ReadConfigurations(const JSONValue* pSettings)
 			if( configs.second.size() > 1 )
 			{
 				std::cout << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
+				return false;
 			}
 			else if( configs.second.size() < 1 )
 			{
 				std::cout << "Configuration \'"<< name << "\' has no body to the object, check syntax. Error in project " << mPathedProjectFilename << std::endl;
+				return false;
 			}
 			else
 			{
 				const JSONValue* Obj = configs.second[0];
 				if(Obj)
 				{
-					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir);
+					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir,mVerboseOutput);
 				}
 			}
 		}
 		else
 		{
 			std::cout << "Malformed configuration in project without a name in project" << mPathedProjectFilename << std::endl;
+			return false;
 		}
 	}
+	
+	return true;
 }
 
 
@@ -344,12 +413,14 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 		return false;
 
 	ArgList Arguments(pConfig->GetLibrarySearchPaths());
+	Arguments.AddArg(mDependencyLibrarySearchPaths);
 
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
 
 	// Add the libs, must come after the object files.
 	Arguments.AddArg(pConfig->GetLibraryFiles());
+	Arguments.AddArg(mDependencyLibraryFiles);
 
 	// And add the output.
 	Arguments.AddArg("-o");
@@ -357,9 +428,12 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 
 	std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
 
-/*	const StringVec& check = LinkerArguments;
-	for(auto arg : check )
-		std::cout << "Args: \'" << arg <<  "\'" << std::endl;*/
+	if( mVerboseOutput )
+	{
+		const StringVec& check = Arguments;
+		for(auto arg : check )
+			std::cout << "Args: \'" << arg <<  "\'" << std::endl << std::endl;
+	}
 
 	std::string Results;
 	bool ok = ExecuteShellCommand(pConfig->GetLinker(),Arguments,Results);

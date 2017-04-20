@@ -45,7 +45,7 @@ class Configuration
 {
 public:
 	Configuration(const std::string& pProjectDir,const std::string& pProjectName);// Creates a default configuration suitable for simple c++11 projects.
-	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir);
+	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput);
 	~Configuration();
 
 	bool GetOk()const{return mOk;}
@@ -56,8 +56,10 @@ public:
 	const std::string& GetLinker()const{return mLinker;}
 	const std::string& GetArchiver()const{return mArchiver;}
 	const std::string& GetOutputPath()const{return mOutputPath;}
+	const std::string& GetOutputName()const{return mOutputName;}
 	const StringVec& GetLibraryFiles()const{return mLibraryFiles;}
 	const ArgList& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
+	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
 
 	bool GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
@@ -73,6 +75,11 @@ private:
 	bool AddLibraries(const JSONValue* pLibs);
 	void AddLibrary(const std::string& pLib);
 
+	bool AddDefines(const JSONValue* pDefines);
+	void AddDefine(const std::string& pDefine);
+
+	bool AddDependantProjects(const JSONValue* pLibs);
+
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
 
@@ -84,10 +91,17 @@ private:
 	std::string mArchiver;
 	std::string mPathedTargetName;	// This is the final output fully pathed filename.
 	std::string mOutputPath;
+	std::string mOutputName; //The string read from output_name
 
 	ArgList mCompileArguments;
 	ArgList mLibrarySearchPaths;
 	StringVec mLibraryFiles;
+
+	// The projects that this project needs.
+	// Will check and build them if they need to be also will add their output filenames to the this projects.
+	// Not sure about adding source folders into the include folders.
+	// The key is the path to the project file, the value is the configuration in that project we're dependant on.'
+	StringMap mDependantProjects;
 };
 
 class BuildConfigurations : public std::map<std::string,const Configuration*>

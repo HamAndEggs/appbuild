@@ -39,12 +39,17 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 {
 	AddIncludeSearchPath("/usr/include");
 	AddLibrary("stdc++");
+	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
+	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
+	AddDefine("APP_BUILD_TIME=\"" + GetTimeString("%X") + "\"");
 	mCompileArguments.AddArg("-o0");
 	mCompileArguments.AddArg("-std=c++11");
-	mPathedTargetName = ReplaceString(mProjectDir + mOutputPath + pProjectName,"././","./");
+
+	
+	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + pProjectName);
 }
 
-Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir):
+Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
 		mOk(false),
@@ -52,8 +57,12 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mComplier("gcc"),
 		mLinker("gcc"),
 		mArchiver("ar"),
-		mOutputPath("./bin/" + pConfigName + "/")
+		mOutputPath(pProjectDir + "bin/" + pConfigName + "/")
 {
+	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
+	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
+	AddDefine("APP_BUILD_TIME=\"" + GetTimeString("%X") + "\"");
+
 	const JSONValue* includes = pConfig->Find("include");
 	if( includes && AddIncludeSearchPaths(includes) == false )
 	{
@@ -72,10 +81,36 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	// These go into a different place for now as they have to be adde to the args after the object files have been.
 	// This is because of the way linkers work.
 	const JSONValue* libraries = pConfig->Find("libs");
-	if( libraries && AddLibraries(libraries) == false )
+	if( libraries )
 	{
-		std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
-		return; // We're done, no need to continue.
+		if( AddLibraries(libraries) == false  )
+		{
+			std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			return; // We're done, no need to continue.
+		}
+	}
+	else
+	{
+		if( pVerboseOutput )
+			std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding stdc++ for a default." << std::endl;
+		
+		AddLibrary("stdc++");
+	}
+
+	const JSONValue* defines = pConfig->Find("define");
+	if( defines )
+	{
+		if( AddDefines(defines) == false  )
+		{
+			std::cout << "The \'defines\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			return; // We're done, no need to continue.
+		}
+	}	
+	else
+	{
+		if( pVerboseOutput )
+			std::cout << "The \'define\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
+		AddDefine("NDEBUG");	
 	}
 
 	// Look for the output folder name. If not found default to bin.
@@ -86,9 +121,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 	}
-	else
+	else if(pVerboseOutput)
 	{
-		std::cout << "The \'output_path\' object in the \'configuration\' object of this project file \'" << pPathedProjectFilename << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
+		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' object of the project file \'" << pPathedProjectFilename << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
 	}
 
 	// Find out what they wish to build.
@@ -115,6 +150,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	if( output_name && output_name->GetType() == JSONValue::STRING )
 	{
 		std::string filename = output_name->GetString();
+		mOutputName = filename;
 		// Depending on the target type, we need to make sure the format is right.
 		if( mTargetType == TARGET_LIBRARY )
 		{
@@ -154,10 +190,6 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		{
 			level = optimisation->GetString();
 		}
-		else
-		{
-			std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, how could I know the destination filename?" << std::endl;
-		}
 		mCompileArguments.AddArg("-o" + level);
 	}
 
@@ -169,6 +201,15 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		std::string level = standard->GetString();
 		mCompileArguments.AddArg("-std=" + level);
 	}
+
+	// See if there are any projects we are not dependent on.
+	const JSONValue* dependencies = pConfig->Find("dependencies");
+	if( dependencies && AddDependantProjects(dependencies) == false )
+	{
+		std::cout << "The \'dependencies\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+		return; // We're done, no need to continue.
+	}
+
 
 	// If we get here, then all is ok.
 	mOk = true;
@@ -196,8 +237,7 @@ bool Configuration::GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuild
 		for( const auto& filename : group.second )
 		{
 			// Lets make a compile command.
-			// Little tidy up, replace any ././ in the path with ./
-			const std::string InputFilename = ReplaceString(mProjectDir + filename,"././","./");
+			const std::string InputFilename = CleanPath(mProjectDir + filename);
 
 			// See if the file has already been seen, if not continue.
 			if( InputFilesSeen.find(InputFilename) != InputFilesSeen.end() )
@@ -209,7 +249,7 @@ bool Configuration::GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuild
 			{
 				// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 				// pFolder can be null. This is normally the group name.
-				std::string OutputFilename = mProjectDir + mOutputPath + group.first;
+				std::string OutputFilename = CleanPath(mProjectDir + mOutputPath + group.first);
 				std::string fname = GetFileName(filename);
 				const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
 
@@ -304,6 +344,54 @@ void Configuration::AddLibrary(const std::string& pLib)
 {
 	mLibraryFiles.push_back("-l" + pLib);
 }
+
+bool Configuration::AddDefines(const JSONValue* pDefines)
+{
+	if( pDefines->GetType() == JSONValue::ARRAY )
+	{
+		for( int n = 0 ; n < pDefines->GetArraySize() ; n++ )
+		{
+			AddDefine(pDefines->GetString(n));
+		}
+		return true;
+	}
+	return false;
+}
+
+void Configuration::AddDefine(const std::string& pDefine)
+{
+	mCompileArguments.AddArg("-D" + pDefine);
+}
+
+bool Configuration::AddDependantProjects(const JSONValue* pLibs)
+{
+	if( pLibs->GetType() == JSONValue::ARRAY )
+	{
+		for( int n = 0 ; n < pLibs->GetArraySize() ; n++ )
+		{
+			if( pLibs->GetType(n) == JSONValue::STRING )
+			{
+				mDependantProjects[pLibs->GetString(n)] = "";// config to use will be resolved when the build starts
+			}
+			else if( pLibs->GetType(n) == JSONValue::OBJECT )
+			{
+				const JSONObject* projects = pLibs->GetObject(n);
+				if(projects)
+				{
+					const ValueMap& children = projects->GetChildren();
+					for( auto& proj : children )
+					{
+						for( auto& obj : proj.second )
+							mDependantProjects[proj.first] = obj->GetString();
+					}
+				}
+			}
+		}
+		return true;
+	}
+	return false;	
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

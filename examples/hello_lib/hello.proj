@@ -3,6 +3,11 @@
 	{
 		"release":
 		{
+			"define":
+			[
+				"RELEASE_BUILD",
+				"A_NUMBER_DEF=7"
+			],
 			"target":"library",
 			"output_name":"hello",
 			"optimisation":2,
@@ -10,6 +15,11 @@
 		},
 		"debug":
 		{
+			"define":
+			[
+				"DEBUG_BUILD",
+				"A_NUMBER_DEF=2"
+			],
 			"target":"library",
 			"output_name":"hello_dbg",
 			"optimisation":0,

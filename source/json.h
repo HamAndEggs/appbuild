@@ -47,8 +47,9 @@ public:
 	JSONValue(){};
 	virtual ~JSONValue(){};
 
-	virtual Type GetType()const = 0;
 	virtual int GetArraySize()const = 0;
+	virtual Type GetType()const = 0;// the type of this
+	virtual Type GetType(int pIndex)const = 0;// the type of the element in the array
 
 	// pIndex can only be non zero for array types. And then the element in the array has to match the type requested. Some types maybe interchangable. And int can be read as a float.
 	virtual  const char* GetString(int pIndex = 0)const = 0;

@@ -199,6 +199,25 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 		}
 	}
 
+	if( mProjectFiles.size() == 0 )
+	{
+		// If no project files specified and not asking for help options, then auto find a proj file.
+		// If only one is found use that, elso don't use any as it maybe not what they intended.
+		const StringVec ProjFiles = appbuild::FindFiles(appbuild::GetCurrentWorkingDirectory(),"*.proj");
+		if( ProjFiles.size() == 1 )
+		{
+			mProjectFiles = ProjFiles;
+			if( mVerboseOutput )
+				std::cout << "No project file specified, using \'" << mProjectFiles.front() << "\'"  << std::endl;
+		}
+		else if( ProjFiles.size() > 1 )
+		{
+			std::cout << "No project file specified, more than one in current working folder, can not continue. Please specify which projects to build." << std::endl;
+			for(auto f : ProjFiles )
+				std::cout << "    " << f << std::endl;
+		}
+	}
+
 	if( GetRunAfterBuild() && mProjectFiles.size() > 1 )
 	{
 		std::cout << "Run after build option is only valid with one project file, ignoring" << std::endl;

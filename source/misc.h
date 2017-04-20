@@ -24,8 +24,6 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-void Debug(const char* pMessage,...);	// debug messages, only written in debug build. Some extra text to make it show up.
-
 bool FileExists(const char* pFilename);	//Will return false if file name is a path! We want to know if the file exists!
 bool DirectoryExists(const char* pDirname);	//Will return false if name name is a file! We want to know if the dir exists!
 
@@ -38,6 +36,8 @@ bool MakeDir(const std::string& pPath);
 
 std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension = false);
 std::string GetCurrentWorkingDirectory();
+std::string CleanPath(const std::string& pPath);
+StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**
  * pCWD can be null.
@@ -64,6 +64,10 @@ inline char* CopyString(const std::string& pString){return CopyString(pString.c_
 StringVec SplitString(const std::string& pString,const char* pSeperator);
 std::string ReplaceString(const std::string& pString,const std::string& pSearch,const std::string& pReplace);
 std::string TrimWhiteSpace(const std::string &s);
+ 
+// Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+// for more information about date/time format
+std::string GetTimeString(const char* pFormat = "%d-%m-%Y %X");
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild
