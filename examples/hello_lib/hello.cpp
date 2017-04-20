@@ -6,6 +6,7 @@ void HelloClass::SayHello()
 	std::cout << "Build date and time " << APP_BUILD_DATE_TIME << std::endl;
 	std::cout << "Build date " << APP_BUILD_DATE << std::endl;
 	std::cout << "Build time " << APP_BUILD_TIME << std::endl;
+
 	std::cout << "HelloClass says, \"Hello world\"" << std::endl;
 
 	#ifdef RELEASE_BUILD
