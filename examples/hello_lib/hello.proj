@@ -1,0 +1,26 @@
+{
+	"configurations":
+	{
+		"release":
+		{
+			"target":"library",
+			"output_name":"hello",
+			"optimisation":2,
+			"standard":"c++11"
+		},
+		"debug":
+		{
+			"target":"library",
+			"output_name":"hello_dbg",
+			"optimisation":0,
+			"standard":"c++11"
+		}
+	},
+	"source_files":
+	{
+		"source":
+		[
+			"./hello.cpp"			
+		]
+	}
+}

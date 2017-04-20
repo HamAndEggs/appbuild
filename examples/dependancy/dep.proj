@@ -1,0 +1,43 @@
+{
+	"configurations":
+	{
+		"release":
+		{
+			"dependencies":
+			[
+				"../hello_lib/hello.proj"
+			],
+			"include":
+			[
+				"../hello_lib"
+            ],
+			"target":"executable",
+			"output_name":"dependancy",
+			"optimisation":2,
+			"standard":"c++11"
+		},
+		"debug":
+		{
+			"dependencies":
+			[
+				"../hello_lib/hello.proj"
+			],
+			"include":
+			[
+				"../hello_lib"
+            ],
+			"target":"executable",
+			"output_name":"dependancy_dbg",
+			"optimisation":0,
+			"standard":"c++11"
+		}
+	},
+    "source_files":
+	{
+		"source":
+		[
+			"./main.cpp"
+			
+		]
+	}
+}
