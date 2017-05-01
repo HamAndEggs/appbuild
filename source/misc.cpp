@@ -101,6 +101,19 @@ std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension/
 	return result;
 }
 
+std::string GetPath(const std::string& pPathedFileName)
+{
+	// String after the last / char is the file name.
+	std::size_t found = pPathedFileName.find_last_of("/");
+	if(found != std::string::npos)
+	{
+		std::string result = pPathedFileName.substr(0,found);
+		result += '/';
+		return CleanPath(result);
+	} 
+	return "";
+}
+
 std::string GetCurrentWorkingDirectory()
 {
 	char buf[PATH_MAX];

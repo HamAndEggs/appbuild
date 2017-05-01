@@ -35,6 +35,7 @@ inline bool DirectoryExists(const std::string& pDirname){return DirectoryExists(
 bool MakeDir(const std::string& pPath);
 
 std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension = false);
+std::string GetPath(const std::string& pPathedFileName);
 std::string GetCurrentWorkingDirectory();
 std::string CleanPath(const std::string& pPath);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");

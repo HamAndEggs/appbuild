@@ -32,6 +32,13 @@ Dependencies::Dependencies(const std::string& pProjectFile)
 
 bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::string& pObjectFile,const StringVec& pIncludePaths)
 {
+	// Add the path of the source file we're checking to the include paths. Has to be done in a way so that we don't pollute the passed in paths. Hence the copy and the passing in of the params as const. Stops bugs!!!!
+	StringVec IncludePaths = pIncludePaths;
+	const std::string srcPath = GetPath(pSourceFile);
+	if( !srcPath.empty() )
+		IncludePaths.push_back(srcPath);
+
+
 	// Everything works from the object file's modification date. If any of the dependencies are younger than the object file then the source file needs building.
 	timespec ObjFileTime;
 
@@ -49,7 +56,7 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 		if( FileYoungerThanObjectFile(mProjectFileTime,ObjFileTime) )
 			return true;
 
-		return CheckDependencies(pSourceFile,ObjFileTime,pIncludePaths);
+		return CheckDependencies(pSourceFile,ObjFileTime,IncludePaths);
 	}
 
 	// Obj not there, so build it.
