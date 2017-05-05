@@ -20,6 +20,7 @@
 #include "build_task.h"
 #include "dependencies.h"
 #include "configuration.h"
+#include "source_files.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds all the information about the project file.
@@ -50,7 +51,6 @@ public:
 
 private:
 
-	void ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles);
 	bool ReadConfigurations(const JSONValue* pSettings);
 
 	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
@@ -65,11 +65,11 @@ private:
 	const bool mRebuild;
 
 	// This project file, fully pathed.
-	std::string mPathedProjectFilename;
-	std::string mProjectDir;
+	const std::string mPathedProjectFilename;
+	const std::string mProjectDir;
 
 	Dependencies mDependencies;
-	StringVecMap mSourceFiles;
+	SourceFiles mSourceFiles;
 	BuildConfigurations mBuildConfigurations;
 
 	ArgList mDependencyLibrarySearchPaths;

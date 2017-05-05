@@ -1,0 +1,18 @@
+
+{
+	"source_files":
+	{
+		"source":
+		[
+			"./source/arg_list.cpp",
+			"./source/build_task.cpp",
+			"./source/configuration.cpp",
+			"./source/dependencies.cpp",
+			"./source/json.cpp",			
+			"./source/main.cpp",
+			"./source/misc.cpp",
+			"./source/project.cpp",
+			"./source/source_files.cpp",
+		]
+	}
+}

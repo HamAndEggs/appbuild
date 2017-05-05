@@ -20,6 +20,9 @@ gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/dependencies.cpp -o bin/de
 echo "configuration.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/configuration.cpp -o bin/configuration.o
 
+echo "source_files.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/source_files.cpp -o bin/source_files.o
+
 echo "json.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json.cpp -o bin/json.o
 
@@ -36,7 +39,7 @@ echo "arg_list.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/arg_list.cpp -o bin/arg_list.o
 
 echo "Linking"
-gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/json.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"

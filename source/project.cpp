@@ -36,23 +36,13 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mVerboseOutput(pVerboseOutput),
 		mRebuild(pRebuild),
+		mPathedProjectFilename(pFilename),
+		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
 
-	// Get the absolute path to the project file, change to that directory and build.
-	// This is because the project file is written expecting that all paths are relative to it's location.
-	char *projectfile = CopyString(pFilename);
-	mProjectDir = dirname(projectfile);
-	delete[]projectfile;
-	projectfile = NULL;
-
-	if(mProjectDir.back() != '/')
-		mProjectDir += "/";
-
-	// Build pathed filename for the project file.
-	mPathedProjectFilename = pFilename;
 	if( pVerboseOutput )
 		std::cout << "Reading project file " << mPathedProjectFilename << std::endl;
 
@@ -92,12 +82,8 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		// We do the files last as we now have all the information. They can be anywhere in the file, that's ok.
 		const JSONValue* groups = ProjectJson.Find("source_files");
 		if( groups )
-		{// Instead of looking for specific items here we'll enumerate them.
-			for( auto group : groups->GetObject()->GetChildren() )
-			{// Can be any number of json elements with the same name at the same level. So we have a vector.
-				for(auto x : group.second)
-					ReadSourceFiles(group.first,x);
-			}
+		{
+			mSourceFiles.Read(groups,mPathedProjectFilename);
 		}
 		else
 		{
@@ -257,37 +243,6 @@ const Configuration* Project::FindConfiguration(const std::string& pConfigName)c
 	return NULL;
 }
 
-void Project::ReadSourceFiles(const char* pGroupName,const JSONValue* pFiles)
-{
-	if(pFiles && pGroupName)// Can be null.
-	{
-		if( pFiles->GetType() != JSONValue::ARRAY )
-		{
-			std::cout << "The \'files\' object in the \'group\' object of this project file \'" << mPathedProjectFilename << "\' is not an array" << std::endl;
-			mOk = false;
-		}
-		else
-		{
-			for( int n = 0 ; n < pFiles->GetArraySize() ; n++ )
-			{
-				const char* filename = pFiles->GetString(n);
-				if(filename)
-				{
-					const std::string InputFilename = mProjectDir + filename;
-					// If the source file exists then we'll continue, else show an error.
-					if( FileExists(InputFilename) )
-					{
-						mSourceFiles[pGroupName].push_back(filename);
-					}
-					else
-					{
-						std::cout << "Input filename \'" << filename << "\' in group \'" << pGroupName << "\' not found at \'" << InputFilename << "\'" << std::endl;
-					}
-				}
-			}
-		}
-	}
-}
 
 bool Project::ReadConfigurations(const JSONValue* pSettings)
 {
