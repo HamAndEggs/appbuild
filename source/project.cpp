@@ -78,18 +78,8 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 
 		assert( mBuildConfigurations.size() > 0 );
 
-		// Add the files, building the make commands.
-		// We do the files last as we now have all the information. They can be anywhere in the file, that's ok.
-		const JSONValue* groups = ProjectJson.Find("source_files");
-		if( groups )
-		{
-			mSourceFiles.Read(groups,mPathedProjectFilename);
-		}
-		else
-		{
-			std::cout << "The \'groups\' object in this project file \'" << mPathedProjectFilename << "\' is not found" << std::endl;
-			return;
-		}
+		// Add the source files
+		mSourceFiles.Read(ProjectJson.Find("source_files"),mPathedProjectFilename);
     }
 	else
 	{

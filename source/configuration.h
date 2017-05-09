@@ -23,6 +23,7 @@
 #include "string_types.h"
 #include "json.h"
 #include "arg_list.h"
+#include "source_files.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,10 +62,10 @@ public:
 	const ArgList& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-
-	bool GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const StringSetMap& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 private:
+	bool GetBuildTasks(const StringSetMap::value_type& pGroupSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddIncludeSearchPaths(const JSONValue* pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);
@@ -96,6 +97,7 @@ private:
 	ArgList mCompileArguments;
 	ArgList mLibrarySearchPaths;
 	StringVec mLibraryFiles;
+	SourceFiles mSourceFiles; // Source files that are build just for a specific configuration. Allows targeting of different platforms.
 
 	// The projects that this project needs.
 	// Will check and build them if they need to be also will add their output filenames to the this projects.

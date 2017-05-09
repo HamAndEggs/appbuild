@@ -37,18 +37,20 @@ SourceFiles::SourceFiles(const SourceFiles& pOther)
 
 const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
-	mSourceFiles = mSourceFiles;
+	mSourceFiles = pOther.mSourceFiles;
 	return pOther;
 }
 
 bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename)
 {
-	assert( pSourceElement );
-	// Instead of looking for specific items here we'll enumerate them.
-	for( auto group : pSourceElement->GetObject()->GetChildren() )
-	{// Can be any number of json elements with the same name at the same level. So we have a vector.
-		for(auto x : group.second)
-			ReadGroupSourceFiles(group.first,x,pPathedProjectFilename);
+	if( pSourceElement )
+	{
+		// Instead of looking for specific items here we'll enumerate them.
+		for( auto group : pSourceElement->GetObject()->GetChildren() )
+		{// Can be any number of json elements with the same name at the same level. So we have a vector.
+			for(auto x : group.second)
+				ReadGroupSourceFiles(group.first,x,pPathedProjectFilename);
+		}
 	}
 	return true;
 }
@@ -73,7 +75,7 @@ void SourceFiles::ReadGroupSourceFiles(const char* pGroupName,const JSONValue* p
 					// If the source file exists then we'll continue, else show an error.
 					if( FileExists(InputFilename) )
 					{
-						mSourceFiles[pGroupName].push_back(filename);
+						mSourceFiles[pGroupName].insert(filename);
 					}
 					else
 					{

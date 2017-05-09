@@ -19,7 +19,6 @@
 
 #include "build_task.h"
 #include "dependencies.h"
-#include "configuration.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -29,18 +28,23 @@ class JSONValue;
 class SourceFiles
 {
 public:
+    typedef StringSetMap::const_iterator const_iterator;
+
 	SourceFiles();
 	SourceFiles(const SourceFiles& pOther);
 
 	const SourceFiles& operator = (const SourceFiles& pOther);
-    operator const StringVecMap&(){return mSourceFiles;}
+
+    operator const StringSetMap&(){return mSourceFiles;}
+    const_iterator begin()const{return mSourceFiles.begin();}
+    const_iterator end()const{return mSourceFiles.end();}
 
 	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
 
 private:
 	void ReadGroupSourceFiles(const char* pGroupName,const JSONValue* pFiles,const std::string& pPathedProjectFilename);
 
-	StringVecMap mSourceFiles;
+	StringSetMap mSourceFiles;
 
 
 };

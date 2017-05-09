@@ -211,6 +211,8 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		return; // We're done, no need to continue.
 	}
 
+	// Add configuration specific source files
+	mSourceFiles.Read(pConfig->Find("source_files"),pPathedProjectFilename);
 
 	// If we get here, then all is ok.
 	mOk = true;
@@ -221,75 +223,88 @@ Configuration::~Configuration()
 	mOk = false;
 }
 
-bool Configuration::GetBuildTasks(const StringVecMap& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
+bool Configuration::GetBuildTasks(const StringSetMap& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
-	for( const auto& group : pSourceFiles )
+
+	// Add the project files.
+	for( const auto& group : pProjectSourceFiles )
 	{
-		// This is used to uniquify source files that could create the same output file. (same file name in different folders)
-		// It is important that this is updated even when files don't need to be compiled.
-		// This is done in a predictable way that will always generate the same result.
-		// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
-		StringIntMap FileUseCount;
-
-		// Make sure output path is there.
-		MakeDir(mOutputPath + group.first);
-
-		for( const auto& filename : group.second )
-		{
-			// Lets make a compile command.
-			const std::string InputFilename = CleanPath(mProjectDir + filename);
-
-			// See if the file has already been seen, if not continue.
-			if( InputFilesSeen.find(InputFilename) != InputFilesSeen.end() )
-			{
-				std::cout << "Source file \'" << InputFilename << "\' is in the project twice." << std::endl;
-				return false;
-			}
-			else if( FileExists(InputFilename) )			// If the source file exists then we'll continue, else show an error.
-			{
-				// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
-				// pFolder can be null. This is normally the group name.
-				std::string OutputFilename = CleanPath(mProjectDir + mOutputPath + group.first);
-				std::string fname = GetFileName(filename);
-				const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
-
-				if( OutputFilename.back() != '/' )
-					OutputFilename += '/';
-				OutputFilename += fname;
-				if( UseIndex > 0 )
-				{
-					OutputFilename += ".";
-					OutputFilename += UseIndex;
-					OutputFilename += ".";
-				}
-				OutputFilename += ".obj";
-
-				rOutputFiles.push_back(OutputFilename);// Need to record all the output files even if not built as we need that for the linker.
-
-				if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mCompileArguments.GetIncludePaths()) )
-				{
-					// Going to build the file, so delete the obj that is there.
-					// If we do not do this then it can effect the dependency system.
-					std::remove(OutputFilename.c_str());
-
-					ArgList args(mCompileArguments);
-					args.AddArg("-o");
-					args.AddArg(OutputFilename);
-					args.AddArg("-c");
-					args.AddArg(InputFilename);
-
-					rBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args));
-				}
-			}
-			else
-			{
-				std::cout << "Input filename not found " << InputFilename << std::endl;
-			}
-		}
+		if( !GetBuildTasks(group,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+			return false;
 	}
 
+	// Add the configuration files.
+	for( const auto& group : mSourceFiles )
+	{
+		if( !GetBuildTasks(group,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+			return false;
+	}
 	return true;
+}
+
+bool Configuration::GetBuildTasks(const StringSetMap::value_type& pGroupSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
+{
+	// This is used to uniquify source files that could create the same output file. (same file name in different folders)
+	// It is important that this is updated even when files don't need to be compiled.
+	// This is done in a predictable way that will always generate the same result.
+	// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
+	StringIntMap FileUseCount;
+
+	for( const auto& filename : pGroupSourceFiles.second )
+	{
+		// Lets make a compile command.
+		const std::string InputFilename = CleanPath(mProjectDir + filename);
+
+		// See if the file has already been seen, if not continue.
+		if( rInputFilesSeen.find(InputFilename) != rInputFilesSeen.end() )
+		{
+			std::cout << "Source file \'" << InputFilename << "\' is in the project twice." << std::endl;
+			return false;
+		}
+		else if( FileExists(InputFilename) )			// If the source file exists then we'll continue, else show an error.
+		{
+			rInputFilesSeen.insert(InputFilename);
+
+			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
+			// pFolder can be null. This is normally the group name.
+			std::string OutputFilename = CleanPath(mProjectDir + mOutputPath + pGroupSourceFiles.first);
+			std::string fname = GetFileName(filename);
+			const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
+
+			if( OutputFilename.back() != '/' )
+				OutputFilename += '/';
+			OutputFilename += fname;
+			if( UseIndex > 0 )
+			{
+				OutputFilename += ".";
+				OutputFilename += UseIndex;
+				OutputFilename += ".";
+			}
+			OutputFilename += ".obj";
+
+			rOutputFiles.push_back(OutputFilename);// Need to record all the output files even if not built as we need that for the linker.
+
+			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mCompileArguments.GetIncludePaths()) )
+			{
+				// Going to build the file, so delete the obj that is there.
+				// If we do not do this then it can effect the dependency system.
+				std::remove(OutputFilename.c_str());
+
+				ArgList args(mCompileArguments);
+				args.AddArg("-o");
+				args.AddArg(OutputFilename);
+				args.AddArg("-c");
+				args.AddArg(InputFilename);
+
+				rBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args));
+			}
+		}
+		else
+		{
+			std::cout << "Input filename not found " << InputFilename << std::endl;
+		}
+	}
 }
 
 bool Configuration::AddIncludeSearchPaths(const JSONValue* pPaths)
