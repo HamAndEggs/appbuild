@@ -72,7 +72,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		if( mBuildConfigurations.size() == 0 )
 		{
 			std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
-			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true));
+			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true),mVerboseOutput);
 			mBuildConfigurations[config->GetName()] = config;
 		}
 

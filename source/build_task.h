@@ -33,7 +33,7 @@ namespace appbuild{
 class BuildTask
 {
 public:
-	BuildTask(const std::string& pTaskName,const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs);
+	BuildTask(const std::string& pTaskName,const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput);
 	~BuildTask();
 
 	void Execute();
@@ -43,7 +43,7 @@ public:
 	bool GetOk(){return mOk;}
 
 private:
-	BuildTask(const BuildTask& pOther):mOk(false) { assert(false); }// Prevent this from being called.
+	BuildTask(const BuildTask& pOther):mOk(false),mVerboseOutput(false) { assert(false); }// Prevent this from being called.
 	const BuildTask& operator =(const BuildTask& pOther){ assert(false); return *this;}// Prevent this from being called.
 
 	void Main();
@@ -54,6 +54,7 @@ private:
 	const std::string mCommand; // What needs to be done.
 	const StringVec mArgs;
 	const std::string mOutputFilename;
+	const bool mVerboseOutput;
 	std::string mResults;
 	bool mOk;
 

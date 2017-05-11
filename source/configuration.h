@@ -45,7 +45,7 @@ class BuildTaskStack;
 class Configuration
 {
 public:
-	Configuration(const std::string& pProjectDir,const std::string& pProjectName);// Creates a default configuration suitable for simple c++11 projects.
+	Configuration(const std::string& pProjectDir,const std::string& pProjectName,bool pVerboseOutput);// Creates a default configuration suitable for simple c++11 projects.
 	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput);
 	~Configuration();
 
@@ -83,6 +83,7 @@ private:
 
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
+	const bool mVerboseOutput;
 
 	bool mOk;
 	eTargetType mTargetType;

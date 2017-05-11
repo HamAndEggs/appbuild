@@ -27,7 +27,7 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName):// Creates a default configuration suitable for simple c++11 projects.
+Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName,bool pVerboseOutput):// Creates a default configuration suitable for simple c++11 projects.
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
 	mOk(true),
@@ -35,7 +35,8 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mComplier("gcc"),
 	mLinker("gcc"),
 	mArchiver("ar"),
-	mOutputPath("./bin/")
+	mOutputPath("./bin/"),
+	mVerboseOutput(pVerboseOutput)
 {
 	AddIncludeSearchPath("/usr/include");
 	AddLibrary("stdc++");
@@ -58,7 +59,8 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mComplier("gcc"),
 		mLinker("gcc"),
 		mArchiver("ar"),
-		mOutputPath(pProjectDir + "bin/" + pConfigName + "/")
+		mOutputPath(pProjectDir + "bin/" + pConfigName + "/"),
+		mVerboseOutput(pVerboseOutput)
 {
 	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
 	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
@@ -92,7 +94,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}
 	else
 	{
-		if( pVerboseOutput )
+		if( mVerboseOutput )
 			std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding stdc++ for a default." << std::endl;
 		
 		AddLibrary("stdc++");
@@ -109,7 +111,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}	
 	else
 	{
-		if( pVerboseOutput )
+		if( mVerboseOutput )
 			std::cout << "The \'define\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
 		AddDefine("NDEBUG");	
 	}
@@ -122,7 +124,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 	}
-	else if(pVerboseOutput)
+	else if(mVerboseOutput)
 	{
 		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' object of the project file \'" << pPathedProjectFilename << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
 	}
@@ -245,10 +247,13 @@ bool Configuration::GetBuildTasks(const StringSetMap& pProjectSourceFiles,bool p
 
 bool Configuration::GetBuildTasks(const StringSetMap::value_type& pGroupSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
+ // Make sure output path is there.
+    MakeDir(mOutputPath + pGroupSourceFiles.first); 
+
 	// This is used to uniquify source files that could create the same output file. (same file name in different folders)
 	// It is important that this is updated even when files don't need to be compiled.
 	// This is done in a predictable way that will always generate the same result.
-	// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
+	// The output file name is generated at this point and so kyuhthe dependency checking and linking will work. I could name the obj file anything if I wanted.
 	StringIntMap FileUseCount;
 
 	for( const auto& filename : pGroupSourceFiles.second )
@@ -297,7 +302,7 @@ bool Configuration::GetBuildTasks(const StringSetMap::value_type& pGroupSourceFi
 				args.AddArg("-c");
 				args.AddArg(InputFilename);
 
-				rBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args));
+				rBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args,mVerboseOutput));
 			}
 		}
 		else

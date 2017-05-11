@@ -28,8 +28,8 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-BuildTask::BuildTask(const std::string& pTaskName, const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs):
-	mTaskName(pTaskName), mCommand(pCommand), mArgs(pArgs), mOutputFilename(pOutputFilename),mOk(false),mCompleted(false)
+BuildTask::BuildTask(const std::string& pTaskName, const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput):
+	mTaskName(pTaskName), mCommand(pCommand), mArgs(pArgs), mOutputFilename(pOutputFilename),mOk(false),mCompleted(false),mVerboseOutput(pVerboseOutput)
 {
 }
 
@@ -47,6 +47,15 @@ void BuildTask::Execute()
 
 void BuildTask::Main()
 {
+	if(mVerboseOutput)
+	{
+		std::cout << mCommand << " ";
+		for( const auto& arg : mArgs )
+			std::cout << arg << " ";
+
+		std::cout << std::endl;
+	}
+
 	mOk = ExecuteShellCommand(mCommand, mArgs, mResults);
 }
 
