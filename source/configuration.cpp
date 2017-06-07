@@ -267,9 +267,10 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 	for( const auto& file_entry : pSourceFiles )
 	{
 		const std::string &filename = file_entry.first;
+		const std::string output_path = CleanPath(mOutputPath + "/" + file_entry.second);
 		
 		// Make sure output path is there.
-		MakeDir(mOutputPath + "/" + file_entry.second); 
+		MakeDir(output_path); 
 		
 		// Lets make a compile command.
 		const std::string InputFilename = CleanPath(mProjectDir + filename);
@@ -286,7 +287,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 			// pFolder can be null. This is normally the group name.
-			std::string OutputFilename = CleanPath(mProjectDir + mOutputPath);
+			std::string OutputFilename = CleanPath(mProjectDir + output_path);
 			std::string fname = GetFileName(filename);
 			const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
 

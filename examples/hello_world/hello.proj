@@ -1,10 +1,6 @@
 {
 	"source_files":
-	{
-		"source":
-		[
-			"./main.cpp"
-			
-		]
-	}
+	[
+		"./main.cpp"		
+	]
 }

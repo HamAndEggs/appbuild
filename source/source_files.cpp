@@ -51,7 +51,7 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 		{
 			for(int n=0;n<pSourceElement->GetArraySize();n++)
 			{
-				AddFile(pSourceElement->GetString(n),"source",pPathedProjectFilename);
+				AddFile(pSourceElement->GetString(n),"obj",pPathedProjectFilename);
 			}
 		}
 		else if( pSourceElement->GetType() == JSONValue::OBJECT && pSourceElement->GetObject() )
