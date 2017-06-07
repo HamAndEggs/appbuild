@@ -28,25 +28,23 @@ class JSONValue;
 class SourceFiles
 {
 public:
-    typedef StringSetMap::const_iterator const_iterator;
+    typedef StringMap::const_iterator const_iterator;
 
 	SourceFiles();
 	SourceFiles(const SourceFiles& pOther);
 
 	const SourceFiles& operator = (const SourceFiles& pOther);
 
-    operator const StringSetMap&(){return mSourceFiles;}
+//    operator const StringMap&(){return mSourceFiles;}
     const_iterator begin()const{return mSourceFiles.begin();}
     const_iterator end()const{return mSourceFiles.end();}
 
 	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
 
 private:
-	void ReadGroupSourceFiles(const char* pGroupName,const JSONValue* pFiles,const std::string& pPathedProjectFilename);
+	void AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename);
 
-	StringSetMap mSourceFiles;
-
-
+	StringMap mSourceFiles;
 };
 
 //////////////////////////////////////////////////////////////////////////

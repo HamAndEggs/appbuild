@@ -17,6 +17,8 @@
 #ifndef _PROJECT_H_
 #define _PROJECT_H_
 
+
+
 #include "build_task.h"
 #include "dependencies.h"
 #include "configuration.h"
@@ -33,6 +35,7 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
 class JSONValue;
+class JsonWriter;
 
 class Project
 {
@@ -45,6 +48,7 @@ public:
 
 	bool Build(const Configuration* pActiveConfig);
 	bool RunOutputFile(const Configuration*pActiveConfig,bool pAsSudo);
+	bool Write(JsonWriter& rJsonOutput)const;
 	const Configuration* FindConfiguration(const std::string& pConfigName)const;
 
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}

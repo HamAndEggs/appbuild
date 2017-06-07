@@ -39,8 +39,30 @@ enum eTargetType
 	TARGET_SHARED_LIBRARY,
 };
 
+inline const char* TargetTypeToString(eTargetType pTarget)
+{
+	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
+	switch(pTarget)
+	{
+	case TARGET_NOT_SET:
+		break;
+		
+	case TARGET_EXEC:
+		return "executable";
+
+	case TARGET_LIBRARY:
+		return "library";
+
+	case TARGET_SHARED_LIBRARY:
+		return "sharedlibrary";
+	}
+	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
+}
+
 class Dependencies;
 class BuildTaskStack;
+class JsonWriter;
+class SourceFiles;
 
 class Configuration
 {
@@ -48,6 +70,8 @@ public:
 	Configuration(const std::string& pProjectDir,const std::string& pProjectName,bool pVerboseOutput);// Creates a default configuration suitable for simple c++11 projects.
 	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput);
 	~Configuration();
+
+	bool Write(JsonWriter& rJsonOutput)const;
 
 	bool GetOk()const{return mOk;}
 	eTargetType GetTargetType()const{return mTargetType;}
@@ -62,10 +86,10 @@ public:
 	const ArgList& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-	bool GetBuildTasks(const StringSetMap& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 private:
-	bool GetBuildTasks(const StringSetMap::value_type& pGroupSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
+	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddIncludeSearchPaths(const JSONValue* pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);

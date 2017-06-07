@@ -23,6 +23,8 @@
 #include "configuration.h"
 #include "build_task.h"
 #include "dependencies.h"
+#include "json_writer.h"
+#include "source_files.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -225,39 +227,50 @@ Configuration::~Configuration()
 	mOk = false;
 }
 
-bool Configuration::GetBuildTasks(const StringSetMap& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
+bool Configuration::Write(JsonWriter& rJsonOutput)const
+{
+
+	rJsonOutput.StartObject(mConfigName);
+		rJsonOutput.AddObjectItem("target",TargetTypeToString(mTargetType));
+		rJsonOutput.AddObjectItem("compiler",mComplier);
+		rJsonOutput.AddObjectItem("linker",mLinker);
+		rJsonOutput.AddObjectItem("archiver",mArchiver);
+		rJsonOutput.AddObjectItem("output_path",mOutputPath);
+		rJsonOutput.AddObjectItem("output_name",mOutputName);
+	rJsonOutput.EndObject();
+	return true;
+}
+
+bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
 
 	// Add the project files.
-	for( const auto& group : pProjectSourceFiles )
-	{
-		if( !GetBuildTasks(group,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
-			return false;
-	}
+	if( !GetBuildTasks(pProjectSourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+		return false;
 
 	// Add the configuration files.
-	for( const auto& group : mSourceFiles )
-	{
-		if( !GetBuildTasks(group,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
-			return false;
-	}
+	if( !GetBuildTasks(mSourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+		return false;
+
 	return true;
 }
 
-bool Configuration::GetBuildTasks(const StringSetMap::value_type& pGroupSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
+bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
- // Make sure output path is there.
-    MakeDir(mOutputPath + pGroupSourceFiles.first); 
-
 	// This is used to uniquify source files that could create the same output file. (same file name in different folders)
 	// It is important that this is updated even when files don't need to be compiled.
 	// This is done in a predictable way that will always generate the same result.
-	// The output file name is generated at this point and so kyuhthe dependency checking and linking will work. I could name the obj file anything if I wanted.
+	// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
 	StringIntMap FileUseCount;
 
-	for( const auto& filename : pGroupSourceFiles.second )
+	for( const auto& file_entry : pSourceFiles )
 	{
+		const std::string &filename = file_entry.first;
+		
+		// Make sure output path is there.
+		MakeDir(mOutputPath + "/" + file_entry.second); 
+		
 		// Lets make a compile command.
 		const std::string InputFilename = CleanPath(mProjectDir + filename);
 
@@ -273,7 +286,7 @@ bool Configuration::GetBuildTasks(const StringSetMap::value_type& pGroupSourceFi
 
 			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 			// pFolder can be null. This is normally the group name.
-			std::string OutputFilename = CleanPath(mProjectDir + mOutputPath + pGroupSourceFiles.first);
+			std::string OutputFilename = CleanPath(mProjectDir + mOutputPath);
 			std::string fname = GetFileName(filename);
 			const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
 

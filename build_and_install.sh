@@ -26,6 +26,9 @@ gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/source_files.cpp -o bin/so
 echo "json.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json.cpp -o bin/json.o
 
+echo "json_writer.cpp"
+gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/json_writer.cpp -o bin/json_writer.o
+
 echo "build_task.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/build_task.cpp -o bin/build_task.o
 
@@ -39,7 +42,7 @@ echo "arg_list.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -c source/arg_list.cpp -o bin/arg_list.o
 
 echo "Linking"
-gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"

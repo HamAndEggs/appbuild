@@ -20,6 +20,8 @@
 
 #include "project.h"
 #include "misc.h"
+#include "string_types.h"
+#include "json_writer.h"
 
 class CommandLineOptions
 {
@@ -35,6 +37,8 @@ public:
 	int  GetNumThreads()const{return mNumThreads;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
 	const std::string& GetActiveConfig()const{return mActiveConfig;}
+	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
+	const bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
 
 	void PrintHelp()const;
 	void PrintVersion()const;
@@ -50,6 +54,7 @@ private:
 	int  mNumThreads;
 	std::vector<std::string> mProjectFiles;
 	std::string mActiveConfig;
+	std::string mUpdatedOutputFileName;
 };
 
 
@@ -75,12 +80,16 @@ int main(int argc, char *argv[])
 			{
 				const std::string configname = Args.GetActiveConfig();
 				const appbuild::Configuration* ActiveConfig = TheProject.FindConfiguration(configname);
-				if( ActiveConfig )
+				if( Args.GetUpdatedProject() )
 				{
-					if( TheProject.Build(ActiveConfig) && Args.GetRunAfterBuild() )
-					{
-						TheProject.RunOutputFile(ActiveConfig,Args.GetSudoRunAfterBuild());
-					}
+					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
+					appbuild::JsonWriter JsonOutput;
+					TheProject.Write(JsonOutput);
+					std::cout << JsonOutput.Get() << std::endl;
+				}
+				else if( ActiveConfig && TheProject.Build(ActiveConfig) && Args.GetRunAfterBuild() )
+				{
+					TheProject.RunOutputFile(ActiveConfig,Args.GetSudoRunAfterBuild());
 				}
 			}
 			else
@@ -100,14 +109,15 @@ int main(int argc, char *argv[])
 
 
 #define ARGUMENTS																																											\
-		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads",    "           Sets the number of threads to use when tasks can be done in parallel.")							\
-		DEF_ARG(ARG_HELP,no_argument,					'h',"help","                      Display this help and exit.")																		\
-		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","                   Output version information and exit.")															\
-		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","                   Print more information about progress.")															\
-		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'r',"run-after-build","           If the build is successful then run the app, but only if one project file submitted.")			\
-		DEF_ARG(ARG_SUDO_RUN_AFTER_BUILD,no_argument,	'R',"sudo-run-after-build","      If the build is successful then run the app as SUDO, but only if one project file submitted.")	\
-		DEF_ARG(ARG_REBUILD,no_argument,				'B',"rebuild","                   Clean and rebuild all the source files.")															\
-		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","             Builds the given configuration, if found.")															\
+		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
+		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																		\
+		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")															\
+		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")															\
+		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'r',"run-after-build","If the build is successful then run the app, but only if one project file submitted.")			\
+		DEF_ARG(ARG_SUDO_RUN_AFTER_BUILD,no_argument,	'R',"sudo-run-after-build","If the build is successful then run the app as SUDO, but only if one project file submitted.")	\
+		DEF_ARG(ARG_REBUILD,no_argument,				'B',"rebuild","Clean and rebuild all the source files.")															\
+		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")															\
+		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
 
 
 enum eArguments
@@ -179,15 +189,33 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			if( optarg )
 				mActiveConfig = optarg;
 			else
+			{
+				mShowHelp = true;
 				std::cout << "Option -c (active-config) was not passed correct value. -c release or --active-config=release" << std::endl;
+			}
+			break;
+
+		case ARG_UPDATE_PROJECT:
+			if( optarg )
+				mUpdatedOutputFileName = optarg;
+			else
+			{
+				mShowHelp = true;
+				std::cout << "Option -u (update-project) requires an ouput file name. -u file.proj or --active-config=file.proj" << std::endl;
+			}
 			break;
 
 		default:
-
+			mShowHelp = true;
 			break;
 		}
 	}
 
+	// Do not continue if show help has been set.
+	if( mShowHelp )
+		return;
+
+	// Don't need to show the help, so continue to see if we need to make some assumptions.
 	while (optind < argc)
 	{
 		const std::string ProfileFile = argv[optind++];
@@ -230,11 +258,43 @@ void CommandLineOptions::PrintHelp()const
 {
 	std::cout << "Usage: appbuild [OPTION]... [PROJECT FILE]..." << std::endl;
 	std::cout << "Build one or more applications using the supplied project files." << std::endl << std::endl;
-	std::cout << "Mandatory arguments to long options are mandatory for short options too." << std::endl;
+	std::cout << "Mandatory arguments to long options are mandatory for short options too." << std::endl << "Options:" << std::endl;
 
-#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) std::cout << "  -" << ARG_SHORT_NAME << ", --" << ARG_LONG_NAME << (TAKES_ARGUMENT==required_argument?"=arg":"") << ARG_DESC << std::endl;
+	// I build three vecs of strings for all options. So I can measure and then line up the text with spaces. Makes life easier when adding new options.
+	StringVec ShortArgs;
+	StringVec LongArgs;
+	StringVec Descriptions;
+
+#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) if(true){ShortArgs.push_back(#ARG_SHORT_NAME);if(TAKES_ARGUMENT==required_argument){LongArgs.push_back(ARG_LONG_NAME "=arg");}else{LongArgs.push_back(ARG_LONG_NAME);}Descriptions.push_back(ARG_DESC);};
 	ARGUMENTS
 #undef DEF_ARG
+
+	size_t DescMaxSpace = 0;
+	for(auto lg : LongArgs)
+	{
+		size_t l = 5 + lg.size(); // 5 == 2 spaces + -X + 1 for space for short arg.
+		if( DescMaxSpace < l )
+			DescMaxSpace = l;
+	}
+
+	DescMaxSpace += 4; // Add 4 spaces for formatting.
+	for(size_t n=0;n<ShortArgs.size();n++)
+	{
+		std::string line = "  -";
+		line += ShortArgs[n][1];
+		line += " ";
+		line += LongArgs[n];
+		line += " ";
+		std::cout << line;
+
+		size_t space = DescMaxSpace - line.size();
+		const StringVec lines = appbuild::SplitString(Descriptions[n],"\n");
+		for(auto line : lines)
+		{
+			std::cout << std::string(space,' ') << line << std::endl;
+			space = DescMaxSpace + 2;// For subsequent lines.
+		}
+	}
 }
 
 void CommandLineOptions::PrintVersion()const

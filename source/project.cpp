@@ -27,6 +27,7 @@
 #include "json.h"
 #include "misc.h"
 #include "arg_list.h"
+#include "json_writer.h"
 
 namespace appbuild{
 StringSet Project::sLoadedProjects;
@@ -202,6 +203,23 @@ bool Project::RunOutputFile(const Configuration* pActiveConfig,bool pAsSudo)
 	}
 
 	return false;
+}
+
+bool Project::Write(JsonWriter& rJsonOutput)const
+{
+	rJsonOutput.StartObject();
+	rJsonOutput.StartObject("configurations");
+	for( const auto& conf : mBuildConfigurations )
+	{
+		conf.second->Write(rJsonOutput);
+	}
+	rJsonOutput.EndObject();
+
+	rJsonOutput.StartObject("source_files");
+	rJsonOutput.EndObject();
+	rJsonOutput.EndObject();
+
+	return true;
 }
 
 const Configuration* Project::FindConfiguration(const std::string& pConfigName)const

@@ -46,43 +46,62 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 	if( pSourceElement )
 	{
 		// Instead of looking for specific items here we'll enumerate them.
-		for( auto group : pSourceElement->GetObject()->GetChildren() )
-		{// Can be any number of json elements with the same name at the same level. So we have a vector.
-			for(auto x : group.second)
-				ReadGroupSourceFiles(group.first,x,pPathedProjectFilename);
+		// Can be either an array of files or an object with a list of child objects where the name is the file name and the value is a virtual folder name.
+		if( pSourceElement->GetType() == JSONValue::ARRAY )
+		{
+			for(int n=0;n<pSourceElement->GetArraySize();n++)
+			{
+				AddFile(pSourceElement->GetString(n),"source",pPathedProjectFilename);
+			}
+		}
+		else if( pSourceElement->GetType() == JSONValue::OBJECT && pSourceElement->GetObject() )
+		{
+			const ValueMap& files = pSourceElement->GetObject()->GetChildren();
+			for(const auto& value : files)
+			{
+				for(const auto& obj : value.second)
+				{
+					if( obj->GetType() == JSONValue::STRING )
+					{
+						AddFile(value.first,obj->GetString(),pPathedProjectFilename);
+					}
+					else
+					{
+						std::cout << "The \'source_files\' object has a member \'" << value.first << "\' whos value is not a string in this project file \'" << pPathedProjectFilename << std::endl;
+						return false;					
+					}
+				}
+			}
+		}
+		else
+		{
+			std::cout << "The \'source_files\' object in this project file \'" << pPathedProjectFilename << "\' is not a supported json type" << std::endl;
+			return false;
 		}
 	}
 	return true;
 }
 
-void SourceFiles::ReadGroupSourceFiles(const char* pGroupName,const JSONValue* pFiles,const std::string& pPathedProjectFilename)
+void SourceFiles::AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename)
 {
-	const std::string ProjectDir = GetPath(pPathedProjectFilename);
-	if(pFiles && pGroupName)// Can be null.
+	assert(pFileName);
+	assert(pGroupName);
+	if(pFileName && pGroupName)
 	{
-		if( pFiles->GetType() != JSONValue::ARRAY )
+		const std::string ProjectDir = GetPath(pPathedProjectFilename);
+		const std::string InputFilename = ProjectDir + pFileName;
+		// If the source file exists then we'll continue, else show an error.
+		if( FileExists(InputFilename) )
 		{
-			std::cout << "The \'files\' object in the \'group\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			// Have we seen it before? If so say NO.
+			if( mSourceFiles.find(pFileName) == mSourceFiles.end() )
+				mSourceFiles[pFileName] = pGroupName;// Good, not seen before, so add it.
+			else
+			std::cout << "Input filename \'" << pFileName << "\' in group \'" << pGroupName << "\' is a duplicate" << std::endl;
 		}
 		else
 		{
-			for( int n = 0 ; n < pFiles->GetArraySize() ; n++ )
-			{
-				const char* filename = pFiles->GetString(n);
-				if(filename)
-				{
-					const std::string InputFilename = ProjectDir + filename;
-					// If the source file exists then we'll continue, else show an error.
-					if( FileExists(InputFilename) )
-					{
-						mSourceFiles[pGroupName].insert(filename);
-					}
-					else
-					{
-						std::cout << "Input filename \'" << filename << "\' in group \'" << pGroupName << "\' not found at \'" << InputFilename << "\'" << std::endl;
-					}
-				}
-			}
+			std::cout << "Input filename \'" << pFileName << "\' in group \'" << pGroupName << "\' not found at \'" << InputFilename << "\'" << std::endl;
 		}
 	}
 }
