@@ -20,12 +20,13 @@
 
 #include "source_files.h"
 #include "json.h"
+#include "json_writer.h"
 #include "misc.h"
 
 namespace appbuild{
 
 //////////////////////////////////////////////////////////////////////////
-SourceFiles::SourceFiles()
+SourceFiles::SourceFiles() : mWriteAsJsonArray(false)
 {
 
 }
@@ -38,6 +39,7 @@ SourceFiles::SourceFiles(const SourceFiles& pOther)
 const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
 	mSourceFiles = pOther.mSourceFiles;
+	mWriteAsJsonArray = pOther.mWriteAsJsonArray;
 	return pOther;
 }
 
@@ -49,6 +51,7 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 		// Can be either an array of files or an object with a list of child objects where the name is the file name and the value is a virtual folder name.
 		if( pSourceElement->GetType() == JSONValue::ARRAY )
 		{
+			mWriteAsJsonArray = true;
 			for(int n=0;n<pSourceElement->GetArraySize();n++)
 			{
 				AddFile(pSourceElement->GetString(n),"obj",pPathedProjectFilename);
@@ -80,6 +83,27 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 		}
 	}
 	return true;
+}
+
+bool SourceFiles::Write(JsonWriter& rJsonOutput)const
+{
+	if( mSourceFiles.size() > 0 )
+	{
+		if(mWriteAsJsonArray)
+		{
+			rJsonOutput.StartArray("source_files");
+			for( const auto& file : mSourceFiles )
+				rJsonOutput.AddArrayItem(file.first);
+			rJsonOutput.EndArray();
+		}
+		else
+		{
+			rJsonOutput.StartObject("source_files");
+			for( const auto& file : mSourceFiles )
+				rJsonOutput.AddObjectItem(file.first,file.second);
+			rJsonOutput.EndObject();
+		}
+	}
 }
 
 void SourceFiles::AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename)

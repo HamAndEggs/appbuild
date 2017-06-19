@@ -24,6 +24,7 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
 class JSONValue;
+class JsonWriter;
 
 class SourceFiles
 {
@@ -40,11 +41,13 @@ public:
     const_iterator end()const{return mSourceFiles.end();}
 
 	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
+	bool Write(JsonWriter& rJsonOutput)const;
 
 private:
 	void AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename);
 
 	StringMap mSourceFiles;
+	bool mWriteAsJsonArray;	// So if we write it out again, we know to write as an array.
 };
 
 //////////////////////////////////////////////////////////////////////////

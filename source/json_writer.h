@@ -33,6 +33,7 @@ public:
     void StartObject(const char* pName = NULL);
     void EndObject();
 
+	void AddObjectItem(const std::string& pName,const std::string& pValue){AddObjectItem(pName.c_str(),pValue.c_str());}
 	void AddObjectItem(const char* pName,const std::string& pValue){AddObjectItem(pName,pValue.c_str());}
 	void AddObjectItem(const char* pName,const char* pValue);
 	void AddObjectItem(const char* pName,const double pValue);

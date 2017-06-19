@@ -32,41 +32,37 @@ namespace appbuild{
 Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName,bool pVerboseOutput):// Creates a default configuration suitable for simple c++11 projects.
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
+	mVerboseOutput(pVerboseOutput),
 	mOk(true),
 	mTargetType(TARGET_EXEC),
 	mComplier("gcc"),
 	mLinker("gcc"),
 	mArchiver("ar"),
 	mOutputPath("./bin/"),
-	mVerboseOutput(pVerboseOutput)
+	mOutputName(pProjectName),
+	mStandard("c++11"),
+	mOptimisation("0")
 {
 	AddIncludeSearchPath("/usr/include");
 	AddLibrary("stdc++");
 	AddLibrary("pthread");
-	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
-	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
-	AddDefine("APP_BUILD_TIME=\"" + GetTimeString("%X") + "\"");
 
-	mCompileArguments.AddArg("-o0");
-	mCompileArguments.AddArg("-std=c++11");
-	
-	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + pProjectName);
+	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 }
 
 Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
+		mVerboseOutput(pVerboseOutput),
 		mOk(false),
 		mTargetType(TARGET_NOT_SET),
 		mComplier("gcc"),
 		mLinker("gcc"),
 		mArchiver("ar"),
 		mOutputPath(pProjectDir + "bin/" + pConfigName + "/"),
-		mVerboseOutput(pVerboseOutput)
+		mStandard("c++11"),
+		mOptimisation("0")
 {
-	AddDefine("APP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"");
-	AddDefine("APP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"");
-	AddDefine("APP_BUILD_TIME=\"" + GetTimeString("%X") + "\"");
 
 	const JSONValue* includes = pConfig->Find("include");
 	if( includes && AddIncludeSearchPaths(includes) == false )
@@ -155,7 +151,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	if( output_name && output_name->GetType() == JSONValue::STRING )
 	{
 		std::string filename = output_name->GetString();
-		mOutputName = filename;
+		
 		// Depending on the target type, we need to make sure the format is right.
 		if( mTargetType == TARGET_LIBRARY )
 		{
@@ -171,8 +167,8 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 				filename += ".a";
 			}
 		}
-
-		mPathedTargetName = mProjectDir + mOutputPath + filename;
+		mOutputName = filename;
+		mPathedTargetName = mProjectDir + mOutputPath + mOutputName;
 	}
 	else
 	{
@@ -186,16 +182,14 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		optimisation = pConfig->Find("optimization");
 	if( optimisation )
 	{
-		std::string level="0";
 		if(optimisation->GetType() == JSONValue::INT32)
 		{
-			level = std::to_string(optimisation->GetInt32());
+			mOptimisation = std::to_string(optimisation->GetInt32());
 		}
 		else if(optimisation->GetType() == JSONValue::STRING)
 		{
-			level = optimisation->GetString();
+			mOptimisation = optimisation->GetString();
 		}
-		mCompileArguments.AddArg("-o" + level);
 	}
 
 	// Check for the c standard settings.
@@ -203,8 +197,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	const JSONValue* standard = pConfig->Find("standard");
 	if( standard && standard->GetType() == JSONValue::STRING )
 	{
-		std::string level = standard->GetString();
-		mCompileArguments.AddArg("-std=" + level);
+		mStandard = standard->GetString();
 	}
 
 	// See if there are any projects we are not dependent on.
@@ -237,6 +230,50 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 		rJsonOutput.AddObjectItem("archiver",mArchiver);
 		rJsonOutput.AddObjectItem("output_path",mOutputPath);
 		rJsonOutput.AddObjectItem("output_name",mOutputName);
+		rJsonOutput.AddObjectItem("standard",mStandard);
+		rJsonOutput.AddObjectItem("optimisation",mOptimisation);
+		
+		if(mIncludeSearchPaths.size()>0)
+		{
+			rJsonOutput.StartArray("include");
+			for(const auto& path : mIncludeSearchPaths)
+				rJsonOutput.AddArrayItem(path);
+			rJsonOutput.EndArray();
+		}
+
+		if(mLibrarySearchPaths.size()>0)
+		{
+			rJsonOutput.StartArray("libpaths");
+			for(const auto& path : mLibrarySearchPaths)
+				rJsonOutput.AddArrayItem(path);
+			rJsonOutput.EndArray();
+		}
+
+		if(mLibraryFiles.size()>0)
+		{
+			rJsonOutput.StartArray("libs");
+			for(const auto& path : mLibraryFiles)
+				rJsonOutput.AddArrayItem(path);
+			rJsonOutput.EndArray();
+		}
+
+		if(mDefines.size()>0)
+		{
+			rJsonOutput.StartArray("define");
+			for(const auto& path : mDefines)
+				rJsonOutput.AddArrayItem(path);
+			rJsonOutput.EndArray();
+		}
+
+		if( mDependantProjects.size() > 0 )
+		{
+			rJsonOutput.StartArray("dependencies");
+			for(const auto& dep : mDependantProjects)
+				rJsonOutput.AddArrayItem(dep.first);
+			rJsonOutput.EndArray();
+		}
+
+		mSourceFiles.Write(rJsonOutput);
 	rJsonOutput.EndObject();
 	return true;
 }
@@ -263,6 +300,11 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 	// This is done in a predictable way that will always generate the same result.
 	// The output file name is generated at this point and so the dependency checking and linking will work. I could name the obj file anything if I wanted.
 	StringIntMap FileUseCount;
+
+	// Some defines I add.
+	const std::string DEF_APP_BUILD_DATE_TIME = "-DAPP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"";
+	const std::string DEF_APP_BUILD_DATE = "-DAPP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"";
+	const std::string DEF_APP_BUILD_TIME = "-DAPP_BUILD_TIME=\"" + GetTimeString("%X") + "\"";
 
 	for( const auto& file_entry : pSourceFiles )
 	{
@@ -304,13 +346,22 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			rOutputFiles.push_back(OutputFilename);// Need to record all the output files even if not built as we need that for the linker.
 
-			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mCompileArguments.GetIncludePaths()) )
+			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mIncludeSearchPaths) )
 			{
 				// Going to build the file, so delete the obj that is there.
 				// If we do not do this then it can effect the dependency system.
 				std::remove(OutputFilename.c_str());
 
-				ArgList args(mCompileArguments);
+				ArgList args;
+				args.AddArg("-o" + mOptimisation);
+
+				args.AddArg(DEF_APP_BUILD_DATE_TIME);
+				args.AddArg(DEF_APP_BUILD_DATE);
+				args.AddArg(DEF_APP_BUILD_TIME);
+				args.AddDefines(mDefines);
+				
+				args.AddIncludeSearchPath(mIncludeSearchPaths);
+				args.AddArg("-std=" + mStandard);
 				args.AddArg("-o");
 				args.AddArg(OutputFilename);
 				args.AddArg("-c");
@@ -341,7 +392,8 @@ bool Configuration::AddIncludeSearchPaths(const JSONValue* pPaths)
 
 void Configuration::AddIncludeSearchPath(const std::string& pPath)
 {
-	mCompileArguments.AddIncludeSearchPath(pPath,mProjectDir);
+	const std::string path = PreparePath(pPath);
+	mIncludeSearchPaths.push_back(path);
 }
 
 bool Configuration::AddLibrarySearchPaths(const JSONValue* pPaths)
@@ -359,7 +411,8 @@ bool Configuration::AddLibrarySearchPaths(const JSONValue* pPaths)
 
 void Configuration::AddLibrarySearchPath(const std::string& pPath)
 {
-	mLibrarySearchPaths.AddLibrarySearchPath(pPath,mProjectDir);
+	const std::string path = PreparePath(pPath);
+	mLibrarySearchPaths.push_back(path);
 }
 
 bool Configuration::AddLibraries(const JSONValue* pLibs)
@@ -377,7 +430,7 @@ bool Configuration::AddLibraries(const JSONValue* pLibs)
 
 void Configuration::AddLibrary(const std::string& pLib)
 {
-	mLibraryFiles.push_back("-l" + pLib);
+	mLibraryFiles.push_back(pLib);
 }
 
 bool Configuration::AddDefines(const JSONValue* pDefines)
@@ -395,7 +448,7 @@ bool Configuration::AddDefines(const JSONValue* pDefines)
 
 void Configuration::AddDefine(const std::string& pDefine)
 {
-	mCompileArguments.AddArg("-D" + pDefine);
+	mDefines.push_back(pDefine);
 }
 
 bool Configuration::AddDependantProjects(const JSONValue* pLibs)
@@ -427,6 +480,26 @@ bool Configuration::AddDependantProjects(const JSONValue* pLibs)
 	return false;	
 }
 
+const std::string Configuration::PreparePath(const std::string& pPath)
+{
+	assert(pPath.size() > 0);
+	if( pPath.size() > 0 )
+	{
+		// Before we add it, see if it's an absolute path, if not add it to the project dir, then check if it exists.
+		std::string ArgPath;
+		if( pPath.front() != '/' )
+			ArgPath = mProjectDir;
+
+		ArgPath += pPath;
+		if( DirectoryExists(ArgPath) )
+		{
+			if( ArgPath.back() != '/' )
+				ArgPath += "/";
+			return CleanPath(ArgPath);
+		}
+	}
+	return std::string();
+}
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

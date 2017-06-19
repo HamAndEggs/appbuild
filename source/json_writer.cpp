@@ -97,17 +97,21 @@ void JsonWriter::AddObjectItem(const char* pName,const bool pValue)
 void JsonWriter::StartArray(const char* pName)
 {
 	assert(pName);
+	json << seperator;
 	AddTabs();	
-	json << "\"" << pName << "\"\n[";
+	json << "\"" << pName << "\":\n";
+	AddTabs();	
+	json << "[";
 	seperator = "\n";
 	mIndent++;
 }
 
 void JsonWriter::EndArray()
 {
+	mIndent--;
+	json << "\n";
 	AddTabs();	
 	json << "]";
-	mIndent--;
 }
 
 void JsonWriter::AddArrayItem(const char* pValue)

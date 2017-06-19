@@ -132,8 +132,8 @@ bool Project::Build(const Configuration* pActiveConfig)
 			// That worked, lets add it's output file to our input libs.
 			if( DepConfig->GetTargetType() == TARGET_LIBRARY )
 			{
-				mDependencyLibraryFiles.push_back("-l" + DepConfig->GetOutputName());
-				mDependencyLibrarySearchPaths.AddLibrarySearchPath(DepConfig->GetOutputPath(),TheProject.mProjectDir);
+				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
+				mDependencyLibrarySearchPaths.push_back(DepConfig->GetOutputPath());
 			}
 		}
 		else
@@ -214,9 +214,7 @@ bool Project::Write(JsonWriter& rJsonOutput)const
 		conf.second->Write(rJsonOutput);
 	}
 	rJsonOutput.EndObject();
-
-	rJsonOutput.StartObject("source_files");
-	rJsonOutput.EndObject();
+	mSourceFiles.Write(rJsonOutput);
 	rJsonOutput.EndObject();
 
 	return true;
@@ -375,15 +373,16 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 	if( !pConfig )
 		return false;
 
-	ArgList Arguments(pConfig->GetLibrarySearchPaths());
-	Arguments.AddArg(mDependencyLibrarySearchPaths);
+	ArgList Arguments;
+	Arguments.AddLibrarySearchPaths(pConfig->GetLibrarySearchPaths());
+	Arguments.AddLibrarySearchPaths(mDependencyLibrarySearchPaths);
 
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
 
 	// Add the libs, must come after the object files.
-	Arguments.AddArg(pConfig->GetLibraryFiles());
-	Arguments.AddArg(mDependencyLibraryFiles);
+	Arguments.AddLibraryFiles(mDependencyLibraryFiles);
+	Arguments.AddLibraryFiles(pConfig->GetLibraryFiles());
 
 	// And add the output.
 	Arguments.AddArg("-o");
@@ -393,9 +392,12 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 
 	if( mVerboseOutput )
 	{
-		const StringVec& check = Arguments;
-		for(auto arg : check )
-			std::cout << "Args: \'" << arg <<  "\'" << std::endl << std::endl;
+		const StringVec& args = Arguments;
+		std::cout << pConfig->GetLinker() << " ";
+		for( const auto& arg : args )
+			std::cout << arg << " ";
+
+		std::cout << std::endl;
 	}
 
 	std::string Results;

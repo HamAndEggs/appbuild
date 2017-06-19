@@ -31,19 +31,17 @@ public:
 
 	void AddArg(const StringVec& pStrings);
 	void AddArg(const std::string& pArg);
-	void AddIncludeSearchPath(const std::string& pPath,const std::string& pProjectDir);
-	void AddLibrarySearchPath(const std::string& pPath,const std::string& pProjectDir);
+	void AddIncludeSearchPath(const StringVec& pPaths);
+	void AddLibrarySearchPath(const std::string& pPath);
+	void AddLibrarySearchPaths(const StringVec& pPaths);
+	void AddLibraryFiles(const StringVec& pLibs);
+	void AddDefines(const StringVec& pDefines);
 
 	operator const StringVec&()const{return mArguments;}
-	const StringVec& GetIncludePaths()const{return mIncludePaths;}
 
 
 private:
-	const std::string AddPathArg(const std::string& Opt,const std::string& pPath,const std::string& pProjectDir);
-
-
 	StringVec mArguments;
-	StringVec mIncludePaths;
 };
 
 //////////////////////////////////////////////////////////////////////////

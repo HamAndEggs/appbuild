@@ -31,7 +31,6 @@ ArgList::ArgList()
 ArgList::ArgList(const ArgList& pOther)
 {
 	mArguments = pOther.mArguments;
-	mIncludePaths = pOther.mIncludePaths;
 }
 
 ArgList::~ArgList()
@@ -52,25 +51,26 @@ void ArgList::AddArg(const std::string& pArg)
 		mArguments.push_back(TrimWhiteSpace(trimed));
 }
 
-void ArgList::AddIncludeSearchPath(const std::string& pPath,const std::string& pProjectDir)
+void ArgList::AddIncludeSearchPath(const StringVec& pPaths)
 {
-	const std::string path = AddPathArg("-I",pPath,pProjectDir);
-	if( path.size() > 0 )
+	for( const auto& path : pPaths )
 	{
-		mIncludePaths.push_back(path);
-	}
-	else
-	{
-		std::cout << "Include Arg path not found, make sure it's a folder and not a file: " << pPath << std::endl;
+		if( DirectoryExists(path) )
+		{
+			AddArg("-I" + path);
+		}
+		else
+		{
+			std::cout << "Include Arg path not found, make sure it's a folder and not a file: " << path << std::endl;
+		}
 	}
 }
 
-void ArgList::AddLibrarySearchPath(const std::string& pPath,const std::string& pProjectDir)
+void ArgList::AddLibrarySearchPath(const std::string& pPath)
 {
-	const std::string path = AddPathArg("-L",pPath,pProjectDir);
-	if( path.size() > 0 )
+	if( DirectoryExists(pPath) )
 	{
-
+		AddArg("-L" + pPath);
 	}
 	else
 	{
@@ -78,29 +78,27 @@ void ArgList::AddLibrarySearchPath(const std::string& pPath,const std::string& p
 	}
 }
 
-const std::string ArgList::AddPathArg(const std::string& Opt,const std::string& pPath,const std::string& pProjectDir)
+void ArgList::AddLibrarySearchPaths(const StringVec& pPaths)
 {
-	assert(pPath.size() > 0);
-	if( pPath.size() > 0 )
+	for(auto path : pPaths)
+		AddLibrarySearchPath(path);
+}
+
+void ArgList::AddLibraryFiles(const StringVec& pLibs)
+{
+	for(auto lib : pLibs)
 	{
-		// Before we add it, see if it's an absolute path, if not add it to the project dir, then check if it exists.
-		std::string ArgPath;
-		if( pPath.front() != '/' )
-			ArgPath = pProjectDir;
-
-		ArgPath += pPath;
-		if( DirectoryExists(ArgPath) )
-		{
-			if( ArgPath.back() != '/' )
-				ArgPath += "/";
-
-			ArgPath = CleanPath(ArgPath);
-
-			AddArg(Opt + ArgPath);
-			return ArgPath;
-		}
+		if( lib.size() > 6 && lib.find("lib") == 0 && lib.rfind(".a") == lib.size()-2 )
+			AddArg("-l:" + lib);
+		else
+			AddArg("-l" + lib);
 	}
-	return std::string();
+}
+
+void ArgList::AddDefines(const StringVec& pDefines)
+{
+	for(auto def : pDefines)
+		AddArg("-D" + def);
 }
 
 //////////////////////////////////////////////////////////////////////////

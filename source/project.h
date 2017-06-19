@@ -76,7 +76,7 @@ private:
 	SourceFiles mSourceFiles;
 	BuildConfigurations mBuildConfigurations;
 
-	ArgList mDependencyLibrarySearchPaths;
+	StringVec mDependencyLibrarySearchPaths;
 	StringVec mDependencyLibraryFiles;
 
 

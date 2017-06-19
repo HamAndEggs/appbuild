@@ -83,7 +83,7 @@ public:
 	const std::string& GetOutputPath()const{return mOutputPath;}
 	const std::string& GetOutputName()const{return mOutputName;}
 	const StringVec& GetLibraryFiles()const{return mLibraryFiles;}
-	const ArgList& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
+	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
 	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
@@ -105,6 +105,8 @@ private:
 
 	bool AddDependantProjects(const JSONValue* pLibs);
 
+	const std::string PreparePath(const std::string& pPath);// Makes the path relitive to the project if it is not absolute. Cleans it up a bit too.
+
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
 	const bool mVerboseOutput;
@@ -118,10 +120,12 @@ private:
 	std::string mPathedTargetName;	// This is the final output fully pathed filename.
 	std::string mOutputPath;
 	std::string mOutputName; //The string read from output_name
-
-	ArgList mCompileArguments;
-	ArgList mLibrarySearchPaths;
+	std::string mStandard;	// The c++ used standard.
+	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
+	StringVec mIncludeSearchPaths;
+	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;
+	StringVec mDefines;
 	SourceFiles mSourceFiles; // Source files that are build just for a specific configuration. Allows targeting of different platforms.
 
 	// The projects that this project needs.
