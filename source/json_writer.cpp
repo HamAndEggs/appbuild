@@ -90,7 +90,7 @@ void JsonWriter::AddObjectItem(const char* pName,const bool pValue)
 {
 	json << seperator;
 	AddTabs();	
-	json << "\"" << pName << "\":" << pValue?"true":"false";
+	json << "\"" << pName << "\":" << (pValue?"true":"false");
 	seperator = ",\n";
 }
 
@@ -151,7 +151,7 @@ void JsonWriter::AddArrayItem(const bool pValue)
 {
 	json << seperator;
 	AddTabs();	
-	json << pValue?"true":"false";
+	json << (pValue?"true":"false");
 	seperator = ",\n";
 }
 

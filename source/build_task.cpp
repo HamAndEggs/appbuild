@@ -29,7 +29,7 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
 BuildTask::BuildTask(const std::string& pTaskName, const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput):
-	mTaskName(pTaskName), mCommand(pCommand), mArgs(pArgs), mOutputFilename(pOutputFilename),mOk(false),mCompleted(false),mVerboseOutput(pVerboseOutput)
+	mTaskName(pTaskName), mCommand(pCommand), mArgs(pArgs), mOutputFilename(pOutputFilename),mVerboseOutput(pVerboseOutput),mOk(false),mCompleted(false)
 {
 }
 

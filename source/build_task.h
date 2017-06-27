@@ -43,7 +43,7 @@ public:
 	bool GetOk(){return mOk;}
 
 private:
-	BuildTask(const BuildTask& pOther):mOk(false),mVerboseOutput(false) { assert(false); }// Prevent this from being called.
+	BuildTask(const BuildTask& pOther):mVerboseOutput(false),mOk(false) { assert(false); }// Prevent this from being called.
 	const BuildTask& operator =(const BuildTask& pOther){ assert(false); return *this;}// Prevent this from being called.
 
 	void Main();

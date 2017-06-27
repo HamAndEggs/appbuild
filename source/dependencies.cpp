@@ -26,8 +26,7 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 Dependencies::Dependencies(const std::string& pProjectFile)
 {
-	bool Ok = GetFileTime(pProjectFile,mProjectFileTime);
-	assert( Ok );
+	GetFileTime(pProjectFile,mProjectFileTime);
 }
 
 bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::string& pObjectFile,const StringVec& pIncludePaths)

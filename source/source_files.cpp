@@ -104,6 +104,7 @@ bool SourceFiles::Write(JsonWriter& rJsonOutput)const
 			rJsonOutput.EndObject();
 		}
 	}
+	return true;
 }
 
 void SourceFiles::AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename)
