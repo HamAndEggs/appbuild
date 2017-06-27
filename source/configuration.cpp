@@ -375,6 +375,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 			std::cout << "Input filename not found " << InputFilename << std::endl;
 		}
 	}
+	return true;
 }
 
 bool Configuration::AddIncludeSearchPaths(const JSONValue* pPaths)
