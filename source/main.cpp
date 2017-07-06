@@ -299,7 +299,11 @@ void CommandLineOptions::PrintHelp()const
 
 void CommandLineOptions::PrintVersion()const
 {
-
+#ifdef BUILT_BY_APPBUILD
+	std::cout << "Build date and time " << APP_BUILD_DATE_TIME << std::endl;
+	std::cout << "Build date " << APP_BUILD_DATE << std::endl;
+	std::cout << "Build time " << APP_BUILD_TIME << std::endl;
+#endif
 }
 
 

@@ -305,6 +305,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 	const std::string DEF_APP_BUILD_DATE_TIME = "-DAPP_BUILD_DATE_TIME=\"" + GetTimeString() + "\"";
 	const std::string DEF_APP_BUILD_DATE = "-DAPP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"";
 	const std::string DEF_APP_BUILD_TIME = "-DAPP_BUILD_TIME=\"" + GetTimeString("%X") + "\"";
+	const std::string DEF_BUILT_BY_APPBUILD = "-DBUILT_BY_APPBUILD";
 
 	for( const auto& file_entry : pSourceFiles )
 	{
@@ -358,6 +359,8 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				args.AddArg(DEF_APP_BUILD_DATE_TIME);
 				args.AddArg(DEF_APP_BUILD_DATE);
 				args.AddArg(DEF_APP_BUILD_TIME);
+				args.AddArg(DEF_BUILT_BY_APPBUILD);
+				
 				args.AddDefines(mDefines);
 				
 				args.AddIncludeSearchPath(mIncludeSearchPaths);
