@@ -19,8 +19,63 @@ I also want to add features that are only applicable when creating applications 
 # Installation
 Just run the build_and_install.sh and it will compile and copy it to /usr/share/bin and you’re ready to rock and roll.
 
-## Usage
+# Usage
 There are some example projects included so you can see how it can be used as well as a way to validate any new build as I work on the project. The project file can be very minimal listing just the files to complile. The other values required will have defaults that will be used. The application has an option, decribed below, that can be used to populate the missing project file options with their defaults.
+
+## Source files
+
+```json
+{
+	"source_files":
+	[
+		"./main.cpp"		
+	]
+}
+```
+
+The "source_files" member can either be an array, as above or an object with many children objects. The former is intended for use in an IDE where source files can be grouped with filers or virtual folders. Below is an example.
+
+```json
+{
+	"source_files":
+	{
+		"./main.cpp":"main",
+		"./gfx/particles.cpp":"fx",
+		"./sprites/ship.cpp":"fx",
+		"./mp3.cpp":"music",
+	}
+}
+```
+
+## Configurations
+The 'dependancy' example project shows a use of the "configuration" object in the project Json file. The configuration object can have any number of children objects defining the different configurations that can be build, the most common would be release and debug. There is no reserved configuration names and you're free to name them what you like although I expect most will use 'release' and 'debug'. Below is an example...
+
+```json
+{
+	"configurations":
+	{
+		"release":
+		{
+			"target":"executable",
+			"output_name":"dependancy",
+			"optimisation":2,
+			"standard":"c++11"
+		},
+		"debug":
+		{
+			"target":"executable",
+			"output_name":"dependancy_dbg",
+			"optimisation":0,
+			"standard":"c++11"
+		}
+	},
+    "source_files":
+	[
+		"./main.cpp"
+		
+	]
+}
+```
 
 ## Work left to do
 * Implement a resource file system.
