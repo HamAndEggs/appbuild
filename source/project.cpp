@@ -183,7 +183,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	return false;
 }
 
-bool Project::RunOutputFile(const Configuration* pActiveConfig,bool pAsSudo)
+bool Project::RunOutputFile(const Configuration* pActiveConfig)
 {
 	assert(pActiveConfig);
 	if(!pActiveConfig)return false;
@@ -193,8 +193,6 @@ bool Project::RunOutputFile(const Configuration* pActiveConfig,bool pAsSudo)
 	{
 		char command[256];
 		command[0] = 0;
-		if( pAsSudo )
-			strcat(command,"sudo ");
 
 		strcat(command,pActiveConfig->GetPathedTargetName().c_str());
 

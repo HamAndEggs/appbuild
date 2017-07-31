@@ -47,7 +47,7 @@ public:
 	operator bool ()const{return mOk;}
 
 	bool Build(const Configuration* pActiveConfig);
-	bool RunOutputFile(const Configuration*pActiveConfig,bool pAsSudo);
+	bool RunOutputFile(const Configuration*pActiveConfig);
 	bool Write(JsonWriter& rJsonOutput)const;
 	const Configuration* FindConfiguration(const std::string& pConfigName)const;
 

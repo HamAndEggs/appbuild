@@ -15,6 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <getopt.h>
 
@@ -31,8 +32,7 @@ public:
 	bool GetShowHelp()const{return mShowHelp;}
 	bool GetShowVersion()const{return mShowVersion;}
 	bool GetVerboseOutput()const{return mVerboseOutput;}
-	bool GetRunAfterBuild()const{return mRunAfterBuild || mSudoRunAfterBuild;}
-	bool GetSudoRunAfterBuild()const{return mSudoRunAfterBuild;}
+	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
 	int  GetNumThreads()const{return mNumThreads;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
@@ -49,7 +49,6 @@ private:
 	bool mShowVersion;
 	bool mVerboseOutput;
 	bool mRunAfterBuild;
-	bool mSudoRunAfterBuild;
 	bool mReBuild;
 	int  mNumThreads;
 	std::vector<std::string> mProjectFiles;
@@ -85,11 +84,20 @@ int main(int argc, char *argv[])
 					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
 					appbuild::JsonWriter JsonOutput;
 					TheProject.Write(JsonOutput);
-					std::cout << JsonOutput.Get() << std::endl;
+//					std::cout << JsonOutput.Get() << std::endl;
+					std::ofstream updatedProjectFile(Args.GetUpdatedOutputFileName());
+					if( updatedProjectFile )
+					{
+						updatedProjectFile << JsonOutput.Get();
+					}
+					else
+					{
+						std::cout << "Failed to write to the destination file." << std::endl;
+					}
 				}
 				else if( ActiveConfig && TheProject.Build(ActiveConfig) && Args.GetRunAfterBuild() )
 				{
-					TheProject.RunOutputFile(ActiveConfig,Args.GetSudoRunAfterBuild());
+					TheProject.RunOutputFile(ActiveConfig);
 				}
 			}
 			else
@@ -108,15 +116,14 @@ int main(int argc, char *argv[])
 }
 
 
-#define ARGUMENTS																																											\
+#define ARGUMENTS																																							\
+		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																			\
+		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")																\
+		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")																\
+		DEF_ARG(ARG_REBUILD,no_argument,				'r',"rebuild","Clean and rebuild all the source files.")															\
+		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'x',"run-after-build","If the build is successful then eXecute the app, but only if one project file submitted.")	\
 		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
-		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																		\
-		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")															\
-		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")															\
-		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'r',"run-after-build","If the build is successful then run the app, but only if one project file submitted.")			\
-		DEF_ARG(ARG_SUDO_RUN_AFTER_BUILD,no_argument,	'R',"sudo-run-after-build","If the build is successful then run the app as SUDO, but only if one project file submitted.")	\
-		DEF_ARG(ARG_REBUILD,no_argument,				'B',"rebuild","Clean and rebuild all the source files.")															\
-		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")															\
+		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")													\
 		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
 
 
@@ -132,7 +139,6 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mShowVersion(false),
 	mVerboseOutput(false),
 	mRunAfterBuild(false),
-	mSudoRunAfterBuild(false),
 	mReBuild(false),
 	mNumThreads(std::thread::hardware_concurrency())
 {
@@ -175,10 +181,6 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_RUN_AFTER_BUILD:
 			mRunAfterBuild = true;
-			break;
-
-		case ARG_SUDO_RUN_AFTER_BUILD:
-			mSudoRunAfterBuild = true;
 			break;
 
 		case ARG_REBUILD:
