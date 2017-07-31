@@ -1,4 +1,4 @@
-## App Build
+# About
 This project is an alternative (not a replacement) to makefiles for when compling c/c++ applications. 
 
 So I have taken a leaf out of the Microsoft Visual Studio book and create a stand alone app that uses a single file to represent project consisting of one or more build targets.
@@ -16,10 +16,10 @@ I have always found it frustrating to have to create makefiles. Mostly because t
 
 I also want to add features that are only applicable when creating applications such as compiling resource files, automatic date stamping and version marking.
 
-## Installation
+# Installation
 Just run the build_and_install.sh and it will compile and copy it to /usr/share/bin and you’re ready to rock and roll.
 
-# Usage
+## Usage
 There are some example projects included so you can see how it can be used as well as a way to validate any new build as I work on the project. The project file can be very minimal listing just the files to complile. The other values required will have defaults that will be used. The application has an option, decribed below, that can be used to populate the missing project file options with their defaults.
 
 ## Work left to do
