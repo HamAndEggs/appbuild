@@ -1,16 +1,14 @@
-## PLEASE NOTE, THIS APP AN EARLY VERSION AND NOT YET FINISHED
-## The project file format will be changing. It maybe best to wait for me to finish it. :)
-
 ## App Build
-This project is an alternative (not a replacement) to makefiles when compling c/c++ applications. 
+This project is an alternative (not a replacement) to makefiles for when compling c/c++ applications. 
 
 So I have taken a leaf out of the Microsoft Visual Studio book and create a stand alone app that uses a single file to represent project consisting of one or more build targets.
 
 The aim is to have a simple file to represent a c/c++ project that is easy to maintain and has all the features that I have wanted over the years. 
 
 ## Current features
-Targest applications.
+Targets applications and static libraries.
 Full dependency checking.
+Project references, if an app refers to a library and the source of that library has changed it will build that library before continuing with building the application, just as you would expect. 
 Json file format allowing intergration with external editors where the editor can add it’s own values to the file and the tool will ignore them.
 
 ## Motivation
@@ -22,59 +20,14 @@ I also want to add features that are only applicable when creating applications 
 Just run the build_and_install.sh and it will compile and copy it to /usr/share/bin and you’re ready to rock and roll.
 
 # Usage
-In time I will create proper documentation. But for now here is an example project file from a project that I am working on for my Raspberry pi. I do plan to add automatic project file creation to get you started. For now just modify this one. The source file entries go in the “groups” object.
+There are some example projects included so you can see how it can be used as well as a way to validate any new build as I work on the project. The project file can be very minimal listing just the files to complile. The other values required will have defaults that will be used. The application has an option, decribed below, that can be used to populate the missing project file options with their defaults.
 
-    {
-        "settings":
-        {
-            "include":
-            [
-                "../i2c/source",
-                "../spi/source",
-                "../gpio/source"
-            ],
-            "libpaths":
-            [
-                "/usr/include"
-            ],
-            "libs":
-            [
-                "stdc++"
-            ],
-            "target":"executable",
-            "output_name":"weather",
-            "optimisation":0,
-            "standard":"c++11"
-        },
-        "groups":
-        {
-            "gpio":
-            [
-                "../gpio/source/gpiomem.cpp"
-            ],
-            "spi":
-            [
-                "../spi/source/spi_device.cpp",
-                "../spi/source/mcp3008.cpp"
-            ],
-            "i2c":
-            [
-                "../i2c/source/ads1015.cpp",
-                "../i2c/source/i2c_device.cpp",
-                "../i2c/source/tmp102.cpp",
-                "../i2c/source/bmp280.cpp",
-                "../i2c/source/si1145.cpp",
-                "../i2c/source/tsl2561.cpp"
-            ],
-            "Source":
-            [
-                "./source/weather.cpp"
-            ]
-        }
-    }
+## Work left to do
+* Implement a resource file system.
+* Add missing compiler options as and when I discover them or I am informed of them.
 
 ## Contributors
-Richard e Collin
+Richard e Collins
 
 ## License
 Copyright (C) 2017, Richard e Collins.
