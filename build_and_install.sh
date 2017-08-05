@@ -11,6 +11,9 @@ mkdir -p ./bin
 # Compile the cpp code.
 echo "Compiling"
 
+echo "lz4.c"
+gcc -I /usr/include -DNDEBUG -O3 -Wall -c source/lz4/lz4.c -o bin/lz4.o
+
 echo "project.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/project.cpp -o bin/project.o
 
@@ -42,7 +45,7 @@ echo "arg_list.cpp"
 gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/arg_list.cpp -o bin/arg_list.o
 
 echo "Linking"
-gcc ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/lz4.o ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"
