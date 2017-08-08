@@ -13,47 +13,43 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
-   
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-#include <fstream>
-#include <sstream>
-#include <iostream>
+
+#ifndef _RESOURCE_FILES_H_
+#define _RESOURCE_FILES_H_
 
 #include "build_task.h"
-#include "json.h"
-#include "misc.h"
+#include "dependencies.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-BuildTask::BuildTask(const std::string& pTaskName,bool pVerboseOutput):
-	mVerboseOutput(pVerboseOutput),mTaskName(pTaskName),mOk(false),mCompleted(false)
-{
-}
+class JSONValue;
+class JsonWriter;
 
-BuildTask::~BuildTask()
+class ResourceFiles
 {
-	if( thread.joinable() )
-		thread.join();// Make sure we do not delete the object till the thread has finished.
-}
+public:
+    typedef StringMap::const_iterator const_iterator;
 
-void BuildTask::Execute()
-{
-	std::cout << "Building: " << mTaskName << std::endl;
-	thread = std::thread(CallMain,this);
-}
+	ResourceFiles();
+	ResourceFiles(const ResourceFiles& pOther);
 
-void BuildTask::CallMain(BuildTask* pTask)
-{
-	assert( pTask );
-	if( pTask )
-	{
-		pTask->mOk = pTask->Main();
-		pTask->mCompleted = true;
-	}
-}
+	const ResourceFiles& operator = (const ResourceFiles& pOther);
+
+    const_iterator begin()const{return mFiles.begin();}
+    const_iterator end()const{return mFiles.end();}
+
+	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
+	bool Write(JsonWriter& rJsonOutput)const;
+
+private:
+	void AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename);
+
+	StringMap mFiles;
+	bool mWriteAsJsonArray;	// So if we write it out again, we know to write as an array.
+};
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{
+
+#endif

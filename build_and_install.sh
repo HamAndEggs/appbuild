@@ -8,44 +8,71 @@ echo "Preparing build folder"
 rm -drf ./bin
 mkdir -p ./bin
 
+COMPILE_FLAGS_C="-DNDEBUG -O3 -Wall -c"
+COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
+
+#echo $COMPILE_FLAGS_C
+#echo $COMPILE_FLAGS_CPP11
+
 # Compile the cpp code.
 echo "Compiling"
 
+echo "build_task.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task.cpp -o bin/build_task.o &
+
+echo "build_task_compile.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_compile.cpp -o bin/build_task_compile.o &
+
+echo "build_task_resource_files.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
+
+# doing a few at a time.
+wait
+
 echo "lz4.c"
-gcc -I /usr/include -DNDEBUG -O3 -Wall -c source/lz4/lz4.c -o bin/lz4.o
+gcc -I /usr/include $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
 
 echo "project.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/project.cpp -o bin/project.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/project.cpp -o bin/project.o &
 
 echo "dependencies.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/dependencies.cpp -o bin/dependencies.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/dependencies.cpp -o bin/dependencies.o &
 
 echo "configuration.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/configuration.cpp -o bin/configuration.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configuration.o &
+
+# doing a few at a time.
+wait
 
 echo "source_files.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/source_files.cpp -o bin/source_files.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
 
-echo "json.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/json.cpp -o bin/json.o
-
-echo "json_writer.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/json_writer.cpp -o bin/json_writer.o
-
-echo "build_task.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/build_task.cpp -o bin/build_task.o
+echo "resource_files.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/resource_files.cpp -o bin/resource_files.o &
 
 echo "misc.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/misc.cpp -o bin/misc.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/misc.cpp -o bin/misc.o &
 
 echo "main.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/main.cpp -o bin/main.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/main.cpp -o bin/main.o &
+
+# doing a few at a time.
+wait
+
+echo "json.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/json.cpp -o bin/json.o &
+
+echo "json_writer.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/json_writer.cpp -o bin/json_writer.o &
 
 echo "arg_list.cpp"
-gcc -I /usr/include -std=c++11 -DNDEBUG -O3 -Wall -c source/arg_list.cpp -o bin/arg_list.o
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
+
+# Wait for last jobs to be done.
+wait
 
 echo "Linking"
-gcc ./bin/lz4.o ./bin/build_task.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"

@@ -21,7 +21,7 @@
 
 #include "misc.h"
 #include "configuration.h"
-#include "build_task.h"
+#include "build_task_compile.h"
 #include "dependencies.h"
 #include "json_writer.h"
 #include "source_files.h"
@@ -370,7 +370,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				args.AddArg("-c");
 				args.AddArg(InputFilename);
 
-				rBuildTasks.push(new BuildTask(GetFileName(filename), OutputFilename, mComplier,args,mVerboseOutput));
+				rBuildTasks.push(new BuildTaskCompile(GetFileName(filename), OutputFilename, mComplier,args,mVerboseOutput));
 			}
 		}
 		else

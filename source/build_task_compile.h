@@ -14,8 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef _BUILD_TASK_H_
-#define _BUILD_TASK_H_
+#ifndef _BUILD_TASK_COMPILE_H_
+#define _BUILD_TASK_COMPILE_H_
 
 #include <assert.h>
 #include <atomic>
@@ -24,45 +24,28 @@
 #include <stack>
 
 #include "string_types.h"
+#include "build_task.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds the information for each build task.
 //////////////////////////////////////////////////////////////////////////
 namespace appbuild{
 
-class BuildTask
+class BuildTaskCompile : public BuildTask
 {
 public:
-	BuildTask(const std::string& pTaskName,bool pVerboseOutput);
-	virtual ~BuildTask();
+	BuildTaskCompile(const std::string& pTaskName,const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput);
+	virtual ~BuildTaskCompile();
 
-	virtual const std::string& GetOutputFilename()const = 0;
-
-	void Execute();
-	const std::string& GetResults()const{return mResults;}
-	const std::string& GetTaskName()const{return mTaskName;}
-	bool GetIsCompleted()const{return mCompleted;}
-	bool GetOk(){return mOk;}
-
-protected:
-	virtual bool Main() = 0;
-
-	const bool mVerboseOutput;
-	std::string mResults;
+	virtual const std::string& GetOutputFilename()const{return mOutputFilename;}
 
 private:
-	static void CallMain(BuildTask* pTask);
+	virtual bool Main();
 
-	const std::string mTaskName;// The name of the task. At a later data I may make new task types instead of all being a compile task. Some work on the design needed.
-	bool mOk;
-
-	std::atomic<bool> mCompleted;
-	std::thread thread;
+	const std::string mCommand; // What needs to be done.
+	const StringVec mArgs;
+	const std::string mOutputFilename;
 };
-
-// As a class and not a type def so that in some headers that only need a reference to these I can do a forward reference instead of including this header.
-class BuildTaskStack : public std::stack<BuildTask*>{};
-class RunningBuildTasks : public std::list<BuildTask*>{};
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

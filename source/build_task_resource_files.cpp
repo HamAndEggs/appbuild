@@ -21,39 +21,32 @@
 #include <sstream>
 #include <iostream>
 
-#include "build_task.h"
+#include "build_task_resource_files.h"
 #include "json.h"
 #include "misc.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-BuildTask::BuildTask(const std::string& pTaskName,bool pVerboseOutput):
-	mVerboseOutput(pVerboseOutput),mTaskName(pTaskName),mOk(false),mCompleted(false)
+BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const StringVec& pResourceFiles,bool pVerboseOutput):
+	BuildTask(pTaskName,pVerboseOutput),
+	mResourceFiles(pResourceFiles)
 {
 }
 
-BuildTask::~BuildTask()
+BuildTaskResourceFiles::~BuildTaskResourceFiles()
 {
-	if( thread.joinable() )
-		thread.join();// Make sure we do not delete the object till the thread has finished.
 }
 
-void BuildTask::Execute()
+bool BuildTaskResourceFiles::Main()
 {
-	std::cout << "Building: " << mTaskName << std::endl;
-	thread = std::thread(CallMain,this);
-}
-
-void BuildTask::CallMain(BuildTask* pTask)
-{
-	assert( pTask );
-	if( pTask )
+	if(mVerboseOutput)
 	{
-		pTask->mOk = pTask->Main();
-		pTask->mCompleted = true;
 	}
+
+	return false;
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{
