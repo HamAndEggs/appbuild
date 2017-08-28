@@ -120,7 +120,7 @@ private:
 	std::string mPathedTargetName;	// This is the final output fully pathed filename.
 	std::string mOutputPath;
 	std::string mOutputName; //The string read from output_name
-	std::string mStandard;	// The c++ used standard.
+	std::string mCppStandard;	// The c++ used standard.
 	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;

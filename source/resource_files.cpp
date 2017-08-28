@@ -26,7 +26,7 @@
 namespace appbuild{
 
 //////////////////////////////////////////////////////////////////////////
-ResourceFiles::ResourceFiles() : mWriteAsJsonArray(false)
+ResourceFiles::ResourceFiles() : mIncludeLZ4Code(true),mWriteAsJsonArray(false)
 {
 
 }
@@ -39,6 +39,7 @@ ResourceFiles::ResourceFiles(const ResourceFiles& pOther)
 const ResourceFiles& ResourceFiles::operator = (const ResourceFiles& pOther)
 {
 	mFiles = pOther.mFiles;
+	mIncludeLZ4Code = pOther.mIncludeLZ4Code;
 	mWriteAsJsonArray = pOther.mWriteAsJsonArray;
 	return pOther;
 }

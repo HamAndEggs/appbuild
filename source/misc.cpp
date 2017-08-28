@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <dirent.h>
 #include <time.h>
+#include <algorithm>
 
 #include "misc.h"
 
@@ -124,6 +125,19 @@ std::string GetCurrentWorkingDirectory()
 std::string CleanPath(const std::string& pPath)
 {
 	return ReplaceString(pPath,"/./","/");
+}
+
+std::string GetExtension(const std::string& pFileName,bool pToLower)
+{
+	std::string result;
+	std::size_t found = pFileName.rfind(".");
+	if(found != std::string::npos)
+	{
+		result = pFileName.substr(found,pFileName.size()-found);
+		if( pToLower )
+			std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+	}
+	return result;
 }
 
 static bool FilterMatch(const std::string& pFilename,const std::string& pFilter)

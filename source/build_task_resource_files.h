@@ -25,22 +25,35 @@
 
 #include "string_types.h"
 #include "build_task.h"
+#include "mem_buffer.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds the information for each build task.
 //////////////////////////////////////////////////////////////////////////
 namespace appbuild{
-
+class ResourceFiles;
+struct ResourceFilesTOC;
 class BuildTaskResourceFiles : public BuildTask
 {
 public:
-	BuildTaskResourceFiles(const std::string& pTaskName,const StringVec& pResourceFiles,bool pVerboseOutput);
+
+	BuildTaskResourceFiles(const std::string& pTaskName,const ResourceFiles& pResourceFiles,const std::string& pOutputPath,bool pVerboseOutput);
 	virtual ~BuildTaskResourceFiles();
 
+	virtual const std::string& GetOutputFilename()const{return mOutputPath;}
+
 private:
+	typedef MemoryBuffer<uint8_t,1024,1024> CompressionMemoryBuffer;
+
 	virtual bool Main();
 
-	const StringVec mResourceFiles;
+	void WriteSupportingCodeFile(const ResourceFilesTOC& pFile);
+	char* DecompressSupportingCodeFile(const ResourceFilesTOC& pFile);
+
+	const std::string mOutputPath;
+	const bool mIncludeLZ4Code;
+	StringVec mResourceFiles;
+	CompressionMemoryBuffer mCompressBuffer;
 };
 
 //////////////////////////////////////////////////////////////////////////

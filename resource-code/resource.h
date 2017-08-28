@@ -14,42 +14,26 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef _SOURCE_FILES_H_
-#define _SOURCE_FILES_H_
+#ifndef _APPBUILD_RESOURCE_H_
+#define _APPBUILD_RESOURCE_H_
 
-#include "build_task.h"
-#include "dependencies.h"
+#include <string>
 
-namespace appbuild{
+namespace AppBuildResource{
 //////////////////////////////////////////////////////////////////////////
-
-class JSONValue;
-class JsonWriter;
-
-class SourceFiles
+class MemoryStream;
+class ResourceFile : public std::istream
 {
-public:
-    typedef StringMap::const_iterator const_iterator;
+	ResourceFile(const std::string& pFilename);
+	virtual ~ResourceFile();
 
-	SourceFiles();
-	SourceFiles(const SourceFiles& pOther);
-
-	const SourceFiles& operator = (const SourceFiles& pOther);
-
-    const_iterator begin()const{return mSourceFiles.begin();}
-    const_iterator end()const{return mSourceFiles.end();}
-
-	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
-	bool Write(JsonWriter& rJsonOutput)const;
+	bool is_open()const{return mTheStream != NULL;}
+	operator bool()const{return is_open();}
 
 private:
-	void AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename);
-
-	StringMap mSourceFiles;
-	bool mWriteAsJsonArray;	// So if we write it out again, we know to write as an array.
+	MemoryStream* mTheStream;
 };
-
 //////////////////////////////////////////////////////////////////////////
-};//namespace appbuild{
+};//AppBuildResource{
 
-#endif
+#endif //#ifndef _APPBUILD_RESOURCE_H_

@@ -1,0 +1,13 @@
+{
+	"source_files":
+	[
+		"./main.cpp"		
+	],
+	"resource_files":
+	[
+		"lz4.h",
+		"lz4.c",
+		"resource.h",
+		"resource.cpp",
+	]
+}

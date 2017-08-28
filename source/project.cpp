@@ -28,6 +28,7 @@
 #include "misc.h"
 #include "arg_list.h"
 #include "json_writer.h"
+#include "build_task_resource_files.h"
 
 namespace appbuild{
 StringSet Project::sLoadedProjects;
@@ -81,6 +82,9 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 
 		// Add the source files
 		mSourceFiles.Read(ProjectJson.Find("source_files"),mPathedProjectFilename);
+
+		// Add the source files
+		mResourceFiles.Read(ProjectJson.Find("resource_files"),mPathedProjectFilename);
     }
 	else
 	{
@@ -147,6 +151,13 @@ bool Project::Build(const Configuration* pActiveConfig)
 	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
 
 	BuildTaskStack BuildTasks;
+
+	// See if we need to build the resoure files first.
+	if( mResourceFiles.GetNeedsRebuild() )
+	{
+		BuildTasks.push(new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mVerboseOutput));
+	}
+
 	StringVec OutputFiles;
 	if( pActiveConfig->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
 	{

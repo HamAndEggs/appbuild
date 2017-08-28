@@ -38,6 +38,7 @@ std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension 
 std::string GetPath(const std::string& pPathedFileName);
 std::string GetCurrentWorkingDirectory();
 std::string CleanPath(const std::string& pPath);
+std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**
@@ -69,6 +70,8 @@ std::string TrimWhiteSpace(const std::string &s);
 // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
 // for more information about date/time format
 std::string GetTimeString(const char* pFormat = "%d-%m-%Y %X");
+
+
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild

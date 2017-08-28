@@ -1,0 +1,11 @@
+{
+	"source_files":
+	[
+		"./main.cpp"		
+	],
+	"resource_files":
+	[
+		"./data/PiGlassesCase-open.JPG",
+		"./data/robot-legs-prototype-v1.jpg"
+	]
+}

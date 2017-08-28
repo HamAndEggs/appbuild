@@ -40,7 +40,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mArchiver("ar"),
 	mOutputPath("./bin/"),
 	mOutputName(pProjectName),
-	mStandard("c++11"),
+	mCppStandard("c++11"),
 	mOptimisation("0")
 {
 	AddIncludeSearchPath("/usr/include");
@@ -60,7 +60,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mLinker("gcc"),
 		mArchiver("ar"),
 		mOutputPath(pProjectDir + "bin/" + pConfigName + "/"),
-		mStandard("c++11"),
+		mCppStandard("c++11"),
 		mOptimisation("0")
 {
 
@@ -197,7 +197,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	const JSONValue* standard = pConfig->Find("standard");
 	if( standard && standard->GetType() == JSONValue::STRING )
 	{
-		mStandard = standard->GetString();
+		mCppStandard = standard->GetString();
 	}
 
 	// See if there are any projects we are not dependent on.
@@ -230,7 +230,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 		rJsonOutput.AddObjectItem("archiver",mArchiver);
 		rJsonOutput.AddObjectItem("output_path",mOutputPath);
 		rJsonOutput.AddObjectItem("output_name",mOutputName);
-		rJsonOutput.AddObjectItem("standard",mStandard);
+		rJsonOutput.AddObjectItem("standard",mCppStandard);
 		rJsonOutput.AddObjectItem("optimisation",mOptimisation);
 		
 		if(mIncludeSearchPaths.size()>0)
@@ -349,6 +349,8 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mIncludeSearchPaths) )
 			{
+				bool isCfile = GetExtension(InputFilename) == ".c";
+
 				// Going to build the file, so delete the obj that is there.
 				// If we do not do this then it can effect the dependency system.
 				std::remove(OutputFilename.c_str());
@@ -364,7 +366,9 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				args.AddDefines(mDefines);
 				
 				args.AddIncludeSearchPath(mIncludeSearchPaths);
-				args.AddArg("-std=" + mStandard);
+				if( !isCfile )
+					args.AddArg("-std=" + mCppStandard);
+
 				args.AddArg("-o");
 				args.AddArg(OutputFilename);
 				args.AddArg("-c");
