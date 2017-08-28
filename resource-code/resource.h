@@ -33,6 +33,11 @@ class ResourceFile : public std::istream
 private:
 	MemoryStream* mTheStream;
 };
+
+// Following two are to allow you to read as a block of ram. You are responcible for allocating and deleting the destination memory.
+extern bool CopyResourceToMemory(const std::string& pFilename,uint8_t* rDestination,int pDestinationSize);// Will return false is file not found or destination size is not enough.
+extern int GetResourceFileSize(const std::string& pFilename);// Returns the size of the resourc. Will return -1 if not found. Used in conjunction with CopyResourceToMemory.
+
 //////////////////////////////////////////////////////////////////////////
 };//AppBuildResource{
 

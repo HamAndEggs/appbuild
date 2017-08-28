@@ -86,7 +86,7 @@ public:
 	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 private:
 	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;

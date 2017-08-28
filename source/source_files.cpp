@@ -26,7 +26,7 @@
 namespace appbuild{
 
 //////////////////////////////////////////////////////////////////////////
-SourceFiles::SourceFiles() : mWriteAsJsonArray(false)
+SourceFiles::SourceFiles(const std::string& pProjectPath) :mProjectDir(pProjectPath), mWriteAsJsonArray(false)
 {
 
 }
@@ -38,12 +38,13 @@ SourceFiles::SourceFiles(const SourceFiles& pOther)
 
 const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
+	mProjectDir = pOther.mProjectDir;
 	mSourceFiles = pOther.mSourceFiles;
 	mWriteAsJsonArray = pOther.mWriteAsJsonArray;
 	return pOther;
 }
 
-bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename)
+bool SourceFiles::Read(const JSONValue* pSourceElement)
 {
 	if( pSourceElement )
 	{
@@ -54,7 +55,7 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 			mWriteAsJsonArray = true;
 			for(int n=0;n<pSourceElement->GetArraySize();n++)
 			{
-				AddFile(pSourceElement->GetString(n),"obj",pPathedProjectFilename);
+				AddFile(pSourceElement->GetString(n),"obj");
 			}
 		}
 		else if( pSourceElement->GetType() == JSONValue::OBJECT && pSourceElement->GetObject() )
@@ -66,11 +67,11 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 				{
 					if( obj->GetType() == JSONValue::STRING )
 					{
-						AddFile(value.first,obj->GetString(),pPathedProjectFilename);
+						AddFile(value.first,obj->GetString());
 					}
 					else
 					{
-						std::cout << "The \'source_files\' object has a member \'" << value.first << "\' whos value is not a string in this project file \'" << pPathedProjectFilename << std::endl;
+						std::cout << "The \'source_files\' object has a member \'" << value.first << "\' whos value is not a string in this project file \'" << mProjectDir << std::endl;
 						return false;					
 					}
 				}
@@ -78,7 +79,7 @@ bool SourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathe
 		}
 		else
 		{
-			std::cout << "The \'source_files\' object in this project file \'" << pPathedProjectFilename << "\' is not a supported json type" << std::endl;
+			std::cout << "The \'source_files\' object in this project file \'" << mProjectDir << "\' is not a supported json type" << std::endl;
 			return false;
 		}
 	}
@@ -107,14 +108,13 @@ bool SourceFiles::Write(JsonWriter& rJsonOutput)const
 	return true;
 }
 
-void SourceFiles::AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename)
+void SourceFiles::AddFile(const char* pFileName,const char* pGroupName)
 {
 	assert(pFileName);
 	assert(pGroupName);
 	if(pFileName && pGroupName)
 	{
-		const std::string ProjectDir = GetPath(pPathedProjectFilename);
-		const std::string InputFilename = ProjectDir + pFileName;
+		const std::string InputFilename = mProjectDir + pFileName;
 		// If the source file exists then we'll continue, else show an error.
 		if( FileExists(InputFilename) )
 		{

@@ -41,7 +41,8 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mOutputPath("./bin/"),
 	mOutputName(pProjectName),
 	mCppStandard("c++11"),
-	mOptimisation("0")
+	mOptimisation("0"),
+	mSourceFiles(pProjectDir)
 {
 	AddIncludeSearchPath("/usr/include");
 	AddLibrary("stdc++");
@@ -61,7 +62,8 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mArchiver("ar"),
 		mOutputPath(pProjectDir + "bin/" + pConfigName + "/"),
 		mCppStandard("c++11"),
-		mOptimisation("0")
+		mOptimisation("0"),
+		mSourceFiles(pProjectDir)		
 {
 
 	const JSONValue* includes = pConfig->Find("include");
@@ -209,7 +211,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}
 
 	// Add configuration specific source files
-	mSourceFiles.Read(pConfig->Find("source_files"),pPathedProjectFilename);
+	mSourceFiles.Read(pConfig->Find("source_files"));
 
 	// If we get here, then all is ok.
 	mOk = true;
@@ -278,9 +280,13 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 	return true;
 }
 
-bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
+bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
+
+	// add the generated resource files.
+	if( !GetBuildTasks(pGeneratedResourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+		return false;
 
 	// Add the project files.
 	if( !GetBuildTasks(pProjectSourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )

@@ -33,6 +33,20 @@ struct ResourceFilesTOC
 
 //*****-APPBUILD-INSERT-RESOURCE-HERE-*****
 
+static const ResourceFilesTOC* FindFile(const std::string& pFilename)
+{
+	//First see if we can find the file. For now, do it slow. Later i'll sort and do a divide and conqor search, which will be a lot quicker..
+	const ResourceFilesTOC* FileTOC = NULL;
+	for( size_t n = 0 ; n < (sizeof(table_of_contents) / sizeof(table_of_contents[0])) && FileTOC == NULL ; n++ )
+	{
+		if( table_of_contents[n].mFilename == pFilename )
+		{
+			return table_of_contents + n;
+		}
+	}
+	return NULL;
+}
+
 class MemoryStream : public std::streambuf
 {
 public:
@@ -64,7 +78,7 @@ public:
 		return gptr() - eback();
 	}
 
-	virtual pos_type seekpos(streampos pos, std::ios_base::openmode mode) override
+	virtual pos_type seekpos(std::streampos pos, std::ios_base::openmode mode) override
 	{
 		return seekoff(pos - pos_type(off_type(0)), std::ios_base::beg, mode);
 	}
@@ -76,16 +90,7 @@ public:
 
 ResourceFile::ResourceFile(const std::string& pFilename) : mTheStream(NULL)
 {
-	//First see if we can find the file. For now, do it slow. Later i'll sort and do a divide and conqor search, which will be a lot quicker..
-	const ResourceFilesTOC* FileTOC = NULL;
-	for( size_t n = 0 ; n < (sizeof(table_of_contents) / sizeof(table_of_contents[0])) && FileTOC == NULL ; n++ )
-	{
-		if( table_of_contents[n].mFilename == pFilename )
-		{
-			FileTOC = table_of_contents + n;
-		}
-	}
-
+	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
 	if( FileTOC )
 	{
 		mTheStream = new MemoryStream(FileTOC);
@@ -97,6 +102,25 @@ ResourceFile::~ResourceFile()
 	delete mTheStream;
 }
 
+// Following two are to allow you to read as a block of ram. You are responcible for allocating and deleting the destination memory.
+bool CopyResourceToMemory(const std::string& pFilename,uint8_t* rDestination,int pDestinationSize)
+{
+	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
+	if(FileTOC && FileTOC->mFileSize <= pDestinationSize)
+	{
+		LZ4_decompress_safe((const char*)(resource_file_data + FileTOC->mOffset),(char*)rDestination,FileTOC->mCompressedSize,FileTOC->mFileSize);		
+		return true;
+	}
+	return false;
+}
+
+int GetResourceFileSize(const std::string& pFilename)
+{
+	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
+	if(FileTOC)
+		return FileTOC->mFileSize;
+	return -1;
+}
 
 //////////////////////////////////////////////////////////////////////////
 };//AppBuildResource

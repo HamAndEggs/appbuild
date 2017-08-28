@@ -29,7 +29,8 @@
 // Holds the information for each build task.
 //////////////////////////////////////////////////////////////////////////
 namespace appbuild{
-
+class BuildTaskStack;
+class Configuration;
 class BuildTask
 {
 public:

@@ -32,6 +32,8 @@
 //////////////////////////////////////////////////////////////////////////
 namespace appbuild{
 class ResourceFiles;
+class SourceFiles;
+
 struct ResourceFilesTOC;
 class BuildTaskResourceFiles : public BuildTask
 {
@@ -41,7 +43,9 @@ public:
 	virtual ~BuildTaskResourceFiles();
 
 	virtual const std::string& GetOutputFilename()const{return mOutputPath;}
-
+	
+	bool GetGeneratedResourceFiles(SourceFiles& rGeneratedResourceFiles);
+	
 private:
 	typedef MemoryBuffer<uint8_t,1024,1024> CompressionMemoryBuffer;
 
@@ -54,6 +58,7 @@ private:
 	const bool mIncludeLZ4Code;
 	StringVec mResourceFiles;
 	CompressionMemoryBuffer mCompressBuffer;
+	StringVec mGeneratedResourceFiles;
 };
 
 //////////////////////////////////////////////////////////////////////////

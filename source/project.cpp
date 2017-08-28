@@ -41,6 +41,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		mPathedProjectFilename(pFilename),
 		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
+		mSourceFiles(GetPath(pFilename)),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
@@ -81,7 +82,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 		assert( mBuildConfigurations.size() > 0 );
 
 		// Add the source files
-		mSourceFiles.Read(ProjectJson.Find("source_files"),mPathedProjectFilename);
+		mSourceFiles.Read(ProjectJson.Find("source_files"));
 
 		// Add the source files
 		mResourceFiles.Read(ProjectJson.Find("resource_files"),mPathedProjectFilename);
@@ -153,13 +154,28 @@ bool Project::Build(const Configuration* pActiveConfig)
 	BuildTaskStack BuildTasks;
 
 	// See if we need to build the resoure files first.
+	SourceFiles GeneratedResourceFiles(mProjectDir);
 	if( mResourceFiles.GetNeedsRebuild() )
 	{
-		BuildTasks.push(new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mVerboseOutput));
+//		std::cout << "Compiling Resource
+		// We runthis build task now as it's a prebuild step and will need to make new tasks of it's own.
+		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mVerboseOutput);
+
+		ResourceTask->Execute();
+		while( ResourceTask->GetIsCompleted() == false )
+		{
+			std::this_thread::yield();
+		}
+
+		if( ResourceTask->GetOk() )
+		{
+			ResourceTask->GetGeneratedResourceFiles(GeneratedResourceFiles);
+		}
+
 	}
 
 	StringVec OutputFiles;
-	if( pActiveConfig->GetBuildTasks(mSourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
+	if( pActiveConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
