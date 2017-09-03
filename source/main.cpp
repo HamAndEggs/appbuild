@@ -95,9 +95,30 @@ int main(int argc, char *argv[])
 						std::cout << "Failed to write to the destination file." << std::endl;
 					}
 				}
-				else if( ActiveConfig && TheProject.Build(ActiveConfig) && Args.GetRunAfterBuild() )
+				else if( ActiveConfig )
 				{
-					TheProject.RunOutputFile(ActiveConfig);
+					if( ActiveConfig->GetOk() )
+					{
+						if( TheProject.Build(ActiveConfig) )
+						{
+							if( Args.GetRunAfterBuild() )
+							{
+								TheProject.RunOutputFile(ActiveConfig);
+							}
+						}
+						else
+						{
+							std::cout << "Build failed for project file \'" << file << "\'" << std::endl;
+						}
+					}
+					else
+					{
+						std::cout << "There is a problem with the configuration \'" << ActiveConfig->GetName() << "\' in the project file \'" << file << "\'. Please check the output for errors." << std::endl;
+					}
+				}
+				else
+				{
+					std::cout << "No configuration found in the project file \'" << file << "\'" << std::endl;
 				}
 			}
 			else

@@ -157,7 +157,6 @@ bool Project::Build(const Configuration* pActiveConfig)
 	SourceFiles GeneratedResourceFiles(mProjectDir);
 	if( mResourceFiles.GetNeedsRebuild() )
 	{
-//		std::cout << "Compiling Resource
 		// We runthis build task now as it's a prebuild step and will need to make new tasks of it's own.
 		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mVerboseOutput);
 
@@ -453,6 +452,18 @@ bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutp
 
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
+
+	std::cout << "Archiving: " << pConfig->GetPathedTargetName() << std::endl;
+	
+	if( mVerboseOutput )
+	{
+		const StringVec& args = Arguments;
+		std::cout << pConfig->GetArchiver() << " ";
+		for( const auto& arg : args )
+			std::cout << arg << " ";
+
+		std::cout << std::endl;
+	}
 
 	std::string Results;
 	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);

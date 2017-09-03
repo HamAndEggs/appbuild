@@ -170,14 +170,14 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			}
 		}
 		mOutputName = filename;
-		mPathedTargetName = mProjectDir + mOutputPath + mOutputName;
 	}
 	else
 	{
-		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, how could I know the destination filename?" << std::endl;
-		return; // We're done, no need to continue.
+		mOutputName = GetFileName(pPathedProjectFilename,true);
+		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
 	}
-
+	mPathedTargetName = mProjectDir + mOutputPath + mOutputName;
+	
 	// Read optimisation / optimisation settings
 	const JSONValue* optimisation = pConfig->Find("optimisation");
 	if( !optimisation )
