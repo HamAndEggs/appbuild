@@ -124,7 +124,7 @@ std::string GetCurrentWorkingDirectory()
 
 std::string CleanPath(const std::string& pPath)
 {
-	return ReplaceString(pPath,"/./","/");
+	return ReplaceString(ReplaceString(pPath,"/./","/"),"//","/");
 }
 
 std::string GetExtension(const std::string& pFileName,bool pToLower)

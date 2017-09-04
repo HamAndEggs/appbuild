@@ -38,7 +38,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mComplier("gcc"),
 	mLinker("gcc"),
 	mArchiver("ar"),
-	mOutputPath("./bin/"),
+	mOutputPath(CleanPath(pProjectDir + "./bin/")),
 	mOutputName(pProjectName),
 	mCppStandard("c++11"),
 	mOptimisation("0"),
@@ -60,7 +60,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mComplier("gcc"),
 		mLinker("gcc"),
 		mArchiver("ar"),
-		mOutputPath(pProjectDir + "bin/" + pConfigName + "/"),
+		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
 		mCppStandard("c++11"),
 		mOptimisation("0"),
 		mSourceFiles(pProjectDir)		
@@ -174,9 +174,13 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	else
 	{
 		mOutputName = GetFileName(pPathedProjectFilename,true);
+		if( mTargetType == TARGET_LIBRARY )
+		{
+			mOutputName = std::string("lib") + mOutputName + ".a";
+		}
 		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
 	}
-	mPathedTargetName = mProjectDir + mOutputPath + mOutputName;
+	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 	
 	// Read optimisation / optimisation settings
 	const JSONValue* optimisation = pConfig->Find("optimisation");

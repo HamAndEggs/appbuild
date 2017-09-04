@@ -137,8 +137,12 @@ bool Project::Build(const Configuration* pActiveConfig)
 			// That worked, lets add it's output file to our input libs.
 			if( DepConfig->GetTargetType() == TARGET_LIBRARY )
 			{
+				const std::string RelitiveOutputpath = GetPath(DepConfig->GetPathedTargetName());
 				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
-				mDependencyLibrarySearchPaths.push_back(DepConfig->GetOutputPath());
+				mDependencyLibrarySearchPaths.push_back(RelitiveOutputpath);
+
+				if( mVerboseOutput )
+					std::cout << "Adding dependancy for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelitiveOutputpath << "\'" << std::endl;
 			}
 		}
 		else
