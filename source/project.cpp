@@ -364,7 +364,7 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 			if( (*task)->GetIsCompleted() )
 			{
 				// Print the results.
-				std::string res = (*task)->GetResults();
+				const std::string& res = (*task)->GetResults();
 				if( res.size() > 1 )
 				{
 					std::cout << std::endl << "Unexpected output from task: " << (*task)->GetTaskName() << std::endl;

@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <sstream>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -29,6 +30,7 @@
 #include <dirent.h>
 #include <time.h>
 #include <algorithm>
+#include <poll.h>
 
 #include "misc.h"
 
@@ -182,6 +184,7 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
 
 bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, std::string& rOutput)
 {
+	const bool VERBOSE = false;
 	if (pCommand.size() == 0 )
 	{
 		std::cout << "ExecuteShellCommand Command parameter was zero length" << std::endl;
@@ -189,7 +192,6 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	}
 
 	int pipeSTDOUT[2];
-	int pipeSTDERR[2];
 	int result = pipe(pipeSTDOUT);
 	if (result < 0)
 	{
@@ -197,6 +199,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 		exit(-1);
 	}
 
+	int pipeSTDERR[2];
 	result = pipe(pipeSTDERR);
 	if (result < 0)
 	{
@@ -215,13 +218,13 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	/* fork() == 0 for child process */
 	if (pid == 0)
 	{
-		dup2(pipeSTDERR[1], STDERR_FILENO); /* Duplicate writing end to stdout */
-		close(pipeSTDERR[0]);
-		close(pipeSTDERR[1]);
-
-		dup2(pipeSTDOUT[1], STDOUT_FILENO); /* Duplicate writing end to stdout */
+		dup2(pipeSTDOUT[1], STDOUT_FILENO ); /* Duplicate writing end to stdout */
 		close(pipeSTDOUT[0]);
 		close(pipeSTDOUT[1]);
+
+		dup2(pipeSTDERR[1], STDERR_FILENO ); /* Duplicate writing end to stdout */
+		close(pipeSTDERR[0]);
+		close(pipeSTDERR[1]);
 
 		char** TheArgs = new char*[pArgs.size() + 2];// +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
 		int c = 0;
@@ -255,20 +258,50 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	close(pipeSTDOUT[1]); /* Close writing end of pipes, don't need them */
 	close(pipeSTDERR[1]); /* Close writing end of pipes, don't need them */
 
-	FILE *cmd_output = fdopen(pipeSTDOUT[0], "r");
-	char buf[128];
+	size_t BufSize = 1000;
+	char buf[BufSize+1];
+	buf[BufSize] = 0;
 
-	while( fgets(buf,sizeof(buf), cmd_output) != NULL )
+	struct pollfd Pipes[] =
 	{
-		rOutput += buf;
-	}
+		{pipeSTDOUT[0],POLLIN,0},
+		{pipeSTDERR[0],POLLIN,0},
+	};
 
-	cmd_output = fdopen(pipeSTDERR[0], "r");
-	while( fgets(buf,sizeof(buf), cmd_output) != NULL )
+	int NumPipesOk = 2;
+	int n = 0;
+	std::stringstream outputStream;
+	do
 	{
-		rOutput += buf;
-	}
-
+		int ret = poll(Pipes,2,1000);
+		if( ret < 0 )
+		{
+			rOutput = "Error, pipes failed. Can't capture process output";
+			NumPipesOk = 0;
+		}
+		else if(ret  > 0 )
+		{
+			for(int n = 0 ; n < 2 ; n++ )
+			{
+				if( (Pipes[n].revents&POLLIN) != 0 )
+				{
+					ssize_t num = read(Pipes[n].fd,buf,BufSize);
+					if( num > 0 )
+					{
+						buf[num] = 0;
+						outputStream << buf;
+					}
+				}
+				else if( (Pipes[n].revents&(POLLERR|POLLHUP|POLLNVAL)) != 0 && Pipes[n].events != 0 )
+				{
+					Pipes[n].fd = -1;
+					NumPipesOk--;
+				}
+			}
+		}
+	}while(NumPipesOk>0);
+	rOutput = outputStream.str();
+	
 	int status;
 	bool Worked = false;
 	if( wait(&status) == -1 )
@@ -279,18 +312,22 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	{
 		if(WIFEXITED(status) && WEXITSTATUS(status) != 0)//did the child terminate normally?
 		{
-//			Debug("%ld exited with return code %d\n",(long)pid, WEXITSTATUS(status));
+			if( VERBOSE )
+				std::cout << (long)pid << " exited with return code " << WEXITSTATUS(status) << std::endl;
+
 			Worked = WEXITSTATUS(status) == 0;
 		}
 		else if (WIFSIGNALED(status))// was the child terminated by a signal?
 		{
-//			Debug("%ld terminated because it didn't catch signal number %d\n",(long)pid, WTERMSIG(status));
+			if( VERBOSE )
+				std::cout << (long)pid << " terminated because it didn't catch signal number " << WTERMSIG(status) << std::endl;
 		}
 		else
 		{// Get here, then all is ok.
 			Worked = true;
 		}
 	}
+	
 
 	return Worked;
 }
