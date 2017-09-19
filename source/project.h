@@ -42,7 +42,7 @@ class Project
 {
 public:
 
-	Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild);
+	Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,int pTruncateOutput);
 	~Project();
 
 	operator bool ()const{return mOk;}
@@ -68,7 +68,8 @@ private:
 	const size_t mNumThreads;
 	const bool mVerboseOutput;
 	const bool mRebuild;
-
+	const int mTruncateOutput;
+	
 	// This project file, fully pathed.
 	const std::string mPathedProjectFilename;
 	const std::string mProjectDir;

@@ -34,7 +34,8 @@ public:
 	bool GetVerboseOutput()const{return mVerboseOutput;}
 	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
-	int  GetNumThreads()const{return mNumThreads;}
+	int GetNumThreads()const{return mNumThreads;}
+	int GetTruncateOutput()const{return mTruncateOutput;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
 	const std::string& GetActiveConfig()const{return mActiveConfig;}
 	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
@@ -50,7 +51,8 @@ private:
 	bool mVerboseOutput;
 	bool mRunAfterBuild;
 	bool mReBuild;
-	int  mNumThreads;
+	int mNumThreads;
+	int mTruncateOutput;
 	std::vector<std::string> mProjectFiles;
 	std::string mActiveConfig;
 	std::string mUpdatedOutputFileName;
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
 		// Options read ok, now parse the project.
 		for(const std::string& file : Args.GetProjectFiles() )
 		{
-			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild());
+			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild(),Args.GetTruncateOutput());
 			if( TheProject )
 			{
 				const std::string configname = Args.GetActiveConfig();
@@ -146,7 +148,8 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
 		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")													\
 		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
-
+		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,	't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
+		
 
 enum eArguments
 {
@@ -161,7 +164,8 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mVerboseOutput(false),
 	mRunAfterBuild(false),
 	mReBuild(false),
-	mNumThreads(std::thread::hardware_concurrency())
+	mNumThreads(std::thread::hardware_concurrency()),
+	mTruncateOutput(0)
 {
 	std::string short_options;
 #define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC)	short_options += ARG_SHORT_NAME;if( TAKES_ARGUMENT == required_argument ){short_options+=":";}
@@ -226,6 +230,13 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 				mShowHelp = true;
 				std::cout << "Option -u (update-project) requires an ouput file name. -u file.proj or --active-config=file.proj" << std::endl;
 			}
+			break;
+
+		case ARG_TRUNCATE_OUTPUT:
+			if( optarg )
+				mTruncateOutput = std::atoi(optarg);
+			else
+				std::cout << "Option -t (truncate-output) was not passed correct value. -t 10 or --num-threads=10 to show teh first 10 lines of errors for each source file." << std::endl;
 			break;
 
 		default:

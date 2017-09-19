@@ -34,10 +34,11 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild):
+Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,int pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mVerboseOutput(pVerboseOutput),
 		mRebuild(pRebuild),
+		mTruncateOutput(pTruncateOutput),
 		mPathedProjectFilename(pFilename),
 		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
@@ -121,7 +122,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 			return false;
 		}
 
-		Project TheProject(ProjectFile,mNumThreads,mVerboseOutput,mRebuild);
+		Project TheProject(ProjectFile,mNumThreads,mVerboseOutput,mRebuild,mTruncateOutput);
 		if( TheProject )
 		{
 			std::string configname = proj.second;
@@ -368,7 +369,18 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 				if( res.size() > 1 )
 				{
 					std::cout << std::endl << "Unexpected output from task: " << (*task)->GetTaskName() << std::endl;
-					std::cout << res << std::endl << std::endl;
+					if( mTruncateOutput > 0 )
+					{
+						StringVec chopped = SplitString(res,"\n");
+						for( size_t n = 0 ; n < chopped.size() && n < mTruncateOutput ; n++ )
+							std::cout << chopped[n] << std::endl;
+					}
+					else
+					{
+						std::cout << res << std::endl;
+					}
+					// Leave a gap.
+					std::cout << std::endl;
 				}
 
 				// See if it worked ok.
