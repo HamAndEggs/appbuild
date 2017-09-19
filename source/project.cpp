@@ -34,7 +34,7 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,int pTruncateOutput):
+Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mVerboseOutput(pVerboseOutput),
 		mRebuild(pRebuild),

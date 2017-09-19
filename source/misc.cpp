@@ -269,7 +269,6 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 	};
 
 	int NumPipesOk = 2;
-	int n = 0;
 	std::stringstream outputStream;
 	do
 	{
@@ -301,7 +300,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 		}
 	}while(NumPipesOk>0);
 	rOutput = outputStream.str();
-	
+
 	int status;
 	bool Worked = false;
 	if( wait(&status) == -1 )
@@ -314,8 +313,6 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 		{
 			if( VERBOSE )
 				std::cout << (long)pid << " exited with return code " << WEXITSTATUS(status) << std::endl;
-
-			Worked = WEXITSTATUS(status) == 0;
 		}
 		else if (WIFSIGNALED(status))// was the child terminated by a signal?
 		{
