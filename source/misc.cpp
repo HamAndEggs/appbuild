@@ -114,7 +114,7 @@ std::string GetPath(const std::string& pPathedFileName)
 		result += '/';
 		return CleanPath(result);
 	} 
-	return "";
+	return "./";
 }
 
 std::string GetCurrentWorkingDirectory()

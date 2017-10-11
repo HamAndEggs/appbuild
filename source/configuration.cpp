@@ -45,6 +45,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mSourceFiles(pProjectDir)
 {
 	AddIncludeSearchPath("/usr/include");
+	AddIncludeSearchPath(pProjectDir);
 	AddLibrary("stdc++");
 	AddLibrary("pthread");
 
@@ -65,7 +66,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mOptimisation("0"),
 		mSourceFiles(pProjectDir)		
 {
-
+	std::cout << "pProjectDir(" << pProjectDir << ")" << std::endl;
+	AddIncludeSearchPath(pProjectDir);
+	
 	const JSONValue* includes = pConfig->Find("include");
 	if( includes && AddIncludeSearchPaths(includes) == false )
 	{
@@ -147,6 +150,12 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			std::cout << "The \'target\' object \"" << TargetName << "\" in the configuration:" << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not a valid type." << std::endl;
 			return; // We're done, no need to continue.
 		}
+	}
+	else
+	{
+		mTargetType = TARGET_EXEC;
+		if(mVerboseOutput)
+			std::cout << "Target type not set so defaulting to executable." << std::endl;
 	}
 
 	const JSONValue* output_name = pConfig->Find("output_name");

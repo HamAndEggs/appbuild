@@ -9,7 +9,7 @@
 				"A_NUMBER_DEF=7"
 			],
 			"target":"library",
-			"output_name":"hello",
+			"output_name":"runme",
 			"optimisation":2,
 			"standard":"c++11"
 		},

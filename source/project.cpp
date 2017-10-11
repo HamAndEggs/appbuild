@@ -202,7 +202,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 			return LinkSharedLibrary(pActiveConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
-			std::cout << "Target not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+			std::cout << "Target type not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 			break;
 		}
 	}

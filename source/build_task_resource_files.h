@@ -47,17 +47,17 @@ public:
 	bool GetGeneratedResourceFiles(SourceFiles& rGeneratedResourceFiles);
 	
 private:
-	typedef MemoryBuffer<uint8_t,1024,1024> CompressionMemoryBuffer;
+	typedef MemoryBuffer<char,1024,1024> CompressionSourceBuffer;
 
 	virtual bool Main();
 
-	void WriteSupportingCodeFile(const ResourceFilesTOC& pFile);
-	char* DecompressSupportingCodeFile(const ResourceFilesTOC& pFile);
+	void WriteSupportingCodeFile(const ResourceFilesTOC& pFile,bool pWriteToProjectFileLocation);
+	char* DecompressSupportingCodeFile(const ResourceFilesTOC& pFile,int &pSizeToWrite);
 
 	const std::string mOutputPath;
 	const bool mIncludeLZ4Code;
 	StringVec mResourceFiles;
-	CompressionMemoryBuffer mCompressBuffer;
+	CompressionSourceBuffer mSourceBuffer;
 	StringVec mGeneratedResourceFiles;
 };
 

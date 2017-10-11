@@ -12,7 +12,7 @@
 				"../hello_lib"
             ],
 			"target":"executable",
-			"output_name":"dependancy",
+			"output_name":"runme",
 			"optimisation":2,
 			"standard":"c++11"
 		},

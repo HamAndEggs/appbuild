@@ -102,7 +102,15 @@ ResourceFile::~ResourceFile()
 	delete mTheStream;
 }
 
-// Following two are to allow you to read as a block of ram. You are responcible for allocating and deleting the destination memory.
+// Following are to allow you to read as a block of ram. You are responcible for allocating and deleting the destination memory.
+int GetResourceFileSize(const std::string& pFilename)
+{
+	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
+	if(FileTOC)
+		return FileTOC->mFileSize;
+	return -1;
+}
+
 bool CopyResourceToMemory(const std::string& pFilename,uint8_t* rDestination,int pDestinationSize)
 {
 	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
@@ -114,12 +122,24 @@ bool CopyResourceToMemory(const std::string& pFilename,uint8_t* rDestination,int
 	return false;
 }
 
-int GetResourceFileSize(const std::string& pFilename)
+uint8_t* CopyResourceToMemory(const std::string& pFilename,int &rMemorySize)
 {
-	const ResourceFilesTOC* FileTOC = FindFile(pFilename);
-	if(FileTOC)
-		return FileTOC->mFileSize;
-	return -1;
+	uint8_t* fileData = NULL;
+	int size = GetResourceFileSize(pFilename);
+	if( size > 0 )
+	{
+		fileData = new uint8_t[size];
+		if( CopyResourceToMemory(pFilename,fileData,size) == false )
+		{
+			delete []fileData;
+			fileData = NULL;
+			size = 0;
+		}
+	}
+
+	rMemorySize = size;
+
+	return fileData;
 }
 
 //////////////////////////////////////////////////////////////////////////

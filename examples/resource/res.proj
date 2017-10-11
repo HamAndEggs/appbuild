@@ -1,11 +1,24 @@
 {
+	"configurations":
+	{
+		"release":
+		{
+			"libs":
+			[
+				"stdc++",
+				"jpeg"
+			],
+			"output_name":"runme"
+		}
+	},
 	"source_files":
 	[
-		"./main.cpp"		
+		"./main.cpp",
+		"./framebuffer.cpp"
 	],
 	"resource_files":
 	[
-		"./data/PiGlassesCase-open.JPG",
-		"./data/robot-legs-prototype-v1.jpg"
+		"./data/moon.jpg",
+		"./data/rose.jpg"
 	]
 }
