@@ -19,6 +19,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+#include <chrono>
 
 #include "string_types.h"
 
@@ -71,7 +72,7 @@ std::string TrimWhiteSpace(const std::string &s);
 // for more information about date/time format
 std::string GetTimeString(const char* pFormat = "%d-%m-%Y %X");
 
-
+std::string GetTimeDifference(const std::chrono::system_clock::time_point& pStart,const std::chrono::system_clock::time_point& pEnd);
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild

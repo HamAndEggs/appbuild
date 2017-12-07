@@ -18,11 +18,13 @@
 #include <fstream>
 #include <unistd.h>
 #include <getopt.h>
+#include <chrono>
 
 #include "project.h"
 #include "misc.h"
 #include "string_types.h"
 #include "json_writer.h"
+
 
 class CommandLineOptions
 {
@@ -34,6 +36,7 @@ public:
 	bool GetVerboseOutput()const{return mVerboseOutput;}
 	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
+	bool GetTimeBuild()const{return mTimeBuild;}
 	int GetNumThreads()const{return mNumThreads;}
 	int GetTruncateOutput()const{return mTruncateOutput;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
@@ -51,6 +54,7 @@ private:
 	bool mVerboseOutput;
 	bool mRunAfterBuild;
 	bool mReBuild;
+	bool mTimeBuild;
 	int mNumThreads;
 	int mTruncateOutput;
 	std::vector<std::string> mProjectFiles;
@@ -76,6 +80,7 @@ int main(int argc, char *argv[])
 		// Options read ok, now parse the project.
 		for(const std::string& file : Args.GetProjectFiles() )
 		{
+
 			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild(),Args.GetTruncateOutput());
 			if( TheProject )
 			{
@@ -101,8 +106,14 @@ int main(int argc, char *argv[])
 				{
 					if( ActiveConfig->GetOk() )
 					{
+						const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
 						if( TheProject.Build(ActiveConfig) )
 						{
+							if( Args.GetTimeBuild() )
+							{
+								std::cout << "Build took: " << appbuild::GetTimeDifference(build_start,std::chrono::system_clock::now()) << std::endl;
+							}
+
 							if( Args.GetRunAfterBuild() )
 							{
 								TheProject.RunOutputFile(ActiveConfig);
@@ -149,6 +160,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")													\
 		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
 		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,	't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
+		DEF_ARG(ARG_TIME_BUILD,no_argument,				'T',"time-build","Shows the total time of the build from start to finish.")												\
 		
 
 enum eArguments
@@ -164,6 +176,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mVerboseOutput(false),
 	mRunAfterBuild(false),
 	mReBuild(false),
+	mTimeBuild(false),
 	mNumThreads(std::thread::hardware_concurrency()),
 	mTruncateOutput(0)
 {
@@ -210,6 +223,10 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_REBUILD:
 			mReBuild = true;
+			break;
+
+		case ARG_TIME_BUILD:
+			mTimeBuild = true;
 			break;
 
 		case ARG_ACTIVE_CONFIG:

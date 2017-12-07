@@ -434,5 +434,44 @@ std::string GetTimeString(const char* pFormat)
     return buf;
 }
 
+std::string GetTimeDifference(const std::chrono::system_clock::time_point& pStart,const std::chrono::system_clock::time_point& pEnd)
+{
+	assert( pStart <= pEnd );
+	if( pStart >= pEnd )
+		return "0 Seconds";
+
+	const std::chrono::duration<double> timeTaken(pEnd - pStart);
+
+	const int TotalSeconds = (int)timeTaken.count();
+	const int Seconds = TotalSeconds % 60;
+	const int Minutes = (TotalSeconds/60) % 60;
+	const int Hours = (TotalSeconds/60/60) % 60;
+	const int Days = (TotalSeconds/60/60/24);
+
+	std::string time;
+
+	if( Days == 1 )
+		time += "1 Day ";
+	else if( Days > 1 )
+		time += std::to_string(Days) + " Days ";
+
+	if( Hours == 1 )
+		time += "1 hour ";
+	else if( Hours > 1 )
+		time += std::to_string(Hours) + " Hours ";
+
+	if( Minutes == 1 )
+		time += "1 Minute ";
+	else if( Minutes > 1 )
+		time += std::to_string(Minutes) + " Minutes ";
+
+	if( Seconds == 1 )
+		time += "1 second ";
+	else if( Seconds > 1 )
+		time += std::to_string(Seconds) + " Seconds ";
+
+	return time;
+}
+
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild
