@@ -20,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <sys/stat.h>
 
 #include "lz4/lz4.h"
 #include "resource_files.h"
@@ -39,6 +40,8 @@ struct ResourceFilesTOC
   int mFileSize;
 };	
 
+// These are written to a resources folder in the temp output folder and compiled into the app.
+// resource.h is copied to the same place as the project file.
 static const ResourceFilesTOC table_of_contents[] =
 {
   {"lz4.c",0,21818,58134},
@@ -131,6 +134,33 @@ bool BuildTaskResourceFiles::GetGeneratedResourceFiles(SourceFiles& rGeneratedRe
 
 bool BuildTaskResourceFiles::Main()
 {
+	// Write the header.
+	WriteSupportingCodeFile(table_of_contents[3],true);
+	// Lets make sure the lz4 files are there.
+	if( mIncludeLZ4Code )
+	{
+		WriteSupportingCodeFile(table_of_contents[0],false);
+		WriteSupportingCodeFile(table_of_contents[1],false);
+	}
+	
+	if(mVerboseOutput)
+		std::cout << "Checking to see if resources need to be rebuilt." << std::endl;
+
+	const std::string ResourceOutputFilename = CleanPath(mOutputPath + "/resources.cpp");
+	mGeneratedResourceFiles.push_back(ResourceOutputFilename);
+	if(ResourceFileIsUpToDate(ResourceOutputFilename))
+	{
+		// Get here we're all upto date and so does not need rebuilding.	
+		if(mVerboseOutput)
+			std::cout << "resources.cpp is upto date, no need to rebuild resources." << std::endl;
+		return true;// All good.
+	}
+	else if(mVerboseOutput)
+	{
+		std::cout << "resources.cpp not found or is out of date, rebuilding." << std::endl;
+	}
+
+
 	if(mVerboseOutput)
 		std::cout << "Gathering resource files and compressing..." << std::endl;
 	
@@ -260,12 +290,9 @@ bool BuildTaskResourceFiles::Main()
 		beforeCodeBlock[afterCodeBlock-beforeCodeBlock] = 0;
 		afterCodeBlock += strlen(SEARCH_STRING);
 
-		const std::string OutputFilename = CleanPath(mOutputPath + "/resources.cpp");
-		std::ofstream cpp(OutputFilename,std::ofstream::trunc);
+		std::ofstream cpp(ResourceOutputFilename,std::ofstream::trunc);
 		if( cpp.is_open() )
 		{
-			mGeneratedResourceFiles.push_back(OutputFilename);
-
 			// Write the first part of the source file
 			cpp << beforeCodeBlock << std::endl << std::endl;
 
@@ -308,23 +335,13 @@ bool BuildTaskResourceFiles::Main()
 			// Now write the rest of the source.
 			cpp << afterCodeBlock << std::endl;
 
-			// Write the header.
-			WriteSupportingCodeFile(table_of_contents[3],true);
-
 			// Cleanup ram.
 			delete []CompressData;
 			delete []beforeCodeBlock;
-
-			// So we've written the compressed data, lets make sure the lz4 files are there.
-			if( mIncludeLZ4Code )
-			{
-				WriteSupportingCodeFile(table_of_contents[0],false);
-				WriteSupportingCodeFile(table_of_contents[1],false);
-			}
 		}
 		else
 		{
-			std::cout << "Failed to open resource file \'" << OutputFilename << "\' for output"  << std::endl;
+			std::cout << "Failed to open resource file \'" << ResourceOutputFilename << "\' for output"  << std::endl;
 			return false;
 		}
 	}
@@ -346,12 +363,12 @@ void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFi
 	if( FileExists(fname) )
 	{
 		if(mVerboseOutput)
-			std::cout << "lz4 file " << fname << " already exists, not generating." << std::endl;
+			std::cout << "Resource file " << fname << " already exists, not generating." << std::endl;
 	}
 	else
 	{
 		if(mVerboseOutput)
-			std::cout << "Writing lz4 file " << fname << std::endl;
+			std::cout << "Writing Resource file " << fname << std::endl;
 		
 		// Not found, write it.
 		std::ofstream lz4(fname,std::ofstream::trunc);
@@ -368,7 +385,7 @@ void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFi
 	}
 }
 
-char* BuildTaskResourceFiles::DecompressSupportingCodeFile(const ResourceFilesTOC& pFile,int &pSizeToWrite)
+char* BuildTaskResourceFiles::DecompressSupportingCodeFile(const ResourceFilesTOC& pFile,int &pSizeToWrite)const
 {
 	char* dest = new char[pFile.mFileSize+1];
 	pSizeToWrite = LZ4_decompress_safe((const char*)(resource_file_data + pFile.mOffset),dest,pFile.mCompressedSize,pFile.mFileSize);
@@ -379,6 +396,37 @@ char* BuildTaskResourceFiles::DecompressSupportingCodeFile(const ResourceFilesTO
 
 	dest[pFile.mFileSize] = 0;// Null terminate so we can treat it as a string.
 	return dest;
+}
+
+bool BuildTaskResourceFiles::ResourceFileIsUpToDate(const std::string& pResourceOutputFilename)const
+{
+	struct stat ResourceFileStats;
+	if( stat(pResourceOutputFilename.c_str(), &ResourceFileStats) == 0 && S_ISREG(ResourceFileStats.st_mode) )
+	{
+		const timespec& ResourceFileTime = ResourceFileStats.st_mtim;
+		// Now compare against all the resource files.
+		for( const auto& filename : mResourceFiles )
+		{
+			struct stat FileStats;
+			if( stat(filename.c_str(), &FileStats) == 0 && S_ISREG(FileStats.st_mode) )
+			{
+				if(FileStats.st_mtim.tv_sec == ResourceFileTime.tv_sec)
+				{
+					if( FileStats.st_mtim.tv_nsec > ResourceFileTime.tv_nsec )
+						return false; // Need rebuild
+				}
+				else if( FileStats.st_mtim.tv_sec > ResourceFileTime.tv_sec )
+					return false; // Need rebuild
+			}
+			else
+			{
+				return false; // Can get stats for input resource file, tell code to rebuild. This will trigger the correct error to the user when it's not found.
+			}
+		}
+		return true;
+	}
+
+	return false;// Can't get file stats, so force rebuild as prob not found.	
 }
 
 namespace{

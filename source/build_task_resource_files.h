@@ -52,7 +52,8 @@ private:
 	virtual bool Main();
 
 	void WriteSupportingCodeFile(const ResourceFilesTOC& pFile,bool pWriteToProjectFileLocation);
-	char* DecompressSupportingCodeFile(const ResourceFilesTOC& pFile,int &pSizeToWrite);
+	char* DecompressSupportingCodeFile(const ResourceFilesTOC& pFile,int &pSizeToWrite)const;
+	bool ResourceFileIsUpToDate(const std::string& pResourceOutputFilename)const;
 
 	const std::string mOutputPath;
 	const bool mIncludeLZ4Code;
