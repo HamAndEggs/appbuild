@@ -3,6 +3,7 @@
 	{
 		"release":
 		{
+			"default":true,
 			"dependencies":
 			[
 				"../hello_lib/hello.proj"

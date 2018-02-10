@@ -73,6 +73,7 @@ public:
 
 	bool Write(JsonWriter& rJsonOutput)const;
 
+	bool GetIsDefaultConfig()const{return mIsDefaultConfig;}
 	bool GetOk()const{return mOk;}
 	eTargetType GetTargetType()const{return mTargetType;}
 
@@ -110,7 +111,7 @@ private:
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
 	const bool mVerboseOutput;
-
+	bool mIsDefaultConfig;	// If true then this configuration is selected to be built when there are multiple configurations and none have been specified on the commandline.
 	bool mOk;
 	eTargetType mTargetType;
 

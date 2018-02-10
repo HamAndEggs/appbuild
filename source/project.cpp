@@ -75,7 +75,9 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 
 		if( mBuildConfigurations.size() == 0 )
 		{
-			std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
+			if( mVerboseOutput )
+				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
+
 			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true),mVerboseOutput);
 			mBuildConfigurations[config->GetName()] = config;
 		}
@@ -129,7 +131,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 			if( configname.empty() )
 				configname = pActiveConfig->GetName();
 
-			const appbuild::Configuration* DepConfig = TheProject.FindConfiguration(configname);
+			const appbuild::Configuration* DepConfig = TheProject.GetActiveConfiguration(configname);
 			if( !DepConfig || TheProject.Build(DepConfig) == false )
 			{
 				return false;
@@ -249,8 +251,14 @@ bool Project::Write(JsonWriter& rJsonOutput)const
 	return true;
 }
 
-const Configuration* Project::FindConfiguration(const std::string& pConfigName)const
+const Configuration* Project::GetActiveConfiguration(const std::string& pConfigName)const
 {
+		// See if there is a default config, but only if the name was not specified.
+	if( pConfigName.size() == 0 )
+		for( auto conf : mBuildConfigurations )
+			if( conf.second->GetIsDefaultConfig() )
+				return conf.second;
+	
 	auto FoundConfig = mBuildConfigurations.find(pConfigName);
 	if( FoundConfig != mBuildConfigurations.end() )
 	{
@@ -272,7 +280,7 @@ const Configuration* Project::FindConfiguration(const std::string& pConfigName)c
 		{
 			std::cout << conf.first << std::endl;
 		}
-		std::cout << "Use -c [config name] to specify which to build." << std::endl;
+		std::cout << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
 	}
 
 	return NULL;

@@ -33,6 +33,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
 	mVerboseOutput(pVerboseOutput),
+	mIsDefaultConfig(true),
 	mOk(true),
 	mTargetType(TARGET_EXEC),
 	mComplier("gcc"),
@@ -56,6 +57,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
 		mVerboseOutput(pVerboseOutput),
+		mIsDefaultConfig(false),
 		mOk(false),
 		mTargetType(TARGET_NOT_SET),
 		mComplier("gcc"),
@@ -66,8 +68,15 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mOptimisation("0"),
 		mSourceFiles(pProjectDir)		
 {
-	std::cout << "pProjectDir(" << pProjectDir << ")" << std::endl;
+	if( mVerboseOutput )
+		std::cout << "Project Directory: " << pProjectDir << std::endl;
+	
 	AddIncludeSearchPath(pProjectDir);
+
+	const JSONValue* isDefaultConfig = pConfig->Find("default");
+	if( isDefaultConfig && isDefaultConfig->GetBoolean() == true )
+		mIsDefaultConfig = true;
+	
 	
 	const JSONValue* includes = pConfig->Find("include");
 	if( includes && AddIncludeSearchPaths(includes) == false )
@@ -239,6 +248,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 {
 
 	rJsonOutput.StartObject(mConfigName);
+		rJsonOutput.AddObjectItem("default",mIsDefaultConfig);
 		rJsonOutput.AddObjectItem("target",TargetTypeToString(mTargetType));
 		rJsonOutput.AddObjectItem("compiler",mComplier);
 		rJsonOutput.AddObjectItem("linker",mLinker);

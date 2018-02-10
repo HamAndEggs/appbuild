@@ -50,7 +50,7 @@ public:
 	bool Build(const Configuration* pActiveConfig);
 	bool RunOutputFile(const Configuration*pActiveConfig);
 	bool Write(JsonWriter& rJsonOutput)const;
-	const Configuration* FindConfiguration(const std::string& pConfigName)const;
+	const Configuration* GetActiveConfiguration(const std::string& pConfigName)const; // Tries to return a sutible configuration to build with if pConfigName is not found.
 
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 

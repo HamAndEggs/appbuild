@@ -211,7 +211,6 @@ void JSONValuePrivate::Read(char* json,size_t& pos,size_t size)
 // pIndex can only be non zero for array types. And then the element in the array has to match the type requested. Some types maybe interchangable. And int can be read as a float.
 JSONValue::Type JSONValuePrivate::GetType(int pIndex)const
 {
-	assert( GetType() == STRING );
 	if( GetType() == ARRAY )
 	{
 		return (*data.Array)[pIndex]->GetType();

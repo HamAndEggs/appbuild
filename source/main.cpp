@@ -85,13 +85,13 @@ int main(int argc, char *argv[])
 			if( TheProject )
 			{
 				const std::string configname = Args.GetActiveConfig();
-				const appbuild::Configuration* ActiveConfig = TheProject.FindConfiguration(configname);
+				const appbuild::Configuration* ActiveConfig = TheProject.GetActiveConfiguration(configname);
 				if( Args.GetUpdatedProject() )
 				{
 					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
 					appbuild::JsonWriter JsonOutput;
 					TheProject.Write(JsonOutput);
-//					std::cout << JsonOutput.Get() << std::endl;
+
 					std::ofstream updatedProjectFile(Args.GetUpdatedOutputFileName());
 					if( updatedProjectFile )
 					{
