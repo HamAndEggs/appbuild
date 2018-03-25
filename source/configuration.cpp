@@ -43,6 +43,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mOutputName(pProjectName),
 	mCppStandard("c++11"),
 	mOptimisation("0"),
+	mDebugLevel("2"),
 	mSourceFiles(pProjectDir)
 {
 	AddIncludeSearchPath("/usr/include");
@@ -66,6 +67,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
 		mCppStandard("c++11"),
 		mOptimisation("0"),
+		mDebugLevel("2"),
 		mSourceFiles(pProjectDir)		
 {
 	if( mVerboseOutput )
@@ -215,6 +217,25 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			mOptimisation = optimisation->GetString();
 		}
 	}
+	if(mVerboseOutput)
+		std::cout << "optimisation set to " << mOptimisation << std::endl;
+
+	// Read debugging level.
+	const JSONValue* debugLevel = pConfig->Find("debug_level");
+	if( debugLevel )
+	{
+		if(debugLevel->GetType() == JSONValue::INT32)
+		{
+			mDebugLevel = std::to_string(optimisation->GetInt32());
+		}
+		else if(debugLevel->GetType() == JSONValue::STRING)
+		{
+			mDebugLevel = optimisation->GetString();
+		}
+	}
+	if(mVerboseOutput)
+		std::cout << "debug level set to " << mDebugLevel << std::endl;
+
 
 	// Check for the c standard settings.
 	// Read optimisation / optimization settings
@@ -257,6 +278,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 		rJsonOutput.AddObjectItem("output_name",mOutputName);
 		rJsonOutput.AddObjectItem("standard",mCppStandard);
 		rJsonOutput.AddObjectItem("optimisation",mOptimisation);
+		rJsonOutput.AddObjectItem("debug_level",mDebugLevel);
 		
 		if(mIncludeSearchPaths.size()>0)
 		{
@@ -386,6 +408,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 				ArgList args;
 				args.AddArg("-o" + mOptimisation);
+				args.AddArg("-g" + mDebugLevel);
 
 				args.AddArg(DEF_APP_BUILD_DATE_TIME);
 				args.AddArg(DEF_APP_BUILD_DATE);

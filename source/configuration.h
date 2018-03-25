@@ -123,6 +123,7 @@ private:
 	std::string mOutputName; //The string read from output_name
 	std::string mCppStandard;	// The c++ used standard.
 	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
+	std::string mDebugLevel; // Request debugging information and also use level to specify how much information.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;
