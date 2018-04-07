@@ -226,11 +226,11 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	{
 		if(debugLevel->GetType() == JSONValue::INT32)
 		{
-			mDebugLevel = std::to_string(optimisation->GetInt32());
+			mDebugLevel = std::to_string(debugLevel->GetInt32());
 		}
 		else if(debugLevel->GetType() == JSONValue::STRING)
 		{
-			mDebugLevel = optimisation->GetString();
+			mDebugLevel = debugLevel->GetString();
 		}
 	}
 	if(mVerboseOutput)
