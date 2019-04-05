@@ -43,9 +43,8 @@ std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**
- * pCWD can be null.
+ * 
  */
-bool ExecuteShellCommand(const std::string& pCommand,const StringVec& pArgs, std::string& rOutput);
 bool ExecuteShellCommand(const std::string& pCommand,const StringVec& pArgs, std::string& rOutput);
 
 

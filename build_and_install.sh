@@ -68,11 +68,14 @@ gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/json_writer.cpp -o bin/json_writ
 echo "arg_list.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
 
+echo "she_bang.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
+
 # Wait for last jobs to be done.
 wait
 
 echo "Linking"
-gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
 	echo "Do you wish to install this program?"

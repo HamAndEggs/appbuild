@@ -29,14 +29,15 @@
 #include "arg_list.h"
 #include "json_writer.h"
 #include "build_task_resource_files.h"
+#include "logging.h"
 
 namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,size_t pTruncateOutput):
+Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
-		mVerboseOutput(pVerboseOutput),
+		mLoggingMode(pLoggingMode),
 		mRebuild(pRebuild),
 		mTruncateOutput(pTruncateOutput),
 		mPathedProjectFilename(pFilename),
@@ -47,7 +48,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 {
 	assert( pNumThreads > 0 );
 
-	if( pVerboseOutput )
+	if( pLoggingMode >= LOG_VERBOSE )
 		std::cout << "Reading project file " << mPathedProjectFilename << std::endl;
 
 	// Now build our project object.
@@ -75,10 +76,10 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOu
 
 		if( mBuildConfigurations.size() == 0 )
 		{
-			if( mVerboseOutput )
+			if( mLoggingMode >= LOG_VERBOSE )
 				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
 
-			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true),mVerboseOutput);
+			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true),mLoggingMode);
 			mBuildConfigurations[config->GetName()] = config;
 		}
 
@@ -124,7 +125,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 			return false;
 		}
 
-		Project TheProject(ProjectFile,mNumThreads,mVerboseOutput,mRebuild,mTruncateOutput);
+		Project TheProject(ProjectFile,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
 		if( TheProject )
 		{
 			std::string configname = proj.second;
@@ -144,7 +145,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
 				mDependencyLibrarySearchPaths.push_back(RelitiveOutputpath);
 
-				if( mVerboseOutput )
+				if( mLoggingMode >= LOG_VERBOSE )
 					std::cout << "Adding dependancy for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelitiveOutputpath << "\'" << std::endl;
 			}
 		}
@@ -156,7 +157,10 @@ bool Project::Build(const Configuration* pActiveConfig)
 	}
 
 	// We know what config to build with, lets go.
-	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
+    if( mLoggingMode >= LOG_INFO )
+    {
+    	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
+    }
 
 	BuildTaskStack BuildTasks;
 
@@ -165,7 +169,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	if( mResourceFiles.GetNeedsRebuild() )
 	{
 		// We runthis build task now as it's a prebuild step and will need to make new tasks of it's own.
-		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mVerboseOutput);
+		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mLoggingMode);
 
 		ResourceTask->Execute();
 		while( ResourceTask->GetIsCompleted() == false )
@@ -204,13 +208,13 @@ bool Project::Build(const Configuration* pActiveConfig)
 			return LinkSharedLibrary(pActiveConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
-			std::cout << "Target type not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+			std::cerr << "Target type not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 			break;
 		}
 	}
 	else
 	{
-		std::cout << "Unable to create build tasks for the configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cerr << "Unable to create build tasks for the configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 	}
 
 	return false;
@@ -268,19 +272,19 @@ const Configuration* Project::GetActiveConfiguration(const std::string& pConfigN
 		return mBuildConfigurations.begin()->second;
 
 	if( pConfigName.size() > 0 )
-		std::cout << "The configuration \'" << pConfigName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cerr << "The configuration \'" << pConfigName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
 	else if( mBuildConfigurations.size() < 1 )
 	{//Should not get here, but just in case, show an error.
-		std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
+		std::cerr << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
 	}
 	else
 	{
-		std::cout << "No configuration was specified to build, your choices are:-" << std::endl;
+		std::cerr << "No configuration was specified to build, your choices are:-" << std::endl;
 		for(auto conf : mBuildConfigurations )
 		{
 			std::cout << conf.first << std::endl;
 		}
-		std::cout << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
+		std::cerr << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
 	}
 
 	return NULL;
@@ -298,12 +302,12 @@ bool Project::ReadConfigurations(const JSONValue* pSettings)
 		{
 			if( configs.second.size() > 1 )
 			{
-				std::cout << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
+				std::cerr << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
 				return false;
 			}
 			else if( configs.second.size() < 1 )
 			{
-				std::cout << "Configuration \'"<< name << "\' has no body to the object, check syntax. Error in project " << mPathedProjectFilename << std::endl;
+				std::cerr << "Configuration \'"<< name << "\' has no body to the object, check syntax. Error in project " << mPathedProjectFilename << std::endl;
 				return false;
 			}
 			else
@@ -311,13 +315,13 @@ bool Project::ReadConfigurations(const JSONValue* pSettings)
 				const JSONValue* Obj = configs.second[0];
 				if(Obj)
 				{
-					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir,mVerboseOutput);
+					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir,mLoggingMode);
 				}
 			}
 		}
 		else
 		{
-			std::cout << "Malformed configuration in project without a name in project" << mPathedProjectFilename << std::endl;
+			std::cerr << "Malformed configuration in project without a name in project" << mPathedProjectFilename << std::endl;
 			return false;
 		}
 	}
@@ -338,13 +342,22 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 	// I always delete the target if something needs to be build so there is no exec to run if the source has failed to build.
 	remove(pConfig->GetPathedTargetName().c_str());
 
-	std::cout << "Building: " << pBuildTasks.size() << " file" << (pBuildTasks.size()>1?"s.":".");
-	const size_t ThreadCount = std::max((size_t)1,std::min(mNumThreads,pBuildTasks.size()));
-	if( ThreadCount > 1 )
-		std::cout << " Num threads " << ThreadCount;
+    if( mLoggingMode >= LOG_INFO )
+    {
+    	std::cout << "Building: " << pBuildTasks.size() << " file" << (pBuildTasks.size()>1?"s.":".");
+    }
 
-	std::cout << " Output path " << pConfig->GetOutputPath();
-	std::cout << std::endl;
+	const size_t ThreadCount = std::max((size_t)1,std::min(mNumThreads,pBuildTasks.size()));
+
+    if( mLoggingMode >= LOG_INFO )
+    {
+        if( ThreadCount > 1 )
+            std::cout << " Num threads " << ThreadCount;
+
+        std::cout << " Output path " << pConfig->GetOutputPath();
+        std::cout << std::endl;
+    }
+
 	bool CompileOk = true;
 
 
@@ -376,7 +389,7 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 				const std::string& res = (*task)->GetResults();
 				if( res.size() > 1 )
 				{
-					std::cout << std::endl << "Unexpected output from task: " << (*task)->GetTaskName() << std::endl;
+					std::cerr << std::endl << "Unexpected output from task: " << (*task)->GetTaskName() << std::endl;
 					if( mTruncateOutput > 0 )
 					{
 						StringVec chopped = SplitString(res,"\n");
@@ -414,7 +427,9 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 		};
 	};
 
-	std::cout << "Build finished" << std::endl;
+    if( mLoggingMode >= LOG_INFO )
+	    std::cout << "Build finished" << std::endl;
+
 	return CompileOk;
 }
 
@@ -439,9 +454,10 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 	Arguments.AddArg("-o");
 	Arguments.AddArg(pConfig->GetPathedTargetName());
 
-	std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
+    if( mLoggingMode >= LOG_INFO )
+	    std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
 
-	if( mVerboseOutput )
+	if( mLoggingMode >= LOG_VERBOSE )
 	{
 		const StringVec& args = Arguments;
 		std::cout << pConfig->GetLinker() << " ";
@@ -453,9 +469,17 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 
 	std::string Results;
 	bool ok = ExecuteShellCommand(pConfig->GetLinker(),Arguments,Results);
-	if( Results.size() < 1 )
-		Results = "Linked ok";
-	std::cout << Results << std::endl;
+    if( Results.size() < 1 )
+    {
+        if( mLoggingMode >= LOG_INFO )
+            std::cout << "Linked ok" << std::endl;
+    }
+    else
+    {
+        std::cerr << Results << std::endl;
+    }
+    
+
 	return ok;
 }
 
@@ -477,9 +501,10 @@ bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutp
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
 
-	std::cout << "Archiving: " << pConfig->GetPathedTargetName() << std::endl;
+    if( mLoggingMode >= LOG_INFO )
+	    std::cout << "Archiving: " << pConfig->GetPathedTargetName() << std::endl;
 	
-	if( mVerboseOutput )
+	if( mLoggingMode >= LOG_VERBOSE )
 	{
 		const StringVec& args = Arguments;
 		std::cout << pConfig->GetArchiver() << " ";
@@ -491,9 +516,17 @@ bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutp
 
 	std::string Results;
 	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);
-	if( Results.size() < 1 )
-		Results = "Linked ok";
-	std::cout << Results << std::endl;
+
+    if( Results.size() < 1 )
+    {
+        if( mLoggingMode >= LOG_INFO )
+            std::cout << "Linked ok" << std::endl;
+    }
+    else
+    {
+        std::cerr << Results << std::endl;
+    }
+    
 	return ok;
 }
 

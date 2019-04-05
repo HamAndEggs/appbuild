@@ -24,12 +24,13 @@
 #include "build_task.h"
 #include "json.h"
 #include "misc.h"
+#include "logging.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-BuildTask::BuildTask(const std::string& pTaskName,bool pVerboseOutput):
-	mVerboseOutput(pVerboseOutput),mTaskName(pTaskName),mOk(false),mCompleted(false)
+BuildTask::BuildTask(const std::string& pTaskName,int pLoggingMode):
+	mLoggingMode(pLoggingMode),mTaskName(pTaskName),mOk(false),mCompleted(false)
 {
 }
 
@@ -41,7 +42,11 @@ BuildTask::~BuildTask()
 
 void BuildTask::Execute()
 {
-	std::cout << "Building: " << mTaskName << std::endl;
+    if( mLoggingMode >= LOG_INFO )
+    {
+    	std::cout << "Building: " << mTaskName << std::endl;
+    }
+
 	thread = std::thread(CallMain,this);
 }
 

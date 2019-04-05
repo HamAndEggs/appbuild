@@ -29,6 +29,7 @@
 #include "misc.h"
 #include "mem_buffer.h"
 #include "source_files.h"
+#include "logging.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -108,7 +109,7 @@ public:
 	}
 };
 
-BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const ResourceFiles& pResourceFiles,const std::string& pOutputPath,bool pVerboseOutput): BuildTask(pTaskName,pVerboseOutput),
+BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const ResourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode): BuildTask(pTaskName,pLoggingMode),
 	mOutputPath(CleanPath(pOutputPath + "/resources/")),
 	mIncludeLZ4Code(pResourceFiles.GetIncludeLZ4Code())
 {
@@ -143,7 +144,7 @@ bool BuildTaskResourceFiles::Main()
 		WriteSupportingCodeFile(table_of_contents[1],false);
 	}
 	
-	if(mVerboseOutput)
+	if(mLoggingMode >= LOG_VERBOSE)
 		std::cout << "Checking to see if resources need to be rebuilt." << std::endl;
 
 	const std::string ResourceOutputFilename = CleanPath(mOutputPath + "/resources.cpp");
@@ -151,17 +152,17 @@ bool BuildTaskResourceFiles::Main()
 	if(ResourceFileIsUpToDate(ResourceOutputFilename))
 	{
 		// Get here we're all upto date and so does not need rebuilding.	
-		if(mVerboseOutput)
+		if(mLoggingMode >= LOG_VERBOSE)
 			std::cout << "resources.cpp is upto date, no need to rebuild resources." << std::endl;
 		return true;// All good.
 	}
-	else if(mVerboseOutput)
+	else if(mLoggingMode >= LOG_VERBOSE)
 	{
 		std::cout << "resources.cpp not found or is out of date, rebuilding." << std::endl;
 	}
 
 
-	if(mVerboseOutput)
+	if(mLoggingMode >= LOG_VERBOSE)
 		std::cout << "Gathering resource files and compressing..." << std::endl;
 	
 	int numFiles = 0;
@@ -197,7 +198,7 @@ bool BuildTaskResourceFiles::Main()
 						{
 							if( file->Compress(FileData,compressedSize) )
 							{
-								if(mVerboseOutput)
+								if(mLoggingMode >= LOG_VERBOSE)
 									std::cout << "  " << filename << " " << file->mFileSize << " -> " << file->mCompressedSize << std::endl;
 							}
 							else
@@ -242,12 +243,12 @@ bool BuildTaskResourceFiles::Main()
 		}
 		else
 		{
-			if(mVerboseOutput)
+			if(mLoggingMode >= LOG_VERBOSE)
 				std::cout << "  " << filename << " already been added, skipping." << std::endl;
 		}
 	}
 
-	if(mVerboseOutput)
+	if(mLoggingMode >= LOG_VERBOSE)
 	{
 		std::cout << numFiles << "  files compressed from " << uncompressedSize << " to " << compressedSize << std::endl;
 		std::cout << "Generating cpp files for resources"  << std::endl;
@@ -362,12 +363,12 @@ void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFi
 	
 	if( FileExists(fname) )
 	{
-		if(mVerboseOutput)
+		if(mLoggingMode >= LOG_VERBOSE)
 			std::cout << "Resource file " << fname << " already exists, not generating." << std::endl;
 	}
 	else
 	{
-		if(mVerboseOutput)
+		if(mLoggingMode >= LOG_VERBOSE)
 			std::cout << "Writing Resource file " << fname << std::endl;
 		
 		// Not found, write it.

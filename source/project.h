@@ -42,7 +42,7 @@ class Project
 {
 public:
 
-	Project(const std::string& pFilename,size_t pNumThreads,bool pVerboseOutput,bool pRebuild,size_t pTruncateOutput);
+	Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
 	~Project();
 
 	operator bool ()const{return mOk;}
@@ -66,7 +66,7 @@ private:
 
 	// Some options that are passed into the constructor.
 	const size_t mNumThreads;
-	const bool mVerboseOutput;
+	const int mLoggingMode;
 	const bool mRebuild;
 	const size_t mTruncateOutput;
 	

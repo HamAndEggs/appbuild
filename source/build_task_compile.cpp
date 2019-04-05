@@ -24,12 +24,13 @@
 #include "build_task_compile.h"
 #include "json.h"
 #include "misc.h"
+#include "logging.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-BuildTaskCompile::BuildTaskCompile(const std::string& pTaskName, const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput):
-	BuildTask(pTaskName,pVerboseOutput),
+BuildTaskCompile::BuildTaskCompile(const std::string& pTaskName, const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,int pLoggingMode):
+	BuildTask(pTaskName,pLoggingMode),
 	mCommand(pCommand), mArgs(pArgs), mOutputFilename(pOutputFilename)
 {
 }
@@ -40,7 +41,7 @@ BuildTaskCompile::~BuildTaskCompile()
 
 bool BuildTaskCompile::Main()
 {
-	if(mVerboseOutput)
+	if(mLoggingMode >= appbuild::LOG_VERBOSE)
 	{
 		std::cout << mCommand << " ";
 		for( const auto& arg : mArgs )

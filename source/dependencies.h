@@ -28,6 +28,7 @@ namespace appbuild{
 class Dependencies
 {
 public:
+	Dependencies();// No project file, for shebang support.
 	Dependencies(const std::string& pProjectFile);
 
 	// Returns true if the object file date is older than the source file or any of it's dependencies.
@@ -45,6 +46,7 @@ private:
 	typedef std::unordered_map<std::string,StringSet> DependencyMap;
 	typedef std::unordered_map<std::string,bool> FileState;	// True if it is out of date and thus the source file needs building, false it is not. If not found we have not checked it yet.
 
+    const bool mUsingProjectFile;
 	DependencyMap mDependencies;
 	FileTimeMap mFileTimes;
 	FileState mFileDependencyState;

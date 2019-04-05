@@ -243,7 +243,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 		}
 		TheArgs[c++] = NULL;
 
-		// This replaces the current process so no need to clearn up the memory leaks before here. ;)
+		// This replaces the current process so no need to clean up the memory leaks before here. ;)
 		execvp(TheArgs[0], TheArgs);
 
 		std::cout << "ExecuteShellCommand execl() failure!" << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;

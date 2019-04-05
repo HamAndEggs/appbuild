@@ -25,14 +25,15 @@
 #include "dependencies.h"
 #include "json_writer.h"
 #include "source_files.h"
+#include "logging.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName,bool pVerboseOutput):// Creates a default configuration suitable for simple c++11 projects.
+Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName,int pLoggingMode):// Creates a default configuration suitable for simple c++11 projects.
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
-	mVerboseOutput(pVerboseOutput),
+	mLoggingMode(pLoggingMode),
 	mIsDefaultConfig(true),
 	mOk(true),
 	mTargetType(TARGET_EXEC),
@@ -54,10 +55,10 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 }
 
-Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,bool pVerboseOutput):
+Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
-		mVerboseOutput(pVerboseOutput),
+		mLoggingMode(pLoggingMode),
 		mIsDefaultConfig(false),
 		mOk(false),
 		mTargetType(TARGET_NOT_SET),
@@ -70,7 +71,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		mDebugLevel("2"),
 		mSourceFiles(pProjectDir)		
 {
-	if( mVerboseOutput )
+	if( mLoggingMode >= LOG_VERBOSE )
 		std::cout << "Project Directory: " << pProjectDir << std::endl;
 	
 	AddIncludeSearchPath(pProjectDir);
@@ -81,19 +82,42 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	
 	
 	const JSONValue* includes = pConfig->Find("include");
-	if( includes && AddIncludeSearchPaths(includes) == false )
-	{
-		std::cout << "The \'include\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
-		return; // We're done, no need to continue.
-	}
+    if( includes )
+    {
+        if( AddIncludeSearchPaths(includes) == false )
+        {
+            std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+            return; // We're done, no need to continue.
+        }
+    }
+    else
+    {
+    	AddIncludeSearchPath("/usr/include");
+        if( mLoggingMode >= LOG_VERBOSE )
+        {
+    		std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, using defaults" << std::endl;
+        }
+    }
 
 	// These can be added to the args now as they need to come before libs.
 	const JSONValue* libpaths = pConfig->Find("libpaths");
-	if( libpaths && AddLibrarySearchPaths(libpaths) == false )
-	{
-		std::cout << "The \'libpaths\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
-		return; // We're done, no need to continue.
-	}
+	if( libpaths )
+    {
+        if( AddLibrarySearchPaths(libpaths) == false )
+        {
+            std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+            return; // We're done, no need to continue.
+        }
+    }
+    else
+    {
+        AddLibrary("stdc++");
+        AddLibrary("pthread");
+        if( mLoggingMode >= LOG_VERBOSE )
+        {
+    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, using defaults" << std::endl;
+        }
+    }
 
 	// These go into a different place for now as they have to be adde to the args after the object files have been.
 	// This is because of the way linkers work.
@@ -102,14 +126,14 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	{
 		if( AddLibraries(libraries) == false  )
 		{
-			std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
 			return; // We're done, no need to continue.
 		}
 	}
 	else
 	{
-		if( mVerboseOutput )
-			std::cout << "The \'libraries\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding stdc++ for a default." << std::endl;
+		if( mLoggingMode >= LOG_VERBOSE )
+			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, adding stdc++ for a default." << std::endl;
 		
 		AddLibrary("stdc++");
 	}
@@ -119,14 +143,14 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	{
 		if( AddDefines(defines) == false  )
 		{
-			std::cout << "The \'defines\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			std::cout << "The \'defines\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
 			return; // We're done, no need to continue.
 		}
 	}	
 	else
 	{
-		if( mVerboseOutput )
-			std::cout << "The \'define\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
+		if( mLoggingMode >= LOG_VERBOSE )
+			std::cout << "The \'define\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
 		AddDefine("NDEBUG");	
 	}
 
@@ -138,7 +162,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 	}
-	else if(mVerboseOutput)
+	else if(mLoggingMode >= LOG_VERBOSE)
 	{
 		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' object of the project file \'" << pPathedProjectFilename << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
 	}
@@ -165,7 +189,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	else
 	{
 		mTargetType = TARGET_EXEC;
-		if(mVerboseOutput)
+		if(mLoggingMode >= LOG_VERBOSE)
 			std::cout << "Target type not set so defaulting to executable." << std::endl;
 	}
 
@@ -198,7 +222,11 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";
 		}
-		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
+
+        if( mLoggingMode >= LOG_VERBOSE )
+        {
+    		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
+        }
 	}
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 	
@@ -217,7 +245,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			mOptimisation = optimisation->GetString();
 		}
 	}
-	if(mVerboseOutput)
+	if(mLoggingMode >= LOG_VERBOSE)
 		std::cout << "optimisation set to " << mOptimisation << std::endl;
 
 	// Read debugging level.
@@ -233,7 +261,7 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			mDebugLevel = debugLevel->GetString();
 		}
 	}
-	if(mVerboseOutput)
+	if(mLoggingMode >= LOG_VERBOSE)
 		std::cout << "debug level set to " << mDebugLevel << std::endl;
 
 
@@ -426,7 +454,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				args.AddArg("-c");
 				args.AddArg(InputFilename);
 
-				rBuildTasks.push(new BuildTaskCompile(GetFileName(filename), OutputFilename, mComplier,args,mVerboseOutput));
+				rBuildTasks.push(new BuildTaskCompile(GetFileName(filename), OutputFilename, mComplier,args,mLoggingMode));
 			}
 		}
 		else

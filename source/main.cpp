@@ -19,12 +19,14 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <chrono>
+#include <string.h>
 
 #include "project.h"
 #include "misc.h"
 #include "string_types.h"
 #include "json_writer.h"
-
+#include "she_bang.h"
+#include "logging.h"
 
 class CommandLineOptions
 {
@@ -33,10 +35,10 @@ public:
 
 	bool GetShowHelp()const{return mShowHelp;}
 	bool GetShowVersion()const{return mShowVersion;}
-	bool GetVerboseOutput()const{return mVerboseOutput;}
 	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
 	bool GetTimeBuild()const{return mTimeBuild;}
+	int GetLoggingMode()const{return mLoggingMode;}
 	int GetNumThreads()const{return mNumThreads;}
 	int GetTruncateOutput()const{return mTruncateOutput;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
@@ -51,23 +53,44 @@ public:
 private:
 	bool mShowHelp;
 	bool mShowVersion;
-	bool mVerboseOutput;
 	bool mRunAfterBuild;
 	bool mReBuild;
 	bool mTimeBuild;
-	int mNumThreads;
+	int mLoggingMode;
+    int mNumThreads;
 	int mTruncateOutput;
 	std::vector<std::string> mProjectFiles;
 	std::string mActiveConfig;
 	std::string mUpdatedOutputFileName;
 };
 
-
 int main(int argc, char *argv[])
 {
+#ifdef DEBUG_BUILD
+    std::cout << "argc " << argc << std::endl;
+    for(int n = 0 ; n < argc ; n++ )
+    {
+		std::cout << "argv[" << n << "] " << argv[n] << std::endl;
+    }
+#endif
+
+    // We have to special case the arg for using the app as a shebang.
+    // This is because the getopt_long reorders commandline options.
+    // So we have to see if argv[1] is set to -# and if so not call the CommandLineOptions class.
+    // This code will assume that any args from index 3 onwards is for the exec.
+    // argv[0] is the exec, argv[1] is the shebang option, argv[2] is the source file, added by the shell.
+    if( argc > 2 && argv[1] && strcmp(argv[1],"-#") == 0 )
+    {
+#ifdef DEBUG_BUILD
+		std::cout << "Running as a shebang!" << std::endl;
+		std::cout << "Building " << argv[2] << std::endl;
+#endif
+        return appbuild::BuildFromShebang(argc,argv);
+    }
+
 	CommandLineOptions Args(argc,argv);
 
-	if( Args.GetShowHelp() )
+    if( Args.GetShowHelp() )
 	{
 		Args.PrintHelp();
 	}
@@ -81,7 +104,7 @@ int main(int argc, char *argv[])
 		for(const std::string& file : Args.GetProjectFiles() )
 		{
 
-			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetVerboseOutput(),Args.GetReBuild(),Args.GetTruncateOutput());
+			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetLoggingMode(),Args.GetReBuild(),Args.GetTruncateOutput());
 			if( TheProject )
 			{
 				const std::string configname = Args.GetActiveConfig();
@@ -146,7 +169,7 @@ int main(int argc, char *argv[])
 		Args.PrintGetHelp();
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 
@@ -154,6 +177,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																			\
 		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")																\
 		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")																\
+		DEF_ARG(ARG_QUIET,no_argument,				    'q',"quiet","Print no information about progress, just errors will be displayed.")                       			\
 		DEF_ARG(ARG_REBUILD,no_argument,				'r',"rebuild","Clean and rebuild all the source files.")															\
 		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'x',"run-after-build","If the build is successful then eXecute the app, but only if one project file submitted.")	\
 		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
@@ -161,6 +185,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
 		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,	't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
 		DEF_ARG(ARG_TIME_BUILD,no_argument,				'T',"time-build","Shows the total time of the build from start to finish.")												\
+		DEF_ARG(ARG_SHEBANG,no_argument,				'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
 		
 
 enum eArguments
@@ -173,10 +198,10 @@ enum eArguments
 CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mShowHelp(false),
 	mShowVersion(false),
-	mVerboseOutput(false),
 	mRunAfterBuild(false),
 	mReBuild(false),
 	mTimeBuild(false),
+    mLoggingMode(appbuild::LOG_INFO),
 	mNumThreads(std::thread::hardware_concurrency()),
 	mTruncateOutput(0)
 {
@@ -214,7 +239,11 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			break;
 
 		case ARG_VERBOSE:
-			mVerboseOutput = true;
+			mLoggingMode = appbuild::LOG_VERBOSE;
+			break;
+
+		case ARG_QUIET:
+			mLoggingMode = appbuild::LOG_ERROR;
 			break;
 
 		case ARG_RUN_AFTER_BUILD:
@@ -253,7 +282,12 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			if( optarg )
 				mTruncateOutput = std::atoi(optarg);
 			else
-				std::cout << "Option -t (truncate-output) was not passed correct value. -t 10 or --num-threads=10 to show teh first 10 lines of errors for each source file." << std::endl;
+				std::cout << "Option -t (truncate-output) was not passed correct value. -t 10 or --num-threads=10 to show the first 10 lines of errors for each source file." << std::endl;
+			break;
+
+        case ARG_SHEBANG:
+    		std::cout << "-# (she-bang) must be the first and oly option, it can not be used with ither options." << std::endl;
+            mShowHelp = true;
 			break;
 
 		default:
@@ -286,7 +320,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 		if( ProjFiles.size() == 1 )
 		{
 			mProjectFiles = ProjFiles;
-			if( mVerboseOutput )
+			if( mLoggingMode >= appbuild::LOG_VERBOSE )
 				std::cout << "No project file specified, using \'" << mProjectFiles.front() << "\'"  << std::endl;
 		}
 		else if( ProjFiles.size() > 1 )
@@ -362,5 +396,3 @@ void CommandLineOptions::PrintGetHelp()const
 {
 	std::cout << "Try 'appbuild --help' for more information."  << std::endl;
 }
-
-

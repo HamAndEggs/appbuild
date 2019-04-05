@@ -34,7 +34,7 @@ namespace appbuild{
 class BuildTaskCompile : public BuildTask
 {
 public:
-	BuildTaskCompile(const std::string& pTaskName,const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,bool pVerboseOutput);
+	BuildTaskCompile(const std::string& pTaskName,const std::string& pOutputFilename, const std::string& pCommand, const StringVec& pArgs,int pLoggingMode);
 	virtual ~BuildTaskCompile();
 
 	virtual const std::string& GetOutputFilename()const{return mOutputFilename;}

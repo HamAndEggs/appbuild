@@ -34,7 +34,7 @@ class Configuration;
 class BuildTask
 {
 public:
-	BuildTask(const std::string& pTaskName,bool pVerboseOutput);
+	BuildTask(const std::string& pTaskName,int pLoggingMode);
 	virtual ~BuildTask();
 
 	virtual const std::string& GetOutputFilename()const = 0;
@@ -48,7 +48,7 @@ public:
 protected:
 	virtual bool Main() = 0;
 
-	const bool mVerboseOutput;
+	const int mLoggingMode;
 	std::string mResults;
 
 private:

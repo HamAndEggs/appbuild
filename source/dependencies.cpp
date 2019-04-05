@@ -24,7 +24,13 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-Dependencies::Dependencies(const std::string& pProjectFile)
+Dependencies::Dependencies() : mUsingProjectFile(false)
+{
+    mProjectFileTime.tv_nsec = 0;
+    mProjectFileTime.tv_sec = 0;
+}
+
+Dependencies::Dependencies(const std::string& pProjectFile) : mUsingProjectFile(true)
 {
 	GetFileTime(pProjectFile,mProjectFileTime);
 }
@@ -51,8 +57,8 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 	// Get the object files info, if this fails then the file is not there, if it is not a regular file then that is wrong and so will rebuild it too.
 	if( GetFileTime(pObjectFile,ObjFileTime) )
 	{
-		// Before scanning the file, check against the project file time.
-		if( FileYoungerThanObjectFile(mProjectFileTime,ObjFileTime) )
+		// Before scanning the file, check against the project file time, if one was set. This is to supprot shebang. NOT the same as project file missing.
+		if( mUsingProjectFile && FileYoungerThanObjectFile(mProjectFileTime,ObjFileTime) )
 			return true;
 
 		return CheckDependencies(pSourceFile,ObjFileTime,IncludePaths);

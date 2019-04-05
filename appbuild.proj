@@ -1,20 +1,45 @@
 
 {
+	"configurations":
+	{
+		"release":
+		{
+			"define":
+			[
+				"RELEASE_BUILD"
+			],
+			"default":false,
+			"optimisation":"2",
+			"debug_level":"0"
+		},
+		"debug":
+		{
+			"define":
+			[
+				"DEBUG_BUILD"
+			],
+			"default":true,
+			"optimisation":"0",
+			"debug_level":"2"
+		}
+
+	},
 	"source_files":
 	[
-		"./source/resource_files.cpp",
 		"./source/arg_list.cpp",
-		"./source/json_writer.cpp",
 		"./source/build_task.cpp",
 		"./source/build_task_compile.cpp",
 		"./source/build_task_resource_files.cpp",
 		"./source/configuration.cpp",
 		"./source/dependencies.cpp",
-		"./source/json.cpp",			
+		"./source/json.cpp",
+		"./source/json_writer.cpp",
+		"./source/lz4/lz4.c",
 		"./source/main.cpp",
 		"./source/misc.cpp",
 		"./source/project.cpp",
-		"./source/source_files.cpp",
-		"./source/lz4/lz4.c"
+		"./source/resource_files.cpp",
+		"./source/source_files.cpp"
+		"./source/she_bang.cpp"
 	]
 }
