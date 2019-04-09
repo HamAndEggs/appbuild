@@ -83,7 +83,7 @@ if [ -f ./bin/appbuild ]; then
 	read -p "(y/n)?" answer
 	if [ $answer == "y" ] || [ $answer == "Y" ] ;then
         # Have to remove old install as it's now been moved out of the users local folder...
-        rm -f /usr/local/bin/appbuild
+        sudo rm -f /usr/local/bin/appbuild
 		echo "copying to /usr/bin"
 		sudo cp ./bin/appbuild /usr/bin
 	else

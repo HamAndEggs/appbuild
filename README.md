@@ -79,15 +79,16 @@ The 'dependancy' example project shows a use of the "configuration" object in th
 ```
 
 ## shebang (executable source files)
-All you need to do is add ```#!/usr/bin/appbuild -#``` to a source file and you're good to go.
+All you need to do is add #!/usr/bin/appbuild -# to a source file and you're good to go.
 You can pass params to your executable source file and capture shell input as well as output to the shell. It runs as if it had been compiled. This is because, under the covers, it has.
 Currently the code only links against stdc++ and pthread. I later plan to allow customisation of this.
-There is an example in ```./examples/shebang/``` with a cpp file and a python3 file that do the same. Run these and see the difference in preformace!
+There is an example in ./examples/shebang/ with a cpp file and a python3 file that do the same. Run these and see the difference in preformace!
+
+To add aditional libraries to the linker stage use the #APPBUILD_LIBS pragma. An example is in ./appbuild/examples/shebang/curses-hello-world.c
 
 ## Work left to do
 * Implement a resource file system.
 * Add missing compiler options as and when I discover them or I am informed of them.
-* Add pragmas to shebang code to allow an executable c/cpp file include other libraries.
 
 ## Contributors
 Richard e Collins

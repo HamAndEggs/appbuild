@@ -20,6 +20,10 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 static bool CompareFileTimes(const std::string& pSourceFile,const std::string& pDestFile)
 {
+#ifdef DEBUG_BUILD
+ return true;
+#endif
+
     FileStats Stats;
     if( stat(pDestFile.c_str(), &Stats) == 0 && S_ISREG(Stats.st_mode) )
     {
@@ -77,43 +81,72 @@ int BuildFromShebang(int argc,char *argv[])
     // Make sure our temp folder is there.
     MakeDir(projectTempFolder);
 
+    StringVec libraryFiles;
+    libraryFiles.push_back("stdc++");
+    libraryFiles.push_back("pthread");
+
     // First see if the source file that does not have the shebang in it is there.
-    if( CompareFileTimes(sourcePathedFile,tempSourcefile) )
+    const bool rebuildNeeded = CompareFileTimes(sourcePathedFile,tempSourcefile);
+    if( rebuildNeeded )
     {// Ok, we better build it.
         // Copy all lines of the file over excluding the first line that has the shebang.
         std::string line;
         std::ifstream oldSource(sourcePathedFile);
+        bool foundShebang = false;
 
-        // Skip line, should be there, but if not say something went wrong.
-        if( std::getline(oldSource,line) )
+        std::ofstream newSource(tempSourcefile);
+        if( newSource )
         {
-            std::ofstream newSource(tempSourcefile);
-            if( newSource )
+            while( std::getline(oldSource,line) )
             {
-                while( std::getline(oldSource,line) )
-                {
 #ifdef DEBUG_BUILD
-                    std::cout << line << std::endl;
+                std::cout << line << std::endl;
 #endif
+                if( line[0] == '#' && line[1] == '!' ) // Is it the shebang? If so remove it.
+                {
+                    foundShebang = true;
+                }
+                else if( CompareNoCase(line.c_str(),"#APPBUILD_LIBS ",15) ) // Is it a pragma to add a libs?
+                {
+                    // First entry will be the #APPBUILD_LIBS, so skip that bit.
+                    const std::string libs = line.substr(15);
+                    if( libs.size() > 0 )
+                    {
+                        for (size_t p = 0, q = 0; p != libs.npos; p = q)
+                        {
+                            libraryFiles.push_back(libs.substr(p + (p != 0), (q = libs.find(" ", p + 1)) - p - (p != 0)));
+                        }
+                    }
+                }
+                else
+                {
                     newSource << line << std::endl;
                 }
             }
-            else
-            {
-                std::cerr << "Failed to parse the source file into new temp file..." << std::endl;
-                return EXIT_FAILURE;
-            }
         }
         else
+        {
+            std::cerr << "Failed to parse the source file into new temp file..." << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        if( !foundShebang )
         {
             std::cerr << "Failed to parse the source file..." << std::endl;
             return EXIT_FAILURE;
         }
     }
 
+#ifdef DEBUG_BUILD
+    std::cout << "Linking with libs: ";
+    for(const auto& lib : libraryFiles)
+        std::cout << lib << " ";
+
+    std::cout << std::endl;
+#endif
 
     // What I am doing is creating a project file, and then calling the normal code path for creating an execuatable.
-    if( FileExists(project) == false )
+    if( FileExists(project) == false || rebuildNeeded )
     {
       	SourceFiles sourceFiles(CWD);
 	    BuildConfigurations buildConfigurations;
@@ -128,6 +161,12 @@ int BuildFromShebang(int argc,char *argv[])
                     jsonOutput.AddObjectItem("output_name",GetFileName(exename));
                     jsonOutput.AddObjectItem("optimisation","2");
                     jsonOutput.AddObjectItem("debug_level","0");
+
+                    jsonOutput.StartArray("libs");
+                    for(const auto& lib : libraryFiles)
+                        jsonOutput.AddArrayItem(lib);
+                    jsonOutput.EndArray();
+
                 jsonOutput.EndObject();
             jsonOutput.EndObject();
 			jsonOutput.StartArray("source_files");
