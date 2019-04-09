@@ -6,10 +6,11 @@ So I have taken a leaf out of the Microsoft Visual Studio book and create a stan
 The aim is to have a simple file to represent a c/c++ project that is easy to maintain and has all the features that I have wanted over the years. 
 
 ## Current features
-Targets applications and static libraries.
-Full dependency checking.
-Project references, if an app refers to a library and the source of that library has changed it will build that library before continuing with building the application, just as you would expect. 
-Json file format allowing intergration with external editors where the editor can add it’s own values to the file and the tool will ignore them.
+* Targets applications and static libraries.
+* Full dependency checking.
+* Project references, if an app refers to a library and the source of that library has changed it will build that library before continuing with building the application, just as you would expect. 
+* Json file format allowing intergration with external editors where the editor can add it’s own values to the file and the tool will ignore them.
+* Can be used as a shebang in a c/c++ file so that this source file is now execuatable. As if it was a shell script.
 
 ## Motivation
 I have always found it frustrating to have to create makefiles. Mostly because the syntax means that when you go back to a makefile after many months or even years you have to learn the syntax all over again. I find their maintability hard. Also I have never got the auto dependency checking to work.
@@ -77,9 +78,15 @@ The 'dependancy' example project shows a use of the "configuration" object in th
 }
 ```
 
+## shebang (executable source files)
+All you need to do is add #!/usr/bin/appbuild -# to a source file and you're good to go.
+You can pass params to your executable source file and capture shell input as well as output to the shell. It runs as if it had been compiled. This is because, under the covers, it has.
+Currently the code only links against stdc++ and pthread. I later plan to allow customisation of this.
+
 ## Work left to do
 * Implement a resource file system.
 * Add missing compiler options as and when I discover them or I am informed of them.
+* Add pragmas to shebang code to allow an executable c/cpp file include other libraries.
 
 ## Contributors
 Richard e Collins

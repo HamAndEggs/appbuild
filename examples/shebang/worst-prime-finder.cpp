@@ -1,4 +1,4 @@
-#!/usr/local/bin/appbuild -#
+#!/usr/bin/appbuild -#
 #include <iostream>
 
 static const int MIN_VALUE = 2;

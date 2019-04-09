@@ -82,8 +82,10 @@ if [ -f ./bin/appbuild ]; then
 	echo "May ask for password as it needs to use sudo to copy the file."
 	read -p "(y/n)?" answer
 	if [ $answer == "y" ] || [ $answer == "Y" ] ;then
-		echo "copying to /usr/local/bin"
-		sudo cp ./bin/appbuild /usr/local/bin
+        # Have to remove old install as it's now been moved out of the users local folder...
+        rm -f /usr/local/bin/appbuild
+		echo "copying to /usr/bin"
+		sudo cp ./bin/appbuild /usr/bin
 	else
 		echo "Application not installed"
 	fi
