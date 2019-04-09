@@ -86,7 +86,7 @@ int BuildFromShebang(int argc,char *argv[])
     libraryFiles.push_back("pthread");
 
     // First see if the source file that does not have the shebang in it is there.
-    const bool rebuildNeeded = CompareFileTimes(sourcePathedFile,tempSourcefile);
+    bool rebuildNeeded = CompareFileTimes(sourcePathedFile,tempSourcefile);
     if( rebuildNeeded )
     {// Ok, we better build it.
         // Copy all lines of the file over excluding the first line that has the shebang.
@@ -148,6 +148,7 @@ int BuildFromShebang(int argc,char *argv[])
     // What I am doing is creating a project file, and then calling the normal code path for creating an execuatable.
     if( FileExists(project) == false || rebuildNeeded )
     {
+        rebuildNeeded = true;
       	SourceFiles sourceFiles(CWD);
 	    BuildConfigurations buildConfigurations;
     
@@ -200,79 +201,85 @@ int BuildFromShebang(int argc,char *argv[])
         return EXIT_FAILURE;
     }
 
-    Project TheProject(file,1,LOG_ERROR,false,0);
-
-    if( TheProject )
+    // No point doing the link stage is the source file has not changed!
+    if( rebuildNeeded )
     {
-        const appbuild::Configuration* ActiveConfig = TheProject.GetActiveConfiguration("");
-        if( ActiveConfig )
+        Project TheProject(file,1,LOG_ERROR,false,0);
+
+        if( TheProject == false )
         {
-            if( ActiveConfig->GetOk() )
-            {
-                if( TheProject.Build(ActiveConfig) )
-                {
-                    // See if we have the output file, if so run it!
-                    if( FileExists(exename) )
-                    {// I will not be using ExecuteShellCommand as I need to replace this exec to allow the input and output to be taken over.
-
-                        if( chdir(CWD.c_str()) != 0 )
-                        {
-                            std::cerr << "Failed to return to the orginal run folder " << CWD << std::endl;
-                            return EXIT_FAILURE;
-                        }
-
-#ifdef DEBUG_BUILD
-    std::cout << "Running exec...." << std::endl;
-#endif
-
-                        char** TheArgs = new char*[(argc - 3) + 2];// -3 for the args sent into appbuild shebang, then +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
-                        int c = 0;
-                        TheArgs[c++] = CopyString(exename.c_str());
-                        for( int n = 3 ; n < argc ; n++ )
-                        {
-                            char* str = CopyString(argv[n]);
-                            if(str)
-                            {
-                                //Trim leading white space.
-                                while(isspace(str[0]) && str[0])
-                                    str++;
-                                if(str[0])
-                                    TheArgs[c++] = str;
-                            }
-                        }
-                        TheArgs[c++] = NULL;
-
-#ifdef DEBUG_BUILD
-    for(int n = 0 ; TheArgs[n] != NULL ; n++ )
-        std::cout << "TheArgs[n] " << TheArgs[n] << std::endl;
- #endif
-
-                        // This replaces the current process so no need to clean up the memory leaks before here. ;)
-                        execvp(TheArgs[0], TheArgs);
-
-                        std::cerr << "ExecuteShellCommand execl() failure!" << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;
-                        _exit(1);
-
-                    }
-                }
-                else
-                {
-                    std::cerr << "Build failed for project file \'" << file << "\'" << std::endl;
-                }
-            }
-            else
-            {
-                std::cerr << "There is a problem with the configuration \'" << ActiveConfig->GetName() << "\' in the project file \'" << file << "\'. Please check the output for errors." << std::endl;
-            }
+            std::cerr << "There was an error in the project file \'" << file << "\'" << std::endl;
+            return EXIT_FAILURE;
         }
-        else
+
+        const appbuild::Configuration* ActiveConfig = TheProject.GetActiveConfiguration("");
+        if( ActiveConfig == NULL )
         {
             std::cerr << "No configuration found in the project file \'" << file << "\'" << std::endl;
+            return EXIT_FAILURE;
         }
+
+        if( ActiveConfig->GetOk() == false )
+        {
+            std::cerr << "There is a problem with the configuration \'" << ActiveConfig->GetName() << "\' in the project file \'" << file << "\'. Please check the output for errors." << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        if( TheProject.Build(ActiveConfig) == false )
+        {
+            std::cerr << "Build failed for project file \'" << file << "\'" << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+
+    // See if we have the output file, if so run it!
+    if( FileExists(exename) )
+    {// I will not be using ExecuteShellCommand as I need to replace this exec to allow the input and output to be taken over.
+
+        if( chdir(CWD.c_str()) != 0 )
+        {
+            std::cerr << "Failed to return to the orginal run folder " << CWD << std::endl;
+            return EXIT_FAILURE;
+        }
+
+#ifdef DEBUG_BUILD
+std::cout << "Running exec...." << std::endl;
+#endif
+
+        char** TheArgs = new char*[(argc - 3) + 2];// -3 for the args sent into appbuild shebang, then +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
+        int c = 0;
+        TheArgs[c++] = CopyString(exename.c_str());
+        for( int n = 3 ; n < argc ; n++ )
+        {
+            char* str = CopyString(argv[n]);
+            if(str)
+            {
+                //Trim leading white space.
+                while(isspace(str[0]) && str[0])
+                    str++;
+                if(str[0])
+                    TheArgs[c++] = str;
+            }
+        }
+        TheArgs[c++] = NULL;
+
+#ifdef DEBUG_BUILD
+for(int n = 0 ; TheArgs[n] != NULL ; n++ )
+std::cout << "TheArgs[n] " << TheArgs[n] << std::endl;
+#endif
+
+        // This replaces the current process so no need to clean up the memory leaks before here. ;)
+        execvp(TheArgs[0], TheArgs);
+
+        std::cerr << "ExecuteShellCommand execl() failure!" << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;
+        _exit(1);
+
     }
     else
     {
-        std::cerr << "There was an error in the project file \'" << file << "\'" << std::endl;
+        std::cerr << "Failed to find executable " << exename << std::endl;
+        return EXIT_FAILURE;
     }
 
     if( chdir(CWD.c_str()) != 0 )
