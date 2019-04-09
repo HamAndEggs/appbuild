@@ -1,7 +1,7 @@
 #!/usr/bin/appbuild -#
 #APPBUILD_LIBS ncurses
 
-#include <ncurses.h>
+#include <ncurses.h> // sudo apt install libncurses5-dev
 
 int main()
 {	
