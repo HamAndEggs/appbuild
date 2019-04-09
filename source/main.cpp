@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
     {
 #ifdef DEBUG_BUILD
 		std::cout << "Running as a shebang!" << std::endl;
-		std::cout << "Building " << argv[2] << std::endl;
 #endif
         return appbuild::BuildFromShebang(argc,argv);
     }

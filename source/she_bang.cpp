@@ -20,10 +20,6 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 static bool CompareFileTimes(const std::string& pSourceFile,const std::string& pDestFile)
 {
-#ifdef DEBUG_BUILD
- return true;
-#endif
-
     FileStats Stats;
     if( stat(pDestFile.c_str(), &Stats) == 0 && S_ISREG(Stats.st_mode) )
     {
@@ -88,7 +84,11 @@ int BuildFromShebang(int argc,char *argv[])
     // First see if the source file that does not have the shebang in it is there.
     bool rebuildNeeded = CompareFileTimes(sourcePathedFile,tempSourcefile);
     if( rebuildNeeded )
-    {// Ok, we better build it.
+    {
+#ifdef DEBUG_BUILD
+        std::cout << "Source file rebuild needed!" << std::endl;
+#endif        
+        // Ok, we better build it.
         // Copy all lines of the file over excluding the first line that has the shebang.
         std::string line;
         std::ifstream oldSource(sourcePathedFile);
@@ -137,6 +137,13 @@ int BuildFromShebang(int argc,char *argv[])
         }
     }
 
+    // What I am doing is creating a project file, and then calling the normal code path for creating an execuatable.
+    if( FileExists(project) == false || rebuildNeeded )
+    {
+#ifdef DEBUG_BUILD
+        std::cout << "Project file rebuild needed!" << std::endl;
+#endif        
+
 #ifdef DEBUG_BUILD
     std::cout << "Linking with libs: ";
     for(const auto& lib : libraryFiles)
@@ -145,9 +152,6 @@ int BuildFromShebang(int argc,char *argv[])
     std::cout << std::endl;
 #endif
 
-    // What I am doing is creating a project file, and then calling the normal code path for creating an execuatable.
-    if( FileExists(project) == false || rebuildNeeded )
-    {
         rebuildNeeded = true;
       	SourceFiles sourceFiles(CWD);
 	    BuildConfigurations buildConfigurations;
@@ -204,7 +208,13 @@ int BuildFromShebang(int argc,char *argv[])
     // No point doing the link stage is the source file has not changed!
     if( rebuildNeeded )
     {
-        Project TheProject(file,1,LOG_ERROR,false,0);
+#ifdef DEBUG_BUILD
+        int loggingMode = LOG_VERBOSE;
+#else
+        int loggingMode = LOG_ERROR;
+#endif
+
+        Project TheProject(file,1,loggingMode,false,0);
 
         if( TheProject == false )
         {

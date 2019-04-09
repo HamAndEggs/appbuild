@@ -2,7 +2,8 @@
 #include <iostream>
 
 static const int MIN_VALUE = 2;
-static const int MAX_VALUE = 100000;
+//static const int MAX_VALUE = 100000;
+static const int MAX_VALUE = 200;
 
 static bool IsPrime(int pNumber)
 {
