@@ -9,6 +9,11 @@ The aim is to have a simple file to represent a c/c++ project that is easy to ma
 * Targets applications and static libraries.
 * Full dependency checking.
 * Project references, if an app refers to a library and the source of that library has changed it will build that library before continuing with building the application, just as you would expect. 
+* Multithread compiling.
+* Builtin build environment defines to help with build time and version generation.
+* Single process used during entire build process that allows for increased speed of dependency checking between source files.
+* Does not create extra files to manage the project and so will not clutter up your repository. Just uses the **one** project file for each project.
+* Resource file support with file API and compression, think something like res folder for Android apps.
 * Json file format allowing intergration with external editors where the editor can add it’s own values to the file and the tool will ignore them.
 * Can be used as a shebang in a c/c++ file so that this source file is now execuatable. As if it was a shell script.
 
