@@ -1,5 +1,9 @@
 
+../LICENSE.md
+../README.md
+../_config.yml
 ../appbuild.proj
+../build_and_install.sh
 ../source/arg_list.cpp
 ../source/arg_list.h
 ../source/build_task.cpp
