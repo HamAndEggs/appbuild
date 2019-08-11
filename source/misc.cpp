@@ -167,7 +167,7 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
     if(dir) 
     {
         struct dirent *ent; 
-        while((ent = readdir(dir)) != NULL) 
+        while((ent = readdir(dir)) != nullptr)
         { 
 			const std::string fname = ent->d_name;
 			if( FilterMatch(fname,pFilter) )
@@ -241,7 +241,7 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 					TheArgs[c++] = str;
 			}
 		}
-		TheArgs[c++] = NULL;
+        TheArgs[c++] = nullptr;
 
 		// This replaces the current process so no need to clean up the memory leaks before here. ;)
 		execvp(TheArgs[0], TheArgs);
@@ -331,9 +331,9 @@ bool ExecuteShellCommand(const std::string& pCommand, const StringVec& pArgs, st
 
 bool CompareNoCase(const char* pA,const char* pB,int pLength)
 {
-	assert( pA != NULL || pB != NULL );// Note only goes pop if both are null.
+    assert( pA != nullptr || pB != nullptr );// Note only goes pop if both are null.
 // If either or both NULL, then say no. A bit like a divide by zero as null strings are not strings.
-	if( pA == NULL || pB == NULL )
+    if( pA == nullptr || pB == nullptr )
 		return false;
 
 // If same memory then yes they match, doh!
@@ -367,10 +367,10 @@ bool CompareNoCase(const char* pA,const char* pB,int pLength)
 
 char* CopyString(const char* pString)
 {
-	char *newString = NULL;
-	if( pString != NULL && pString[0] != 0 )
+    char *newString = nullptr;
+    if( pString != nullptr && pString[0] != 0 )
 	{
-		int len = strlen(pString);
+        size_t len = strlen(pString);
 		if( len > 0 )
 		{
 			newString = new char[len + 1];
@@ -426,7 +426,7 @@ std::string GetTimeString(const char* pFormat)
 	if(!pFormat)
 		pFormat = "%d-%m-%Y %X";
 
-    time_t     now = time(0);
+    time_t     now = time(nullptr);
     struct tm  tstruct;
     char       buf[128];
     tstruct = *localtime(&now);
