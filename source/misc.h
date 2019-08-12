@@ -32,7 +32,7 @@ inline bool FileExists(const std::string& pFilename){return FileExists(pFilename
 inline bool DirectoryExists(const std::string& pDirname){return DirectoryExists(pDirname.c_str());}
 
 // Splits string into list have names to be made into directories, so don't include any filenames as they will be made into a folder.
-// Returns true if all was ok. 
+// Returns true if all was ok.
 bool MakeDir(const std::string& pPath);
 
 std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension = false);
@@ -43,7 +43,7 @@ std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**
- * 
+ *
  */
 bool ExecuteShellCommand(const std::string& pCommand,const StringVec& pArgs, std::string& rOutput);
 
@@ -61,12 +61,12 @@ bool ExecuteShellCommand(const std::string& pCommand,const StringVec& pArgs, std
 // assert(cppmake::CompareNoCase("onetwo","onetwo") == true);
 bool CompareNoCase(const char* pA,const char* pB,int pLength=0);
 
-char* CopyString(const char* pString);
-inline char* CopyString(const std::string& pString){return CopyString(pString.c_str());}
+char* CopyString(const char* pString, size_t pMaxLength);
+inline char* CopyString(const std::string& pString){return CopyString(pString.c_str(),pString.size());}
 StringVec SplitString(const std::string& pString,const char* pSeperator);
 std::string ReplaceString(const std::string& pString,const std::string& pSearch,const std::string& pReplace);
 std::string TrimWhiteSpace(const std::string &s);
- 
+
 // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
 // for more information about date/time format
 std::string GetTimeString(const char* pFormat = "%d-%m-%Y %X");

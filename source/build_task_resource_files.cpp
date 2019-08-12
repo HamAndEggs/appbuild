@@ -280,7 +280,7 @@ bool BuildTaskResourceFiles::Main()
 			return false;
 		}
 
-		const char* SEARCH_STRING = "//*****-APPBUILD-INSERT-RESOURCE-HERE-*****";
+        const char SEARCH_STRING[] = "//*****-APPBUILD-INSERT-RESOURCE-HERE-*****";
 		const char* afterCodeBlock = strstr(beforeCodeBlock,SEARCH_STRING);
 		assert(afterCodeBlock);
 		if(!afterCodeBlock)
@@ -289,7 +289,7 @@ bool BuildTaskResourceFiles::Main()
 			return false;
 		}
 		beforeCodeBlock[afterCodeBlock-beforeCodeBlock] = 0;
-		afterCodeBlock += strlen(SEARCH_STRING);
+        afterCodeBlock += sizeof(SEARCH_STRING);
 
 		std::ofstream cpp(ResourceOutputFilename,std::ofstream::trunc);
 		if( cpp.is_open() )

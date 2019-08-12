@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <limits.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -44,6 +45,8 @@ int BuildFromShebang(int argc,char *argv[])
     if( argv[2] == NULL )
         return EXIT_FAILURE;
 
+    const size_t ARG_MAX = 4096;
+
     const std::string CWD = GetCurrentWorkingDirectory() + "/";
     // Get the source file name, if not return an error.
     // Should be in argv[2]
@@ -87,7 +90,7 @@ int BuildFromShebang(int argc,char *argv[])
     {
 #ifdef DEBUG_BUILD
         std::cout << "Source file rebuild needed!" << std::endl;
-#endif        
+#endif
         // Ok, we better build it.
         // Copy all lines of the file over excluding the first line that has the shebang.
         std::string line;
@@ -142,7 +145,7 @@ int BuildFromShebang(int argc,char *argv[])
     {
 #ifdef DEBUG_BUILD
         std::cout << "Project file rebuild needed!" << std::endl;
-#endif        
+#endif
 
 #ifdef DEBUG_BUILD
     std::cout << "Linking with libs: ";
@@ -153,9 +156,9 @@ int BuildFromShebang(int argc,char *argv[])
 #endif
 
         rebuildNeeded = true;
-      	SourceFiles sourceFiles(CWD);
-	    BuildConfigurations buildConfigurations;
-    
+        SourceFiles sourceFiles(CWD);
+        BuildConfigurations buildConfigurations;
+
         JsonWriter jsonOutput;
         jsonOutput.StartObject();
             jsonOutput.StartObject("configurations");
@@ -174,9 +177,9 @@ int BuildFromShebang(int argc,char *argv[])
 
                 jsonOutput.EndObject();
             jsonOutput.EndObject();
-			jsonOutput.StartArray("source_files");
-				jsonOutput.AddArrayItem(GetFileName(sourcePathedFile));
-			jsonOutput.EndArray();
+            jsonOutput.StartArray("source_files");
+                jsonOutput.AddArrayItem(GetFileName(sourcePathedFile));
+            jsonOutput.EndArray();
         jsonOutput.EndObject();
 
 #ifdef DEBUG_BUILD
@@ -259,10 +262,10 @@ std::cout << "Running exec...." << std::endl;
 
         char** TheArgs = new char*[(argc - 3) + 2];// -3 for the args sent into appbuild shebang, then +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
         int c = 0;
-        TheArgs[c++] = CopyString(exename.c_str());
+        TheArgs[c++] = CopyString(exename);
         for( int n = 3 ; n < argc ; n++ )
         {
-            char* str = CopyString(argv[n]);
+            char* str = CopyString(argv[n],ARG_MAX);
             if(str)
             {
                 //Trim leading white space.
