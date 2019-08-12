@@ -78,19 +78,24 @@ echo "Linking"
 gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
-	echo "Do you wish to install this program?"
-	echo "May ask for password as it needs to use sudo to copy the file."
-	read -p "(y/n)?" answer
-	if [ $answer == "y" ] || [ $answer == "Y" ] ;then
+    if [ "$1" == "-y" ]; then
+        answer="y"
+    else
+        echo "May ask for password as it needs to use sudo to copy the file."
+        echo "Do you wish to install this program?"
+        read -p "(y/n)?" answer
+    fi
+
+    if [ $answer == "y" ] || [ $answer == "Y" ] ;then
         # Have to remove old install as it's now been moved out of the users local folder...
         sudo rm -f /usr/local/bin/appbuild
-		echo "copying to /usr/bin"
-		sudo cp ./bin/appbuild /usr/bin
-	else
-		echo "Application not installed"
-	fi
+        echo "copying to /usr/bin"
+        sudo cp ./bin/appbuild /usr/bin
+    else
+        echo "Application not installed"
+    fi
 else
-	echo "Output executable is not found, compile must have failed. Contact author if you can not fix the issue yourself. Be nice and he may fix it for you."
+    echo "Output executable is not found, compile must have failed. Contact author if you can not fix the issue yourself. Be nice and he may fix it for you."
 fi
 
 echo "Finished"
