@@ -45,8 +45,11 @@ bool FileExists(const char* pFileName)
 
 bool DirectoryExists(const char* pDirname)
 {
+// Had and issue where a path had an odd char at the end of it. So do this to make sure it's clean.
+	const std::string clean(TrimWhiteSpace(pDirname));
+
     struct stat dir_info;
-    if( stat(pDirname, &dir_info) == 0 )
+    if( stat(clean.c_str(), &dir_info) == 0 )
     {
         return S_ISDIR(dir_info.st_mode);
     }

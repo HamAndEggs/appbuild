@@ -83,7 +83,7 @@ public:
 	const std::string& GetArchiver()const{return mArchiver;}
 	const std::string& GetOutputPath()const{return mOutputPath;}
 	const std::string& GetOutputName()const{return mOutputName;}
-	const StringVec& GetLibraryFiles()const{return mLibraryFiles;}
+	const StringVec GetLibraryFiles()const;
 	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
@@ -107,6 +107,8 @@ private:
 	bool AddDependantProjects(const JSONValue* pLibs);
 
 	const std::string PreparePath(const std::string& pPath);// Makes the path relitive to the project if it is not absolute. Cleans it up a bit too.
+	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
+	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
 
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
@@ -124,6 +126,7 @@ private:
 	std::string mCppStandard;	// The c++ used standard.
 	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
 	std::string mDebugLevel; // Request debugging information and also use level to specify how much information.
+	std::string mGTKVersion;	// The version of GTK, currently 2.0 or 3.0. Is used in a call to "pkg-config --cflags gtk+-[VERSION]". If empty not called and not added.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;

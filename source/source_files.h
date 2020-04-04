@@ -37,6 +37,8 @@ public:
 
     const_iterator begin()const{return mSourceFiles.begin();}
     const_iterator end()const{return mSourceFiles.end();}
+	const size_t size()const{return mSourceFiles.size();}
+	const bool IsEmpty()const{return size() == 0;}
 
 	bool Read(const JSONValue* pSourceElement);
 	bool Write(JsonWriter& rJsonOutput)const;

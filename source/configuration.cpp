@@ -264,6 +264,29 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	if(mLoggingMode >= LOG_VERBOSE)
 		std::cout << "debug level set to " << mDebugLevel << std::endl;
 
+	// Read GTK version, if it is there.
+	const JSONValue* gtk_version = pConfig->Find("gtk_version");
+	if( gtk_version )
+	{
+		if(gtk_version->GetType() == JSONValue::STRING)
+		{
+			mGTKVersion = gtk_version->GetString();
+		}
+		else
+		{
+			std::cout << "gtk_version json object is not a string, the expexted values are gtk+-2.0 or gtk+-3.0 or a veriation of this." << std::endl;
+			return;
+		}
+	}
+
+	if(mLoggingMode >= LOG_VERBOSE)
+	{
+		if( mGTKVersion.size() > 0 )
+			std::cout << "GTK Version set to " << mGTKVersion << std::endl;
+		else
+			std::cout << "GTK Version NOT set" << std::endl;
+	}
+
 
 	// Check for the c standard settings.
 	// Read optimisation / optimization settings
@@ -307,8 +330,13 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 		rJsonOutput.AddObjectItem("standard",mCppStandard);
 		rJsonOutput.AddObjectItem("optimisation",mOptimisation);
 		rJsonOutput.AddObjectItem("debug_level",mDebugLevel);
+
+		if( mGTKVersion.size() > 0 )
+		{
+			rJsonOutput.AddObjectItem("gtk_version",mGTKVersion);
+		}
 		
-		if(mIncludeSearchPaths.size()>0)
+		if( mIncludeSearchPaths.size() > 0 )
 		{
 			rJsonOutput.StartArray("include");
 			for(const auto& path : mIncludeSearchPaths)
@@ -316,7 +344,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 			rJsonOutput.EndArray();
 		}
 
-		if(mLibrarySearchPaths.size()>0)
+		if( mLibrarySearchPaths.size() > 0 )
 		{
 			rJsonOutput.StartArray("libpaths");
 			for(const auto& path : mLibrarySearchPaths)
@@ -324,7 +352,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 			rJsonOutput.EndArray();
 		}
 
-		if(mLibraryFiles.size()>0)
+		if( mLibraryFiles.size() > 0 )
 		{
 			rJsonOutput.StartArray("libs");
 			for(const auto& path : mLibraryFiles)
@@ -332,7 +360,7 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 			rJsonOutput.EndArray();
 		}
 
-		if(mDefines.size()>0)
+		if( mDefines.size() > 0 )
 		{
 			rJsonOutput.StartArray("define");
 			for(const auto& path : mDefines)
@@ -351,6 +379,16 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 		mSourceFiles.Write(rJsonOutput);
 	rJsonOutput.EndObject();
 	return true;
+}
+
+const StringVec Configuration::GetLibraryFiles()const
+{
+	StringVec allLibraryFiles = mLibraryFiles;
+	if( mGTKVersion.size() > 0 )
+	{
+		AddLibrariesFromPKGConfig(allLibraryFiles,mGTKVersion);
+	}
+	return allLibraryFiles;
 }
 
 bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
@@ -374,6 +412,10 @@ bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const S
 
 bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
+	// A little earlyout for small projects as this function can be called multiple times!
+	if( pSourceFiles.IsEmpty() )
+		return true;
+
 	// This is used to uniquify source files that could create the same output file. (same file name in different folders)
 	// It is important that this is updated even when files don't need to be compiled.
 	// This is done in a predictable way that will always generate the same result.
@@ -385,6 +427,13 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 	const std::string DEF_APP_BUILD_DATE = "-DAPP_BUILD_DATE=\"" + GetTimeString("%d-%m-%Y") + "\"";
 	const std::string DEF_APP_BUILD_TIME = "-DAPP_BUILD_TIME=\"" + GetTimeString("%X") + "\"";
 	const std::string DEF_BUILT_BY_APPBUILD = "-DBUILT_BY_APPBUILD";
+
+	// We need to taek the include paths that the user added and append some of ours based on some other options the user has requested.
+	StringVec includeSearchPaths = mIncludeSearchPaths;
+	if( mGTKVersion.size() > 0 )
+	{
+		AddIncludesFromPKGConfig(includeSearchPaths,mGTKVersion);
+	}
 
 	for( const auto& file_entry : pSourceFiles )
 	{
@@ -426,7 +475,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			rOutputFiles.push_back(OutputFilename);// Need to record all the output files even if not built as we need that for the linker.
 
-			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,mIncludeSearchPaths) )
+			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,includeSearchPaths) )
 			{
 				bool isCfile = GetExtension(InputFilename) == ".c";
 
@@ -445,7 +494,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				
 				args.AddDefines(mDefines);
 				
-				args.AddIncludeSearchPath(mIncludeSearchPaths);
+				args.AddIncludeSearchPath(includeSearchPaths);
 				if( !isCfile )
 					args.AddArg("-std=" + mCppStandard);
 
@@ -588,6 +637,96 @@ const std::string Configuration::PreparePath(const std::string& pPath)
 	}
 	return std::string();
 }
+
+bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const
+{
+	if(mLoggingMode >= LOG_VERBOSE)
+		std::cout << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search " << std::endl;
+
+	StringVec args;
+	args.push_back("--cflags");
+	args.push_back(pVersion);
+
+	std::string results;
+	if( ExecuteShellCommand("pkg-config",args,results) )
+	{
+		bool FoundIncludes = false;// This is used to see if we found any, if we did not then assume pkg-config failed and show an error
+		const StringVec includes = SplitString(results," ");
+		for( auto inc : includes )
+		{
+			if( inc.size() > 2 && CompareNoCase(inc.c_str(),"-I",2) )
+			{
+				const std::string theFolder = TrimWhiteSpace(inc.substr(2));
+
+				if( DirectoryExists(theFolder) )
+				{
+					pIncludeSearchPaths.push_back(theFolder);
+					FoundIncludes = true;
+					if(mLoggingMode >= LOG_VERBOSE)
+						std::cout << "pkg-config adding folder to include search " << theFolder << std::endl;
+				}
+				else if(mLoggingMode >= LOG_VERBOSE)
+				{
+					std::cout << "pkg-config proposed folder not found, NOT added to include search " << theFolder << std::endl;
+				}
+			}
+		}
+		// Did it work?
+		if( FoundIncludes )
+		{
+			return true;
+		}
+		else
+		{// Something went wrong, so return false for an error and show output from pkg-config
+			std::cout << results << std::endl;
+		}
+	}
+
+	return false;
+}
+
+bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const
+{
+	if(mLoggingMode >= LOG_VERBOSE)
+		std::cout << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search " << std::endl;
+
+	StringVec args;
+	args.push_back("--libs");
+	args.push_back(pVersion);
+
+	std::string results;
+	if( ExecuteShellCommand("pkg-config",args,results) )
+	{
+		bool FoundLibraries = false;// This is used to see if we found any, if we did not then assume pkg-config failed and show an error
+		const StringVec includes = SplitString(results," ");
+		for( auto inc : includes )
+		{
+			if( inc.size() > 2 && CompareNoCase(inc.c_str(),"-l",2) )
+			{
+				const std::string theFolder = TrimWhiteSpace(inc.substr(2));
+				pLibraryFiles.push_back(theFolder);
+				FoundLibraries = true;
+				if(mLoggingMode >= LOG_VERBOSE)
+					std::cout << "pkg-config adding library " << theFolder << std::endl;
+
+			}
+		}
+
+		// Did it work?
+		if( FoundLibraries )
+		{
+			return true;
+		}
+		else
+		{// Something went wrong, so return false for an error and show output from pkg-config
+			std::cout << results << std::endl;
+		}
+	}
+
+	return false;
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{
