@@ -688,7 +688,7 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const
 {
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search " << std::endl;
+		std::cout << "Calling \"pkg-config --libs " << pVersion << "\" to add library dependancies to the linker " << std::endl;
 
 	StringVec args;
 	args.push_back("--libs");
