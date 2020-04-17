@@ -55,10 +55,7 @@ bool SourceFiles::Read(const JSONValue* pSourceElement)
 			mWriteAsJsonArray = true;
 			for(int n=0;n<pSourceElement->GetArraySize();n++)
 			{
-				if( obj->GetType() == JSONValue::STRING )
-				{
-					AddFile(pSourceElement->GetString(n),"source");
-				}
+				AddFile(pSourceElement->GetString(n),"source");
 			}
 		}
 		else if( pSourceElement->GetType() == JSONValue::OBJECT && pSourceElement->GetObject() )
