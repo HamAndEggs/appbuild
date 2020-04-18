@@ -17,7 +17,7 @@
 #ifndef _PROJECT_H_
 #define _PROJECT_H_
 
-
+#include "json.h"
 
 #include "build_task.h"
 #include "dependencies.h"
@@ -35,9 +35,6 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-class JSONValue;
-class JsonWriter;
-
 class Project
 {
 public:
@@ -49,14 +46,14 @@ public:
 
 	bool Build(const Configuration* pActiveConfig);
 	bool RunOutputFile(const Configuration*pActiveConfig);
-	bool Write(JsonWriter& rJsonOutput)const;
+	void Write(rapidjson::Document& pDocument)const;
 	const Configuration* GetActiveConfiguration(const std::string& pConfigName)const; // Tries to return a sutible configuration to build with if pConfigName is not found.
 
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
 private:
 
-	bool ReadConfigurations(const JSONValue* pSettings);
+	bool ReadConfigurations(const rapidjson::Value& pSettings);
 
 	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);

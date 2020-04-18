@@ -17,13 +17,13 @@
 #ifndef _SOURCE_FILES_H_
 #define _SOURCE_FILES_H_
 
+#include "string_types.h"
+#include "json.h"
 #include "build_task.h"
 #include "dependencies.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-class JSONValue;
-class JsonWriter;
 
 class SourceFiles
 {
@@ -40,8 +40,8 @@ public:
 	const size_t size()const{return mSourceFiles.size();}
 	const bool IsEmpty()const{return size() == 0;}
 
-	bool Read(const JSONValue* pSourceElement);
-	bool Write(JsonWriter& rJsonOutput)const;
+	bool Read(const rapidjson::Value& pSourceElement);
+	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	void AddFile(const char* pFileName,const char* pGroupName);
 	void AddFile(const std::string& pFileName,const char* pGroupName){AddFile(pFileName.c_str(),pGroupName);}

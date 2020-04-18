@@ -22,6 +22,8 @@
 #include <functional>
 #include <unordered_map>
 
+#include "string_types.h"
+
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 

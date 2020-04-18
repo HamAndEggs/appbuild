@@ -13,109 +13,86 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   
+#ifndef __JSON_H__
+#define __JSON_H__
 
-#ifndef _JSON_READER_H_
-#define _JSON_READER_H_
+#include <fstream>
+#include <sstream>
 
-#include <map>
-#include <vector>
 #include <string>
 
+#define RAPIDJSON_HAS_STDSTRING 1
+#include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-class JSONObject;
-class JSONValue;
-
-typedef std::vector<JSONValue*> JSONValueVec;
-
-class JSONValue
+// Some rapid json helpers.
+inline bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson)
 {
-public:
-	// The types that I support. Sort of fit with the standard but I have added some more friendly ones.
-	enum Type
-	{
-		STRING,
-		INT32,	// Signed 32 bit int.
-		FLOAT,	// Box standard floating point number.
-		BOOLEAN,
-		OBJECT,
-		ARRAY,
-		NULL_VALUE,
-	};
+   std::ofstream file(pFilename);
+   if( file )
+   {
+      rapidjson::OStreamWrapper osw(file);
+      rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+      return pJson.Accept(writer);
+   }
+   return false;
+}
 
-	JSONValue(){};
-	virtual ~JSONValue(){};
-
-	virtual int GetArraySize()const = 0;
-	virtual Type GetType()const = 0;// the type of this
-	virtual Type GetType(int pIndex)const = 0;// the type of the element in the array
-
-	// pIndex can only be non zero for array types. And then the element in the array has to match the type requested. Some types maybe interchangable. And int can be read as a float.
-	virtual  const char* GetString(int pIndex = 0)const = 0;
-	virtual  const int GetInt32(int pIndex = 0)const = 0;
-	virtual  const float GetFloat(int pIndex = 0)const = 0;
-	virtual  const bool GetBoolean(int pIndex = 0)const = 0;
-	virtual  const JSONObject* GetObject(int pIndex = 0)const = 0;
-
-	// Only works if the value is a JSONObject.
-	virtual const JSONValue* Find(const char* pName)const = 0;	// Returns NULL if not found.
-};
-
-class Compare
+inline bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
 {
-public:
-	bool operator() (const char* lhs, const char* rhs) const
-	{
-		assert(lhs && rhs);
-		while( *lhs && *rhs && tolower(*lhs) == tolower(*rhs) )
-		{
-			lhs++;
-			rhs++;
-		};
+   std::ifstream jsonFile(pFilename);
+   if( jsonFile.is_open() )
+   {
+      std::stringstream jsonStream;
+      jsonStream << jsonFile.rdbuf();// Read the whole file in...
 
-		return tolower(*lhs) < tolower(*rhs);
-	}
-};
-typedef std::map<const char*,JSONValueVec,Compare> ValueMap;
+      pJson.Parse(jsonStream.str().c_str());
 
+      // Have to invert result as I want tru if it worked, false if it failed.
+      return pJson.HasParseError() == false;
+   }
+   return false;
+}
 
-class JSONObject
+inline void PushBack(rapidjson::Value& pArray,const std::string& Value,rapidjson::Document::AllocatorType& pAlloc)
 {
-public:
+   pArray.PushBack(rapidjson::Value(Value,pAlloc),pAlloc);
+}
 
+// Not using overloads as I want to keep to the rapid json naming. Also means I can build them all with some macro magic.
+#define UTIL_GET_WITH_DEFAULT_FUNCTIONS            \
+   ADD_FUNCTION(GetBool,IsBool,bool)               \
+   ADD_FUNCTION(GetInt,IsInt,int)                  \
+   ADD_FUNCTION(GetUint,IsUint,unsigned)           \
+   ADD_FUNCTION(GetInt64,IsInt64,int64_t)          \
+   ADD_FUNCTION(GetUint64,IsUint64,uint64_t)       \
+   ADD_FUNCTION(GetFloat,IsFloat,float)            \
+   ADD_FUNCTION(GetDouble,IsDouble,double)         \
+   ADD_FUNCTION(GetString,IsString,std::string)    \
 
-	virtual ~JSONObject(){};
+#define ADD_FUNCTION(__GET_NAME__,__CHECK_NAME__,__TYPE__)                                                  \
+   inline __TYPE__ __GET_NAME__(const rapidjson::Value& pJson,const std::string& pKey,__TYPE__ pDefault)    \
+   {                                                                                                        \
+      if( pJson.HasMember(pKey) )                                                                           \
+      {                                                                                                     \
+         assert( pJson[pKey].__CHECK_NAME__() );                                                            \
+         if( pJson[pKey].__CHECK_NAME__() )                                                                 \
+            return pJson[pKey].__GET_NAME__();                                                              \
+      }                                                                                                     \
+      return pDefault;                                                                                      \
+   }
 
-	// If key not found, vector will be null. Else returns all the elements in this object that use this key.
-	virtual const JSONValue*	Find(const char* pName)const=0;
-	virtual const JSONValueVec& FindAll(const char* pName)const=0;
+// Build all out util get functions that allow you to define a default if the item is not in the json stream.
+UTIL_GET_WITH_DEFAULT_FUNCTIONS
 
-	virtual const ValueMap& GetChildren()const = 0;
-};
-
-class Json
-{
-public:
-	Json(std::ifstream& pFile);
-	Json(const std::string& pString);// A Json string, EG {"name":"fred","age":21}
-	~Json();
-
-	const JSONValue*	Find(const char* pName)const;		// Returns NULL if not found.
-	const JSONValueVec& FindAll(const char* pName)const;	// Returns an empty vector if not found.
-
-	operator bool()const{return mFileData && mRoot;}
-
-private:
-	const JSONObject* Read(const std::string& pJson);
-
-	const JSONObject *mRoot;
-	char* mFileData;	//Copy of the incoming JSON so that I can modify it.
-	const JSONValueVec EmptyVec;
-};
-
+#undef ADD_FUNCTION
 
 //////////////////////////////////////////////////////////////////////////
-};//namespace appbuild{
+};//namespace appbuild
 
-#endif
+
+#endif //__JSON_H__

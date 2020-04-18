@@ -21,10 +21,10 @@
 #include <chrono>
 #include <string.h>
 
+#include "json.h"
+#include "string_types.h"
 #include "project.h"
 #include "misc.h"
-#include "string_types.h"
-#include "json_writer.h"
 #include "she_bang.h"
 #include "logging.h"
 
@@ -111,13 +111,13 @@ int main(int argc, char *argv[])
 				if( Args.GetUpdatedProject() )
 				{
 					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
-					appbuild::JsonWriter JsonOutput;
-					TheProject.Write(JsonOutput);
 
-					std::ofstream updatedProjectFile(Args.GetUpdatedOutputFileName());
-					if( updatedProjectFile )
+					rapidjson::Document jsonOutput;
+					jsonOutput.SetObject(); // Root object is an object not an array.
+					TheProject.Write(jsonOutput);
+					if( appbuild::SaveJson(Args.GetUpdatedOutputFileName(),jsonOutput) )
 					{
-						updatedProjectFile << JsonOutput.Get();
+						std::cout << "Project file updated" << std::endl;
 					}
 					else
 					{
@@ -315,7 +315,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	{
 		// If no project files specified and not asking for help options, then auto find a proj file.
 		// If only one is found use that, elso don't use any as it maybe not what they intended.
-		const StringVec ProjFiles = appbuild::FindFiles(appbuild::GetCurrentWorkingDirectory(),"*.proj");
+		const appbuild::StringVec ProjFiles = appbuild::FindFiles(appbuild::GetCurrentWorkingDirectory(),"*.proj");
 		if( ProjFiles.size() == 1 )
 		{
 			mProjectFiles = ProjFiles;
@@ -345,9 +345,9 @@ void CommandLineOptions::PrintHelp()const
 	std::cout << "Mandatory arguments to long options are mandatory for short options too." << std::endl << "Options:" << std::endl;
 
 	// I build three vecs of strings for all options. So I can measure and then line up the text with spaces. Makes life easier when adding new options.
-	StringVec ShortArgs;
-	StringVec LongArgs;
-	StringVec Descriptions;
+	appbuild::StringVec ShortArgs;
+	appbuild::StringVec LongArgs;
+	appbuild::StringVec Descriptions;
 
 #define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) if(true){ShortArgs.push_back(#ARG_SHORT_NAME);if(TAKES_ARGUMENT==required_argument){LongArgs.push_back(ARG_LONG_NAME "=arg");}else{LongArgs.push_back(ARG_LONG_NAME);}Descriptions.push_back(ARG_DESC);};
 	ARGUMENTS
@@ -372,7 +372,7 @@ void CommandLineOptions::PrintHelp()const
 		std::cout << line;
 
 		size_t space = DescMaxSpace - line.size();
-		const StringVec lines = appbuild::SplitString(Descriptions[n],"\n");
+		const appbuild::StringVec lines = appbuild::SplitString(Descriptions[n],"\n");
 		for(auto line : lines)
 		{
 			std::cout << std::string(space,' ') << line << std::endl;

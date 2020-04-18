@@ -23,7 +23,7 @@
 #include <list>
 #include <stack>
 
-#include "string_types.h"
+#include "json.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds the information for each build task.

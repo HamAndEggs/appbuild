@@ -19,8 +19,6 @@
 #include <string.h>
 
 #include "source_files.h"
-#include "json.h"
-#include "json_writer.h"
 #include "misc.h"
 
 namespace appbuild{
@@ -44,8 +42,8 @@ const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 	return pOther;
 }
 
-bool SourceFiles::Read(const JSONValue* pSourceElement)
-{
+bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
+{/*
 	if( pSourceElement )
 	{
 		// Instead of looking for specific items here we'll enumerate them.
@@ -82,15 +80,17 @@ bool SourceFiles::Read(const JSONValue* pSourceElement)
 			std::cout << "The \'source_files\' object in this project file \'" << mProjectDir << "\' is not a supported json type" << std::endl;
 			return false;
 		}
-	}
+	}*/
 	return true;
 }
 
-bool SourceFiles::Write(JsonWriter& rJsonOutput)const
+const rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
+	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
+
 	if( mSourceFiles.size() > 0 )
 	{
-		if(mWriteAsJsonArray)
+/*		if(mWriteAsJsonArray)
 		{
 			rJsonOutput.StartArray("source_files");
 			for( const auto& file : mSourceFiles )
@@ -103,9 +103,9 @@ bool SourceFiles::Write(JsonWriter& rJsonOutput)const
 			for( const auto& file : mSourceFiles )
 				rJsonOutput.AddObjectItem(file.first,file.second);
 			rJsonOutput.EndObject();
-		}
+		}*/
 	}
-	return true;
+	return value;
 }
 
 void SourceFiles::AddFile(const char* pFileName,const char* pGroupName)

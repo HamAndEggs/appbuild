@@ -24,10 +24,8 @@
 #include <unistd.h>
 
 #include "project.h"
-#include "json.h"
 #include "misc.h"
 #include "arg_list.h"
-#include "json_writer.h"
 #include "build_task_resource_files.h"
 #include "logging.h"
 
@@ -52,9 +50,9 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		std::cout << "Reading project file " << mPathedProjectFilename << std::endl;
 
 	// Now build our project object.
-	std::ifstream ProjectFile(mPathedProjectFilename);
-	Json ProjectJson(ProjectFile);
-    if( ProjectJson )
+	rapidjson::Document ProjectJson;
+
+	if( ReadJson(mPathedProjectFilename,ProjectJson) )
     {
 		// Is the project file already loaded, if so then there is a dependancy loop, we have to fail else will compile for ever.
 		if( sLoadedProjects.find(mPathedProjectFilename) != sLoadedProjects.end() )
@@ -67,10 +65,9 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		sLoadedProjects.insert(mPathedProjectFilename);
 
 		// Read the configs.
-		const JSONValue* configs = ProjectJson.Find("configurations");
-		if( configs )
+		if( ProjectJson.HasMember("configurations") )
 		{
-			if( !ReadConfigurations(configs) )
+			if( !ReadConfigurations(ProjectJson["configurations"]) )
 				return;
 		}
 
@@ -86,10 +83,21 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		assert( mBuildConfigurations.size() > 0 );
 
 		// Add the source files
-		mSourceFiles.Read(ProjectJson.Find("source_files"));
+		if( ProjectJson.HasMember("source_files") )
+		{
+			mSourceFiles.Read(ProjectJson["source_files"]);
+		}
+		else
+		{
+			std::cout << "No source files, what the should do I compile? Project file \'" << mPathedProjectFilename << std::endl;
+			return;
+		}
 
 		// Add the source files
-		mResourceFiles.Read(ProjectJson.Find("resource_files"),mPathedProjectFilename);
+		if( ProjectJson.HasMember("resource_files") )
+		{
+			mResourceFiles.Read(ProjectJson["resource_files"],mPathedProjectFilename);
+		}
     }
 	else
 	{
@@ -240,8 +248,12 @@ bool Project::RunOutputFile(const Configuration* pActiveConfig)
 	return false;
 }
 
-bool Project::Write(JsonWriter& rJsonOutput)const
+void Project::Write(rapidjson::Document& pDocument)const
 {
+	rapidjson::Document::AllocatorType& alloc = pDocument.GetAllocator();
+
+//	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
+/*
 	rJsonOutput.StartObject();
 	rJsonOutput.StartObject("configurations");
 	for( const auto& conf : mBuildConfigurations )
@@ -251,8 +263,7 @@ bool Project::Write(JsonWriter& rJsonOutput)const
 	rJsonOutput.EndObject();
 	mSourceFiles.Write(rJsonOutput);
 	rJsonOutput.EndObject();
-
-	return true;
+*/
 }
 
 const Configuration* Project::GetActiveConfiguration(const std::string& pConfigName)const
@@ -290,11 +301,11 @@ const Configuration* Project::GetActiveConfiguration(const std::string& pConfigN
 	return NULL;
 }
 
-
-bool Project::ReadConfigurations(const JSONValue* pSettings)
+bool Project::ReadConfigurations(const rapidjson::Value& pSettings)
 {
-	assert(pSettings);
-
+	assert(pSettings.IsNull() == false);
+	assert(pSettings.IsObject());
+/*
 	for(auto& configs : pSettings->GetObject()->GetChildren() )
 	{
 		const char* name = configs.first;
@@ -312,7 +323,7 @@ bool Project::ReadConfigurations(const JSONValue* pSettings)
 			}
 			else
 			{
-				const JSONValue* Obj = configs.second[0];
+				const rapidjson::Value& Obj = configs.second[0];
 				if(Obj)
 				{
 					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir,mLoggingMode);
@@ -325,11 +336,9 @@ bool Project::ReadConfigurations(const JSONValue* pSettings)
 			return false;
 		}
 	}
-	
+*/
 	return true;
 }
-
-
 
 bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks)
 {
@@ -482,7 +491,6 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 
 	return ok;
 }
-
 
 bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutputFiles)
 {

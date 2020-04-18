@@ -17,9 +17,7 @@
 ../source/dependencies.cpp
 ../source/dependencies.h
 ../source/json.cpp
-../source/json.h
 ../source/json_writer.cpp
-../source/json_writer.h
 ../source/logging.h
 ../source/main.cpp
 ../source/mem_buffer.h
@@ -33,7 +31,6 @@
 ../source/she_bang.h
 ../source/source_files.cpp
 ../source/source_files.h
-../source/string_types.h
 ../source/lz4/lz4.c
 ../source/lz4/lz4.h
 

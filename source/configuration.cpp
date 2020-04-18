@@ -19,11 +19,10 @@
 #include <string.h>
 #include <iostream>
 
-#include "misc.h"
+#include "json.h"
 #include "configuration.h"
 #include "build_task_compile.h"
 #include "dependencies.h"
-#include "json_writer.h"
 #include "source_files.h"
 #include "logging.h"
 
@@ -55,7 +54,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 }
 
-Configuration::Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode):
+Configuration::Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
 		mLoggingMode(pLoggingMode),
@@ -76,15 +75,11 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	
 	AddIncludeSearchPath(pProjectDir);
 
-	const JSONValue* isDefaultConfig = pConfig->Find("default");
-	if( isDefaultConfig && isDefaultConfig->GetBoolean() == true )
-		mIsDefaultConfig = true;
+	mIsDefaultConfig = GetBool(pConfig,"default",false);
 	
-	
-	const JSONValue* includes = pConfig->Find("include");
-    if( includes )
-    {
-        if( AddIncludeSearchPaths(includes) == false )
+	if( pConfig.HasMember("include") )
+	{
+        if( AddIncludeSearchPaths(pConfig["include"]) == false )
         {
             std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
             return; // We're done, no need to continue.
@@ -100,10 +95,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
     }
 
 	// These can be added to the args now as they need to come before libs.
-	const JSONValue* libpaths = pConfig->Find("libpaths");
-	if( libpaths )
+	if( pConfig.HasMember("libpaths") )
     {
-        if( AddLibrarySearchPaths(libpaths) == false )
+        if( AddLibrarySearchPaths(pConfig["libpaths") == false )
         {
             std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
             return; // We're done, no need to continue.
@@ -121,10 +115,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 
 	// These go into a different place for now as they have to be adde to the args after the object files have been.
 	// This is because of the way linkers work.
-	const JSONValue* libraries = pConfig->Find("libs");
-	if( libraries )
+	if( pConfig.HasMember("libs") )
 	{
-		if( AddLibraries(libraries) == false  )
+		if( AddLibraries(pConfig["libs"]) == false  )
 		{
 			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
 			return; // We're done, no need to continue.
@@ -138,10 +131,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 		AddLibrary("stdc++");
 	}
 
-	const JSONValue* defines = pConfig->Find("define");
-	if( defines )
+	if( pConfig.HasMember("define") )
 	{
-		if( AddDefines(defines) == false  )
+		if( AddDefines(pConfig["define"]) == false  )
 		{
 			std::cout << "The \'defines\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
 			return; // We're done, no need to continue.
@@ -155,10 +147,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}
 
 	// Look for the output folder name. If not found default to bin.
-	const JSONValue* outputpath = pConfig->Find("output_path");
-	if( outputpath )
+	if( pConfig.HasMember("output_path") )
 	{
-		mOutputPath = outputpath->GetString();
+		mOutputPath = pConfig["output_path"].GetString();
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 	}
@@ -168,15 +159,14 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}
 
 	// Find out what they wish to build.
-	const JSONValue* target = pConfig->Find("target");
-	if( target )
+	if( pConfig.HasMember("target") )
 	{
-		const char* TargetName = target->GetString();
-		if( CompareNoCase("executable",TargetName) )
+		const std::string TargetName = pConfig["target"].GetString();
+		if( CompareNoCase("executable",TargetName.c_str()) )
 			mTargetType = TARGET_EXEC;
-		else if( CompareNoCase("library",TargetName) )
+		else if( CompareNoCase("library",TargetName.c_str()) )
 			mTargetType = TARGET_LIBRARY;
-		else if( CompareNoCase("sharedlibrary",TargetName) )
+		else if( CompareNoCase("sharedlibrary",TargetName.c_str()) )
 			mTargetType = TARGET_SHARED_LIBRARY;
 
 		// Was it set?
@@ -193,11 +183,9 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 			std::cout << "Target type not set so defaulting to executable." << std::endl;
 	}
 
-	const JSONValue* output_name = pConfig->Find("output_name");
-	if( output_name && output_name->GetType() == JSONValue::STRING )
+	if( pConfig.HasMember("output_name") && pConfig["output_name"].IsString() )
 	{
-		std::string filename = output_name->GetString();
-		
+		std::string filename = pConfig["output_name"].GetString();		
 		// Depending on the target type, we need to make sure the format is right.
 		if( mTargetType == TARGET_LIBRARY )
 		{
@@ -230,82 +218,23 @@ Configuration::Configuration(const std::string& pConfigName,const JSONValue* pCo
 	}
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 	
-	// Read optimisation / optimisation settings
-	const JSONValue* optimisation = pConfig->Find("optimisation");
-	if( !optimisation )
-		optimisation = pConfig->Find("optimization");
-	if( optimisation )
-	{
-		if(optimisation->GetType() == JSONValue::INT32)
-		{
-			mOptimisation = std::to_string(optimisation->GetInt32());
-		}
-		else if(optimisation->GetType() == JSONValue::STRING)
-		{
-			mOptimisation = optimisation->GetString();
-		}
-	}
-	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "optimisation set to " << mOptimisation << std::endl;
-
-	// Read debugging level.
-	const JSONValue* debugLevel = pConfig->Find("debug_level");
-	if( debugLevel )
-	{
-		if(debugLevel->GetType() == JSONValue::INT32)
-		{
-			mDebugLevel = std::to_string(debugLevel->GetInt32());
-		}
-		else if(debugLevel->GetType() == JSONValue::STRING)
-		{
-			mDebugLevel = debugLevel->GetString();
-		}
-	}
-	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "debug level set to " << mDebugLevel << std::endl;
-
-	// Read GTK version, if it is there.
-	const JSONValue* gtk_version = pConfig->Find("gtk_version");
-	if( gtk_version )
-	{
-		if(gtk_version->GetType() == JSONValue::STRING)
-		{
-			mGTKVersion = gtk_version->GetString();
-		}
-		else
-		{
-			std::cout << "gtk_version json object is not a string, the expexted values are gtk+-2.0 or gtk+-3.0 or a veriation of this." << std::endl;
-			return;
-		}
-	}
-
-	if(mLoggingMode >= LOG_VERBOSE)
-	{
-		if( mGTKVersion.size() > 0 )
-			std::cout << "GTK Version set to " << mGTKVersion << std::endl;
-		else
-			std::cout << "GTK Version NOT set" << std::endl;
-	}
-
-
-	// Check for the c standard settings.
-	// Read optimisation / optimization settings
-	const JSONValue* standard = pConfig->Find("standard");
-	if( standard && standard->GetType() == JSONValue::STRING )
-	{
-		mCppStandard = standard->GetString();
-	}
+	mOptimisation = SafeReadStringValue(pConfig,"optimisation",mOptimisation);
+	mDebugLevel = SafeReadStringValue(pConfig,"debug_level",mDebugLevel);
+	mGTKVersion = SafeReadStringValue(pConfig,"gtk_version",mGTKVersion);
+	mCppStandard = SafeReadStringValue(pConfig,"standard",mCppStandard);
 
 	// See if there are any projects we are not dependent on.
-	const JSONValue* dependencies = pConfig->Find("dependencies");
-	if( dependencies && AddDependantProjects(dependencies) == false )
+	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
 	{
 		std::cout << "The \'dependencies\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
 		return; // We're done, no need to continue.
 	}
 
 	// Add configuration specific source files
-	mSourceFiles.Read(pConfig->Find("source_files"));
+	if( pConfig.HasMember("source_files") )
+	{
+		mSourceFiles.Read(pConfig["source_files"]);
+	}
 
 	// If we get here, then all is ok.
 	mOk = true;
@@ -316,9 +245,10 @@ Configuration::~Configuration()
 	mOk = false;
 }
 
-bool Configuration::Write(JsonWriter& rJsonOutput)const
+const rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
-
+	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
+/*
 	rJsonOutput.StartObject(mConfigName);
 		rJsonOutput.AddObjectItem("default",mIsDefaultConfig);
 		rJsonOutput.AddObjectItem("target",TargetTypeToString(mTargetType));
@@ -378,7 +308,8 @@ bool Configuration::Write(JsonWriter& rJsonOutput)const
 
 		mSourceFiles.Write(rJsonOutput);
 	rJsonOutput.EndObject();
-	return true;
+	return true;*/
+	return value;
 }
 
 const StringVec Configuration::GetLibraryFiles()const
@@ -514,7 +445,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 	return true;
 }
 
-bool Configuration::AddIncludeSearchPaths(const JSONValue* pPaths)
+bool Configuration::AddIncludeSearchPaths(const rapidjson::Value& pPaths)
 {
 	if( pPaths->GetType() == JSONValue::ARRAY )
 	{
@@ -533,7 +464,7 @@ void Configuration::AddIncludeSearchPath(const std::string& pPath)
 	mIncludeSearchPaths.push_back(path);
 }
 
-bool Configuration::AddLibrarySearchPaths(const JSONValue* pPaths)
+bool Configuration::AddLibrarySearchPaths(const rapidjson::Value& pPaths)
 {
 	if( pPaths->GetType() == JSONValue::ARRAY )
 	{
@@ -552,7 +483,7 @@ void Configuration::AddLibrarySearchPath(const std::string& pPath)
 	mLibrarySearchPaths.push_back(path);
 }
 
-bool Configuration::AddLibraries(const JSONValue* pLibs)
+bool Configuration::AddLibraries(const rapidjson::Value& pLibs)
 {
 	if( pLibs->GetType() == JSONValue::ARRAY )
 	{
@@ -570,7 +501,7 @@ void Configuration::AddLibrary(const std::string& pLib)
 	mLibraryFiles.push_back(pLib);
 }
 
-bool Configuration::AddDefines(const JSONValue* pDefines)
+bool Configuration::AddDefines(const rapidjson::Value& pDefines)
 {
 	if( pDefines->GetType() == JSONValue::ARRAY )
 	{
@@ -588,7 +519,7 @@ void Configuration::AddDefine(const std::string& pDefine)
 	mDefines.push_back(pDefine);
 }
 
-bool Configuration::AddDependantProjects(const JSONValue* pLibs)
+bool Configuration::AddDependantProjects(const rapidjson::Value& pLibs)
 {
 	if( pLibs->GetType() == JSONValue::ARRAY )
 	{
@@ -726,6 +657,32 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 	return false;
 }
 
+const std::string Configuration::SafeReadStringValue(const rapidjson::Value& pConfig,const std::string& pKey,const std::string& pDefault)
+{
+	std::string str = pDefault;
+	// Read optimisation settings
+	if( pConfig.HasMember(pKey) )
+	{
+		if( pConfig[pKey].IsString() )
+		{
+			str = pConfig[pKey].GetString();
+		}
+		else
+		{
+			std::cout << pKey << " is not a string type, it will be ignored, correct the projects json file." << std::endl;
+		}
+	}
+
+	if(mLoggingMode >= LOG_VERBOSE)
+	{
+		if( pDefault.size() > 0 )
+			std::cout << pKey << " set to " << mGTKVersion << std::endl;
+		else
+			std::cout << pKey << " NOT set" << std::endl;
+	}
+
+	return str;
+}
 
 
 //////////////////////////////////////////////////////////////////////////

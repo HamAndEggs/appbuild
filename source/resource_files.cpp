@@ -19,8 +19,6 @@
 #include <string.h>
 
 #include "resource_files.h"
-#include "json.h"
-#include "json_writer.h"
 #include "misc.h"
 
 namespace appbuild{
@@ -44,8 +42,8 @@ const ResourceFiles& ResourceFiles::operator = (const ResourceFiles& pOther)
 	return pOther;
 }
 
-bool ResourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename)
-{
+bool ResourceFiles::Read(const rapidjson::Value& pSourceElement,const std::string& pPathedProjectFilename)
+{/*
 	if( pSourceElement )
 	{
 		// Instead of looking for specific items here we'll enumerate them.
@@ -82,14 +80,16 @@ bool ResourceFiles::Read(const JSONValue* pSourceElement,const std::string& pPat
 			std::cout << "The \'resource_files\' object in this project file \'" << pPathedProjectFilename << "\' is not a supported json type" << std::endl;
 			return false;
 		}
-	}
+	}*/
 	return true;
 }
 
-bool ResourceFiles::Write(JsonWriter& rJsonOutput)const
+const rapidjson::Value ResourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
+	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
+
 	if( mFiles.size() > 0 )
-	{
+	{/*
 		if(mWriteAsJsonArray)
 		{
 			rJsonOutput.StartArray("resource_files");
@@ -103,9 +103,9 @@ bool ResourceFiles::Write(JsonWriter& rJsonOutput)const
 			for( const auto& file : mFiles )
 				rJsonOutput.AddObjectItem(file.first,file.second);
 			rJsonOutput.EndObject();
-		}
+		}*/
 	}
-	return true;
+	return value;
 }
 
 void ResourceFiles::AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename)

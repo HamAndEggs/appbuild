@@ -17,14 +17,14 @@
 #ifndef _RESOURCE_FILES_H_
 #define _RESOURCE_FILES_H_
 
+#include "string_types.h"
+#include "json.h"
 #include "build_task.h"
 #include "dependencies.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-class JSONValue;
-class JsonWriter;
 
 class ResourceFiles
 {
@@ -39,8 +39,8 @@ public:
     const_iterator begin()const{return mFiles.begin();}
     const_iterator end()const{return mFiles.end();}
 
-	bool Read(const JSONValue* pSourceElement,const std::string& pPathedProjectFilename);
-	bool Write(JsonWriter& rJsonOutput)const;
+	bool Read(const rapidjson::Value& pSourceElement,const std::string& pPathedProjectFilename);
+	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	bool GetNeedsRebuild()const{return mFiles.size() > 0;} // Checks the date time of the resource files against the cpp file that is created. If any are newer then the resource file is rebuilt.
 	bool GetIncludeLZ4Code()const{return mIncludeLZ4Code;}

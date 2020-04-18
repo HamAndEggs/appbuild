@@ -68,10 +68,10 @@ class Configuration
 {
 public:
 	Configuration(const std::string& pProjectDir,const std::string& pProjectName,int pLoggingMode);// Creates a default configuration suitable for simple c++11 projects.
-	Configuration(const std::string& pConfigName,const JSONValue* pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode);
+	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode);
 	~Configuration();
 
-	bool Write(JsonWriter& rJsonOutput)const;
+	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	bool GetIsDefaultConfig()const{return mIsDefaultConfig;}
 	bool GetOk()const{return mOk;}
@@ -92,23 +92,33 @@ public:
 private:
 	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
-	bool AddIncludeSearchPaths(const JSONValue* pPaths);
+	bool AddIncludeSearchPaths(const rapidjson::Value& pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);
 
-	bool AddLibrarySearchPaths(const JSONValue* pPaths);
+	bool AddLibrarySearchPaths(const rapidjson::Value& pPaths);
 	void AddLibrarySearchPath(const std::string& pPath);
 
-	bool AddLibraries(const JSONValue* pLibs);
+	bool AddLibraries(const rapidjson::Value& pLibs);
 	void AddLibrary(const std::string& pLib);
 
-	bool AddDefines(const JSONValue* pDefines);
+	bool AddDefines(const rapidjson::Value& pDefines);
 	void AddDefine(const std::string& pDefine);
 
-	bool AddDependantProjects(const JSONValue* pLibs);
+	bool AddDependantProjects(const rapidjson::Value& pLibs);
 
 	const std::string PreparePath(const std::string& pPath);// Makes the path relitive to the project if it is not absolute. Cleans it up a bit too.
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
 	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
+
+	/**
+	 * @brief Will read the json key only if it is a string type, else with show a warning and use the default. Default also used if key is missing.
+	 * 
+	 * @param pConfig 
+	 * @param pKey 
+	 * @param pDefault 
+	 * @return const std::string 
+	 */
+	const std::string SafeReadStringValue(const rapidjson::Value& pConfig,const std::string& pKey,const std::string& pDefault);
 
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.

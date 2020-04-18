@@ -17,7 +17,7 @@
 #ifndef __ARG_LIST_H__
 #define __ARG_LIST_H__
 
-#include "string_types.h"
+#include "json.h"
 #include "misc.h"
 
 namespace appbuild{

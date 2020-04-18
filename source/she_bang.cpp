@@ -5,11 +5,11 @@
 #include <fstream>
 #include <unistd.h>
 
+#include "json.h"
+
 #include "she_bang.h"
 #include "misc.h"
-#include "string_types.h"
 #include "dependencies.h"
-#include "json_writer.h"
 #include "source_files.h"
 #include "configuration.h"
 #include "project.h"
@@ -148,51 +148,43 @@ int BuildFromShebang(int argc,char *argv[])
 #endif
 
 #ifdef DEBUG_BUILD
-    std::cout << "Linking with libs: ";
-    for(const auto& lib : libraryFiles)
-        std::cout << lib << " ";
+        std::cout << "Linking with libs: ";
+        for(const auto& lib : libraryFiles)
+            std::cout << lib << " ";
 
-    std::cout << std::endl;
+        std::cout << std::endl;
 #endif
 
         rebuildNeeded = true;
         SourceFiles sourceFiles(CWD);
         BuildConfigurations buildConfigurations;
 
-        JsonWriter jsonOutput;
-        jsonOutput.StartObject();
-            jsonOutput.StartObject("configurations");
+        rapidjson::Document jsonOutput;
+        rapidjson::Document::AllocatorType& alloc = jsonOutput.GetAllocator();
+        jsonOutput.SetObject(); // Root object is an object not an array.
+        rapidjson::Value configurations(rapidjson::kObjectType);
+            rapidjson::Value shebang(rapidjson::kObjectType);
                 // Setup as a release build
-                jsonOutput.StartObject("shebang");
-                    jsonOutput.AddObjectItem("default",true);
-                    jsonOutput.AddObjectItem("output_path","./");
-                    jsonOutput.AddObjectItem("output_name",GetFileName(exename));
-                    jsonOutput.AddObjectItem("optimisation","2");
-                    jsonOutput.AddObjectItem("debug_level","0");
+                shebang.AddMember("default",true,alloc);
+                shebang.AddMember("output_path","./",alloc);
+                shebang.AddMember("output_name",GetFileName(exename),alloc);
+                shebang.AddMember("optimisation","2",alloc);
+                shebang.AddMember("debug_level","0",alloc);
 
-                    jsonOutput.StartArray("libs");
-                    for(const auto& lib : libraryFiles)
-                        jsonOutput.AddArrayItem(lib);
-                    jsonOutput.EndArray();
+                rapidjson::Value libs(rapidjson::kArrayType);
+                for(const auto& lib : libraryFiles)
+                    PushBack(libs,lib,alloc);
+                shebang.AddMember("libs",libs,alloc);
+            configurations.AddMember("shebang",shebang,alloc);
+        jsonOutput.AddMember("configurations",configurations,alloc);
 
-                jsonOutput.EndObject();
-            jsonOutput.EndObject();
-            jsonOutput.StartArray("source_files");
-                jsonOutput.AddArrayItem(GetFileName(sourcePathedFile));
-            jsonOutput.EndArray();
-        jsonOutput.EndObject();
-
-#ifdef DEBUG_BUILD
-    std::cout << jsonOutput.Get() << std::endl;
-#endif
+        rapidjson::Value source_files(rapidjson::kArrayType);
+            PushBack(source_files,GetFileName(sourcePathedFile),alloc);
+        jsonOutput.AddMember("source_files",source_files,alloc);
 
         // We need to make the project file.
         std::ofstream updatedProjectFile(project);
-        if( updatedProjectFile )
-        {
-            updatedProjectFile << jsonOutput.Get();
-        }
-        else
+        if( SaveJson(project,jsonOutput) == false )
         {
             std::cerr << "Failed to write to the tempory project file [" << project << "] needed to create the cached exe, please check there is a system temp folder that can be used." << std::endl;
             return EXIT_FAILURE;
