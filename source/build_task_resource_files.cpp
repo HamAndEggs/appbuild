@@ -127,7 +127,7 @@ bool BuildTaskResourceFiles::GetGeneratedResourceFiles(SourceFiles& rGeneratedRe
 	if( mGeneratedResourceFiles.size() > 0 )
 	{
 		for( const auto& file : mGeneratedResourceFiles )
-			rGeneratedResourceFiles.AddFile(file,"resources");
+			rGeneratedResourceFiles.AddFile(file);
 		return true;
 	}
 	return false;

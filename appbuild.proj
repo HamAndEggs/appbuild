@@ -32,8 +32,6 @@
 		"./source/build_task_resource_files.cpp",
 		"./source/configuration.cpp",
 		"./source/dependencies.cpp",
-		"./source/json.cpp",
-		"./source/json_writer.cpp",
 		"./source/lz4/lz4.c",
 		"./source/main.cpp",
 		"./source/misc.cpp",

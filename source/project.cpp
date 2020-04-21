@@ -252,18 +252,15 @@ void Project::Write(rapidjson::Document& pDocument)const
 {
 	rapidjson::Document::AllocatorType& alloc = pDocument.GetAllocator();
 
-//	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
-/*
-	rJsonOutput.StartObject();
-	rJsonOutput.StartObject("configurations");
+	rapidjson::Value configurations = rapidjson::Value(rapidjson::kObjectType);
+
 	for( const auto& conf : mBuildConfigurations )
 	{
-		conf.second->Write(rJsonOutput);
+		//configurations.AddMember(conf.first,conf.second->Write(alloc),alloc);
+		
 	}
-	rJsonOutput.EndObject();
-	mSourceFiles.Write(rJsonOutput);
-	rJsonOutput.EndObject();
-*/
+	pDocument.AddMember("configurations",configurations,alloc);
+
 }
 
 const Configuration* Project::GetActiveConfiguration(const std::string& pConfigName)const

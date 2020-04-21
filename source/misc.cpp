@@ -161,7 +161,6 @@ static bool FilterMatch(const std::string& pFilename,const std::string& pFilter)
     return pFilename.find(pFilter) != std::string::npos;
 }
 
-
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
 {
     StringVec FoundFiles;

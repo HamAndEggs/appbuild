@@ -15,17 +15,33 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef __STRING_TYPES_H__
+#define __STRING_TYPES_H__
 
 #include <string>
 #include <vector>
 #include <map>
 #include <set>
 
+namespace appbuild{
+//////////////////////////////////////////////////////////////////////////
 typedef std::vector<std::string> StringVec;
 typedef std::map<std::string,std::string> StringMap;
 typedef std::set<std::string> StringSet;
 typedef std::map<std::string,StringVec> StringVecMap;
 typedef std::map<std::string,StringSet> StringSetMap;
 typedef std::map<std::string,int> StringIntMap;
+
+inline StringVec GetKeys(const StringMap& pMap)
+{
+   StringVec keys;
+
+   for( const auto& key : pMap )
+      keys.push_back(key.first);
+
+   return keys;
+}
+
+//////////////////////////////////////////////////////////////////////////
+};//namespace appbuild
 
 #endif

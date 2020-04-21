@@ -71,7 +71,7 @@ public:
 	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode);
 	~Configuration();
 
-	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
+	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	bool GetIsDefaultConfig()const{return mIsDefaultConfig;}
 	bool GetOk()const{return mOk;}

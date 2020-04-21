@@ -97,7 +97,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	// These can be added to the args now as they need to come before libs.
 	if( pConfig.HasMember("libpaths") )
     {
-        if( AddLibrarySearchPaths(pConfig["libpaths") == false )
+        if( AddLibrarySearchPaths(pConfig["libpaths"]) == false )
         {
             std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
             return; // We're done, no need to continue.
@@ -245,71 +245,57 @@ Configuration::~Configuration()
 	mOk = false;
 }
 
-const rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAllocator)const
+rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
-	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
-/*
-	rJsonOutput.StartObject(mConfigName);
-		rJsonOutput.AddObjectItem("default",mIsDefaultConfig);
-		rJsonOutput.AddObjectItem("target",TargetTypeToString(mTargetType));
-		rJsonOutput.AddObjectItem("compiler",mComplier);
-		rJsonOutput.AddObjectItem("linker",mLinker);
-		rJsonOutput.AddObjectItem("archiver",mArchiver);
-		rJsonOutput.AddObjectItem("output_path",mOutputPath);
-		rJsonOutput.AddObjectItem("output_name",mOutputName);
-		rJsonOutput.AddObjectItem("standard",mCppStandard);
-		rJsonOutput.AddObjectItem("optimisation",mOptimisation);
-		rJsonOutput.AddObjectItem("debug_level",mDebugLevel);
+	rapidjson::Value jsonConfig = rapidjson::Value(rapidjson::kObjectType);
 
-		if( mGTKVersion.size() > 0 )
-		{
-			rJsonOutput.AddObjectItem("gtk_version",mGTKVersion);
-		}
-		
-		if( mIncludeSearchPaths.size() > 0 )
-		{
-			rJsonOutput.StartArray("include");
-			for(const auto& path : mIncludeSearchPaths)
-				rJsonOutput.AddArrayItem(path);
-			rJsonOutput.EndArray();
-		}
+	jsonConfig.AddMember("default",mIsDefaultConfig,pAllocator);
+	jsonConfig.AddMember("target",std::string(TargetTypeToString(mTargetType)),pAllocator);
+	jsonConfig.AddMember("compiler",mComplier,pAllocator);
+	jsonConfig.AddMember("linker",mLinker,pAllocator);
+	jsonConfig.AddMember("archiver",mArchiver,pAllocator);
+	jsonConfig.AddMember("output_path",mOutputPath,pAllocator);
+	jsonConfig.AddMember("output_name",mOutputName,pAllocator);
+	jsonConfig.AddMember("standard",mCppStandard,pAllocator);
+	jsonConfig.AddMember("optimisation",mOptimisation,pAllocator);
+	jsonConfig.AddMember("debug_level",mDebugLevel,pAllocator);
 
-		if( mLibrarySearchPaths.size() > 0 )
-		{
-			rJsonOutput.StartArray("libpaths");
-			for(const auto& path : mLibrarySearchPaths)
-				rJsonOutput.AddArrayItem(path);
-			rJsonOutput.EndArray();
-		}
+	if( mGTKVersion.size() > 0 )
+	{
+		jsonConfig.AddMember("gtk_version",mGTKVersion,pAllocator);
+	}
+	
+	if( mIncludeSearchPaths.size() > 0 )
+	{	
+		jsonConfig.AddMember("include",BuildStringArray(mIncludeSearchPaths,pAllocator),pAllocator);
+	}
 
-		if( mLibraryFiles.size() > 0 )
-		{
-			rJsonOutput.StartArray("libs");
-			for(const auto& path : mLibraryFiles)
-				rJsonOutput.AddArrayItem(path);
-			rJsonOutput.EndArray();
-		}
+	if( mLibrarySearchPaths.size() > 0 )
+	{
+		jsonConfig.AddMember("libpaths",BuildStringArray(mLibrarySearchPaths,pAllocator),pAllocator);
+	}
 
-		if( mDefines.size() > 0 )
-		{
-			rJsonOutput.StartArray("define");
-			for(const auto& path : mDefines)
-				rJsonOutput.AddArrayItem(path);
-			rJsonOutput.EndArray();
-		}
+	if( mLibraryFiles.size() > 0 )
+	{
+		jsonConfig.AddMember("libs",BuildStringArray(mLibraryFiles,pAllocator),pAllocator);
+	}
 
-		if( mDependantProjects.size() > 0 )
-		{
-			rJsonOutput.StartArray("dependencies");
-			for(const auto& dep : mDependantProjects)
-				rJsonOutput.AddArrayItem(dep.first);
-			rJsonOutput.EndArray();
-		}
+	if( mDefines.size() > 0 )
+	{
+		jsonConfig.AddMember("define",BuildStringArray(mDefines,pAllocator),pAllocator);
+	}
 
-		mSourceFiles.Write(rJsonOutput);
-	rJsonOutput.EndObject();
-	return true;*/
-	return value;
+	if( mDependantProjects.size() > 0 )
+	{
+		jsonConfig.AddMember("dependencies",BuildStringArray(GetKeys(mDependantProjects),pAllocator),pAllocator);
+	}
+
+	if( mSourceFiles.size() > 0 )
+	{
+		mSourceFiles.Write(pAllocator);
+	}
+
+	return jsonConfig;
 }
 
 const StringVec Configuration::GetLibraryFiles()const
@@ -366,13 +352,13 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 		AddIncludesFromPKGConfig(includeSearchPaths,mGTKVersion);
 	}
 
-	for( const auto& file_entry : pSourceFiles )
+	for( const auto& filename : pSourceFiles )
 	{
-		const std::string &filename = file_entry.first;
-		const std::string output_path = CleanPath(mOutputPath + "/" + file_entry.second);
+		// Later on in the code we deal with duplicate file names with a nice little sneeky trick.
+		// Only posible because we use one process many threads for the whole build process and not many proccess, like make does.
 		
 		// Make sure output path is there.
-		MakeDir(output_path); 
+		MakeDir(mOutputPath); 
 		
 		// Lets make a compile command.
 		const std::string InputFilename = CleanPath(mProjectDir + filename);
@@ -389,7 +375,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 			// pFolder can be null. This is normally the group name.
-			std::string OutputFilename = CleanPath(mProjectDir + output_path);
+			std::string OutputFilename = mOutputPath;
 			std::string fname = GetFileName(filename);
 			const int UseIndex = FileUseCount[fname]++;	// The first time this is found, zero is returned and so no 'numbered' extension will be added. Ensures unique output file names when needed.
 
@@ -447,11 +433,11 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 bool Configuration::AddIncludeSearchPaths(const rapidjson::Value& pPaths)
 {
-	if( pPaths->GetType() == JSONValue::ARRAY )
+	if( pPaths.IsArray() )
 	{
-		for( int n = 0 ; n < pPaths->GetArraySize() ; n++ )
+		for( const auto& val : pPaths.GetArray() )
 		{
-			AddIncludeSearchPath(pPaths->GetString(n));
+			AddIncludeSearchPath(val.GetString());
 		}
 		return true;
 	}
@@ -466,11 +452,11 @@ void Configuration::AddIncludeSearchPath(const std::string& pPath)
 
 bool Configuration::AddLibrarySearchPaths(const rapidjson::Value& pPaths)
 {
-	if( pPaths->GetType() == JSONValue::ARRAY )
+	if( pPaths.IsArray() )
 	{
-		for( int n = 0 ; n < pPaths->GetArraySize() ; n++ )
+		for( const auto& val : pPaths.GetArray() )
 		{
-			AddLibrarySearchPath(pPaths->GetString(n));
+			AddLibrarySearchPath(val.GetString());
 		}
 		return true;
 	}
@@ -485,11 +471,11 @@ void Configuration::AddLibrarySearchPath(const std::string& pPath)
 
 bool Configuration::AddLibraries(const rapidjson::Value& pLibs)
 {
-	if( pLibs->GetType() == JSONValue::ARRAY )
+	if( pLibs.IsArray() )
 	{
-		for( int n = 0 ; n < pLibs->GetArraySize() ; n++ )
+		for( const auto& val : pLibs.GetArray() )
 		{
-			AddLibrary(pLibs->GetString(n));
+			AddLibrary(val.GetString());
 		}
 		return true;
 	}
@@ -503,11 +489,11 @@ void Configuration::AddLibrary(const std::string& pLib)
 
 bool Configuration::AddDefines(const rapidjson::Value& pDefines)
 {
-	if( pDefines->GetType() == JSONValue::ARRAY )
+	if( pDefines.IsArray() )
 	{
-		for( int n = 0 ; n < pDefines->GetArraySize() ; n++ )
+		for( const auto& val : pDefines.GetArray() )
 		{
-			AddDefine(pDefines->GetString(n));
+			AddDefine(val.GetString());
 		}
 		return true;
 	}
@@ -521,29 +507,27 @@ void Configuration::AddDefine(const std::string& pDefine)
 
 bool Configuration::AddDependantProjects(const rapidjson::Value& pLibs)
 {
-	if( pLibs->GetType() == JSONValue::ARRAY )
+	if( pLibs.IsArray() )
 	{
-		for( int n = 0 ; n < pLibs->GetArraySize() ; n++ )
+		for( const auto& val : pLibs.GetArray() )
 		{
-			if( pLibs->GetType(n) == JSONValue::STRING )
+			if( val.IsString() )
 			{
-				mDependantProjects[pLibs->GetString(n)] = "";// config to use will be resolved when the build starts
+				// Only add an empty entry if there is not one.
+				// To prevent overwriting one.
+				if( mDependantProjects.find(val.GetString()) == mDependantProjects.end() )
+					mDependantProjects[val.GetString()] = "";// config to use will be resolved when the build starts
 			}
-			else if( pLibs->GetType(n) == JSONValue::OBJECT )
+			else
 			{
-				const JSONObject* projects = pLibs->GetObject(n);
-				if(projects)
-				{
-					const ValueMap& children = projects->GetChildren();
-					for( auto& proj : children )
-					{
-						for( auto& obj : proj.second )
-							mDependantProjects[proj.first] = obj->GetString();
-					}
-				}
+				std::cout << "Dependancy list has a none string entry, please correct. Item being ignored." << std::endl;
 			}
 		}
 		return true;
+	}
+	else
+	{
+		std::cout << "Dependancy list for projects is not an array type, please correct." << std::endl;
 	}
 	return false;	
 }

@@ -23,7 +23,7 @@
 #include <list>
 #include <stack>
 
-#include "json.h"
+#include "string_types.h"
 #include "build_task.h"
 
 //////////////////////////////////////////////////////////////////////////

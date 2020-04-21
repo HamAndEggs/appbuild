@@ -23,7 +23,6 @@
 #include <list>
 #include <stack>
 
-#include "json.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds the information for each build task.

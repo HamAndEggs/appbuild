@@ -20,7 +20,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <string>
+#include "string_types.h"
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include <rapidjson/document.h>
@@ -58,11 +58,50 @@ inline bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
    return false;
 }
 
+// Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
+// Handy for putting key pairs into an array, which is not really ideal. But....
+template <typename __TYPE__>void AddMember(rapidjson::Value& pContainer,const std::string& pKey,const __TYPE__& pValue,rapidjson::Document::AllocatorType& pAlloc)
+{
+   pContainer.AddMember(rapidjson::Value(pKey.c_str(),pAlloc),pValue,pAlloc);
+}
+
 inline void PushBack(rapidjson::Value& pArray,const std::string& Value,rapidjson::Document::AllocatorType& pAlloc)
 {
    pArray.PushBack(rapidjson::Value(Value,pAlloc),pAlloc);
 }
 
+inline rapidjson::Value BuildStringArray(const StringVec& pStrings,rapidjson::Document::AllocatorType& pAlloc)
+{
+   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
+   for( const auto& str : pStrings )
+   {
+      PushBack(array,str,pAlloc);
+   }
+   return array;
+}
+
+inline rapidjson::Value BuildStringArray(const StringSet& pStrings,rapidjson::Document::AllocatorType& pAlloc)
+{
+   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
+   for( const auto& str : pStrings )
+   {
+      PushBack(array,str,pAlloc);
+   }
+   return array;
+}
+/*
+inline rapidjson::Value BuildStringArray(const StringMap& pStrings,rapidjson::Document::AllocatorType& pAlloc)
+{
+   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
+   for( const auto& str : pStrings )
+   {
+      rapidjson::Value entry = rapidjson::Value(rapidjson::kObjectType);
+      AddMember(entry,str.first,str.second,pAlloc);
+      array.PushBack(entry,pAlloc);
+   }
+   return array;
+}
+*/
 // Not using overloads as I want to keep to the rapid json naming. Also means I can build them all with some macro magic.
 #define UTIL_GET_WITH_DEFAULT_FUNCTIONS            \
    ADD_FUNCTION(GetBool,IsBool,bool)               \

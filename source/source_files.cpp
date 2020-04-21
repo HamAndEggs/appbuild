@@ -24,7 +24,7 @@
 namespace appbuild{
 
 //////////////////////////////////////////////////////////////////////////
-SourceFiles::SourceFiles(const std::string& pProjectPath) :mProjectDir(pProjectPath), mWriteAsJsonArray(false)
+SourceFiles::SourceFiles(const std::string& pProjectPath) :mProjectDir(pProjectPath)
 {
 
 }
@@ -38,95 +38,40 @@ const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
 	mProjectDir = pOther.mProjectDir;
 	mSourceFiles = pOther.mSourceFiles;
-	mWriteAsJsonArray = pOther.mWriteAsJsonArray;
 	return pOther;
 }
 
 bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
-{/*
-	if( pSourceElement )
+{
+	if( pSourceElement.IsArray() )
 	{
-		// Instead of looking for specific items here we'll enumerate them.
-		// Can be either an array of files or an object with a list of child objects where the name is the file name and the value is a virtual folder name.
-		if( pSourceElement->GetType() == JSONValue::ARRAY )
+		for( const auto& file : pSourceElement.GetArray() )
 		{
-			mWriteAsJsonArray = true;
-			for(int n=0;n<pSourceElement->GetArraySize();n++)
-			{
-				AddFile(pSourceElement->GetString(n),"source");
-			}
+			AddFile(file.GetString());
 		}
-		else if( pSourceElement->GetType() == JSONValue::OBJECT && pSourceElement->GetObject() )
-		{
-			const ValueMap& files = pSourceElement->GetObject()->GetChildren();
-			for(const auto& value : files)
-			{
-				for(const auto& obj : value.second)
-				{
-					if( obj->GetType() == JSONValue::STRING )
-					{
-						AddFile(value.first,obj->GetString());
-					}
-					else
-					{
-						std::cout << "The \'source_files\' object has a member \'" << value.first << "\' whos value is not a string in this project file \'" << mProjectDir << std::endl;
-						return false;					
-					}
-				}
-			}
-		}
-		else
-		{
-			std::cout << "The \'source_files\' object in this project file \'" << mProjectDir << "\' is not a supported json type" << std::endl;
-			return false;
-		}
-	}*/
+	}
 	return true;
 }
 
 const rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
-	rapidjson::Value value = rapidjson::Value(rapidjson::kObjectType);
-
-	if( mSourceFiles.size() > 0 )
-	{
-/*		if(mWriteAsJsonArray)
-		{
-			rJsonOutput.StartArray("source_files");
-			for( const auto& file : mSourceFiles )
-				rJsonOutput.AddArrayItem(file.first);
-			rJsonOutput.EndArray();
-		}
-		else
-		{
-			rJsonOutput.StartObject("source_files");
-			for( const auto& file : mSourceFiles )
-				rJsonOutput.AddObjectItem(file.first,file.second);
-			rJsonOutput.EndObject();
-		}*/
-	}
-	return value;
+	return BuildStringArray(mSourceFiles,pAllocator);
 }
 
-void SourceFiles::AddFile(const char* pFileName,const char* pGroupName)
+void SourceFiles::AddFile(const std::string& pFileName)
 {
-	assert(pFileName);
-	assert(pGroupName);
-	if(pFileName && pGroupName)
+	if(pFileName.size() > 0)
 	{
 		const std::string InputFilename = mProjectDir + pFileName;
 		// If the source file exists then we'll continue, else show an error.
 		if( FileExists(InputFilename) )
 		{
-			// Have we seen it before? If so say NO.
-			if( mSourceFiles.find(pFileName) == mSourceFiles.end() )
-				mSourceFiles[pFileName] = pGroupName;// Good, not seen before, so add it.
-			else
-			std::cout << "Input filename \'" << pFileName << "\' in group \'" << pGroupName << "\' is a duplicate" << std::endl;
+			mSourceFiles.insert(pFileName);
+
 		}
 		else
 		{
-			std::cout << "Input filename \'" << pFileName << "\' in group \'" << pGroupName << "\' not found at \'" << InputFilename << "\'" << std::endl;
+			std::cout << "Input filename \'" << pFileName << "\' not found at \'" << InputFilename << "\'" << std::endl;
 		}
 	}
 }

@@ -28,7 +28,7 @@ namespace appbuild{
 class SourceFiles
 {
 public:
-    typedef StringMap::const_iterator const_iterator;
+    typedef StringSet::const_iterator const_iterator;
 
 	SourceFiles(const std::string& pProjectPath);
 	SourceFiles(const SourceFiles& pOther);
@@ -43,12 +43,11 @@ public:
 	bool Read(const rapidjson::Value& pSourceElement);
 	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
-	void AddFile(const char* pFileName,const char* pGroupName);
-	void AddFile(const std::string& pFileName,const char* pGroupName){AddFile(pFileName.c_str(),pGroupName);}
+	void AddFile(const std::string& pFileName);
+
 private:
 	std::string mProjectDir;
-	StringMap mSourceFiles;
-	bool mWriteAsJsonArray;	// So if we write it out again, we know to write as an array.
+	StringSet mSourceFiles;
 };
 
 //////////////////////////////////////////////////////////////////////////
