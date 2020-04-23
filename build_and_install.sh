@@ -10,6 +10,7 @@ mkdir -p ./bin
 
 COMPILE_FLAGS_C="-DNDEBUG -O3 -Wall -c"
 COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
+COMPILE_INCLUDES="-I/usr/include -I./"
 
 #echo $COMPILE_FLAGS_C
 #echo $COMPILE_FLAGS_CPP11
@@ -18,52 +19,52 @@ COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
 echo "Compiling"
 
 echo "shell.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/shell.cpp -o bin/shell.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/shell.cpp -o bin/shell.o &
 
 echo "build_task.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task.cpp -o bin/build_task.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task.cpp -o bin/build_task.o &
 
 echo "build_task_compile.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_compile.cpp -o bin/build_task_compile.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task_compile.cpp -o bin/build_task_compile.o &
 
 # doing a few at a time.
 wait
 
 echo "build_task_resource_files.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
 
 echo "lz4.c"
-gcc -I /usr/include $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
 
 echo "project.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/project.cpp -o bin/project.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/project.cpp -o bin/project.o &
 
 # doing a few at a time.
 wait
 
 echo "dependencies.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/dependencies.cpp -o bin/dependencies.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/dependencies.cpp -o bin/dependencies.o &
 
 echo "configuration.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configuration.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configuration.o &
 
 echo "source_files.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
 
 # doing a few at a time.
 wait
 
 echo "misc.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/misc.cpp -o bin/misc.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/misc.cpp -o bin/misc.o &
 
 echo "main.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/main.cpp -o bin/main.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/main.cpp -o bin/main.o &
 
 echo "arg_list.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
 
 echo "she_bang.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
+gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
 
 # Wait for last jobs to be done.
 wait
