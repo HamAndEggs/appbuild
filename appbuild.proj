@@ -10,7 +10,7 @@
 			],
             "include": [
                 "./",
-				"./rapidjson/include",
+				"./rapidjson/include/",
                 "/usr/include/"
             ],
 			"default":false,
@@ -25,7 +25,7 @@
 			],
             "include": [
                 "./",
-				"./rapidjson/include",
+				"./rapidjson/include/",
                 "/usr/include/"
             ],
 			"default":true,
