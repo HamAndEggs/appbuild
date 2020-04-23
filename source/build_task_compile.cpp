@@ -24,6 +24,7 @@
 #include "build_task_compile.h"
 #include "misc.h"
 #include "logging.h"
+#include "shell.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////

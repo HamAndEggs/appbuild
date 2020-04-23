@@ -42,11 +42,6 @@ std::string CleanPath(const std::string& pPath);
 std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
-/**
- *
- */
-bool ExecuteShellCommand(const std::string& pCommand,const StringVec& pArgs, std::string& rOutput);
-
 
 // If pNumChars == 0 then full length is used.
 // assert(cppmake::CompareNoCase("onetwo","one",3) == true);

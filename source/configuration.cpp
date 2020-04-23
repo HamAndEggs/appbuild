@@ -25,6 +25,7 @@
 #include "dependencies.h"
 #include "source_files.h"
 #include "logging.h"
+#include "shell.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -44,6 +45,8 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mCppStandard("c++11"),
 	mOptimisation("0"),
 	mDebugLevel("2"),
+	mWarningsAsErrors(false),
+	mEnableAllWarnings(false),
 	mSourceFiles(pProjectDir)
 {
 	AddIncludeSearchPath("/usr/include");
@@ -68,6 +71,8 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mCppStandard("c++11"),
 		mOptimisation("0"),
 		mDebugLevel("2"),
+		mWarningsAsErrors(false),
+		mEnableAllWarnings(false),
 		mSourceFiles(pProjectDir)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
@@ -218,10 +223,12 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	}
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 	
-	mOptimisation = SafeReadStringValue(pConfig,"optimisation",mOptimisation);
-	mDebugLevel = SafeReadStringValue(pConfig,"debug_level",mDebugLevel);
-	mGTKVersion = SafeReadStringValue(pConfig,"gtk_version",mGTKVersion);
-	mCppStandard = SafeReadStringValue(pConfig,"standard",mCppStandard);
+	mOptimisation = GetStringLog(pConfig,"optimisation",mOptimisation,mLoggingMode >= LOG_VERBOSE);
+	mDebugLevel = GetStringLog(pConfig,"debug_level",mDebugLevel,mLoggingMode >= LOG_VERBOSE);
+	mGTKVersion = GetStringLog(pConfig,"gtk_version",mGTKVersion,mLoggingMode >= LOG_VERBOSE);
+	mCppStandard = GetStringLog(pConfig,"standard",mCppStandard,mLoggingMode >= LOG_VERBOSE);
+	mWarningsAsErrors = GetBoolLog(pConfig,"warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
+	mEnableAllWarnings = GetBoolLog(pConfig,"enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
 
 	// See if there are any projects we are not dependent on.
 	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
@@ -259,6 +266,9 @@ rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAlloc
 	jsonConfig.AddMember("standard",mCppStandard,pAllocator);
 	jsonConfig.AddMember("optimisation",mOptimisation,pAllocator);
 	jsonConfig.AddMember("debug_level",mDebugLevel,pAllocator);
+	jsonConfig.AddMember("warnings_as_errors",mWarningsAsErrors,pAllocator);
+	jsonConfig.AddMember("enable_all_warnings",mEnableAllWarnings,pAllocator);
+	
 
 	if( mGTKVersion.size() > 0 )
 	{
@@ -414,6 +424,12 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				args.AddIncludeSearchPath(includeSearchPaths);
 				if( !isCfile )
 					args.AddArg("-std=" + mCppStandard);
+
+				if( mWarningsAsErrors )
+					args.AddArg("-Werror");
+
+				if( mEnableAllWarnings )
+					args.AddArg("-Wall");
 
 				args.AddArg("-o");
 				args.AddArg(OutputFilename);
@@ -640,34 +656,6 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 
 	return false;
 }
-
-const std::string Configuration::SafeReadStringValue(const rapidjson::Value& pConfig,const std::string& pKey,const std::string& pDefault)
-{
-	std::string str = pDefault;
-	// Read optimisation settings
-	if( pConfig.HasMember(pKey) )
-	{
-		if( pConfig[pKey].IsString() )
-		{
-			str = pConfig[pKey].GetString();
-		}
-		else
-		{
-			std::cout << pKey << " is not a string type, it will be ignored, correct the projects json file." << std::endl;
-		}
-	}
-
-	if(mLoggingMode >= LOG_VERBOSE)
-	{
-		if( pDefault.size() > 0 )
-			std::cout << pKey << " set to " << mGTKVersion << std::endl;
-		else
-			std::cout << pKey << " NOT set" << std::endl;
-	}
-
-	return str;
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

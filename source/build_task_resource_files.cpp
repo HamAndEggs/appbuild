@@ -114,7 +114,7 @@ BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, con
 	mIncludeLZ4Code(pResourceFiles.GetIncludeLZ4Code())
 {
 	for( auto& rf : pResourceFiles )
-		mResourceFiles.push_back(rf.first);
+		mResourceFiles.push_back(rf);
 	
 }
 

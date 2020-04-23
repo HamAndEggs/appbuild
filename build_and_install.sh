@@ -17,17 +17,20 @@ COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
 # Compile the cpp code.
 echo "Compiling"
 
+echo "shell.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/shell.cpp -o bin/shell.o &
+
 echo "build_task.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task.cpp -o bin/build_task.o &
 
 echo "build_task_compile.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_compile.cpp -o bin/build_task_compile.o &
 
-echo "build_task_resource_files.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
-
 # doing a few at a time.
 wait
+
+echo "build_task_resource_files.cpp"
+gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
 
 echo "lz4.c"
 gcc -I /usr/include $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
@@ -35,14 +38,14 @@ gcc -I /usr/include $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
 echo "project.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/project.cpp -o bin/project.o &
 
+# doing a few at a time.
+wait
+
 echo "dependencies.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/dependencies.cpp -o bin/dependencies.o &
 
 echo "configuration.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configuration.o &
-
-# doing a few at a time.
-wait
 
 echo "source_files.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
@@ -50,20 +53,14 @@ gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_f
 echo "resource_files.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/resource_files.cpp -o bin/resource_files.o &
 
+# doing a few at a time.
+wait
+
 echo "misc.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/misc.cpp -o bin/misc.o &
 
 echo "main.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/main.cpp -o bin/main.o &
-
-# doing a few at a time.
-wait
-
-echo "json.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/json.cpp -o bin/json.o &
-
-echo "json_writer.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/json_writer.cpp -o bin/json_writer.o &
 
 echo "arg_list.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
@@ -75,7 +72,7 @@ gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
 wait
 
 echo "Linking"
-gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/json.o ./bin/json_writer.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/shell.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
     if [ "$1" == "-y" ]; then

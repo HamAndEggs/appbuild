@@ -110,16 +110,6 @@ private:
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
 	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
 
-	/**
-	 * @brief Will read the json key only if it is a string type, else with show a warning and use the default. Default also used if key is missing.
-	 * 
-	 * @param pConfig 
-	 * @param pKey 
-	 * @param pDefault 
-	 * @return const std::string 
-	 */
-	const std::string SafeReadStringValue(const rapidjson::Value& pConfig,const std::string& pKey,const std::string& pDefault);
-
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
 	const int mLoggingMode;
@@ -137,6 +127,8 @@ private:
 	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
 	std::string mDebugLevel; // Request debugging information and also use level to specify how much information.
 	std::string mGTKVersion;	// The version of GTK, currently 2.0 or 3.0. Is used in a call to "pkg-config --cflags gtk+-[VERSION]". If empty not called and not added.
+	bool mWarningsAsErrors;		// If true then any warnings will become errors using the compiler option -Werror
+	bool mEnableAllWarnings;	// If true then the option -Wall is used.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;

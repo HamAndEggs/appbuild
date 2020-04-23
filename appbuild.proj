@@ -20,12 +20,15 @@
 			],
 			"default":true,
 			"optimisation":"0",
-			"debug_level":"2"
+			"debug_level":"2",
+			"warnings_as_errors":true,
+			"enable_all_warnings":true
 		}
 
 	},
 	"source_files":
 	[
+		"./source/shell.cpp",
 		"./source/arg_list.cpp",
 		"./source/build_task.cpp",
 		"./source/build_task_compile.cpp",
@@ -37,7 +40,7 @@
 		"./source/misc.cpp",
 		"./source/project.cpp",
 		"./source/resource_files.cpp",
-		"./source/source_files.cpp"
+		"./source/source_files.cpp",
 		"./source/she_bang.cpp"
 	]
 }

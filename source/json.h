@@ -60,9 +60,22 @@ inline bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
 
 // Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
 // Handy for putting key pairs into an array, which is not really ideal. But....
+// Also good when the key is a std::string
 template <typename __TYPE__>void AddMember(rapidjson::Value& pContainer,const std::string& pKey,const __TYPE__& pValue,rapidjson::Document::AllocatorType& pAlloc)
 {
-   pContainer.AddMember(rapidjson::Value(pKey.c_str(),pAlloc),pValue,pAlloc);
+   pContainer.AddMember(rapidjson::Value(pKey,pAlloc).Move(),pValue,pAlloc);
+}
+
+// Template specialisation, for when value is a string, needs to be wrapped in a value like the key is.
+inline void AddMember(rapidjson::Value& pContainer,const std::string& pKey,const std::string& pValue,rapidjson::Document::AllocatorType& pAlloc)
+{
+   pContainer.AddMember(rapidjson::Value(pKey,pAlloc),rapidjson::Value(pValue,pAlloc),pAlloc);
+}
+
+// Template specialisation, for when value is a rapidjson::Value
+inline void AddMember(rapidjson::Value& pContainer,const std::string& pKey,rapidjson::Value pValue,rapidjson::Document::AllocatorType& pAlloc)
+{
+   pContainer.AddMember(rapidjson::Value(pKey,pAlloc),rapidjson::Value(pValue,pAlloc),pAlloc);
 }
 
 inline void PushBack(rapidjson::Value& pArray,const std::string& Value,rapidjson::Document::AllocatorType& pAlloc)
@@ -89,11 +102,11 @@ inline rapidjson::Value BuildStringArray(const StringSet& pStrings,rapidjson::Do
    }
    return array;
 }
-/*
+
 inline rapidjson::Value BuildStringArray(const StringMap& pStrings,rapidjson::Document::AllocatorType& pAlloc)
 {
    rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
-   for( const auto& str : pStrings )
+   for( const auto str : pStrings )
    {
       rapidjson::Value entry = rapidjson::Value(rapidjson::kObjectType);
       AddMember(entry,str.first,str.second,pAlloc);
@@ -101,8 +114,8 @@ inline rapidjson::Value BuildStringArray(const StringMap& pStrings,rapidjson::Do
    }
    return array;
 }
-*/
-// Not using overloads as I want to keep to the rapid json naming. Also means I can build them all with some macro magic.
+
+// Not using overloads as I want to keep to the rapid json naming. Also means I can create them all with some macro magic.
 #define UTIL_GET_WITH_DEFAULT_FUNCTIONS            \
    ADD_FUNCTION(GetBool,IsBool,bool)               \
    ADD_FUNCTION(GetInt,IsInt,int)                  \
@@ -125,11 +138,39 @@ inline rapidjson::Value BuildStringArray(const StringMap& pStrings,rapidjson::Do
       return pDefault;                                                                                      \
    }
 
-// Build all out util get functions that allow you to define a default if the item is not in the json stream.
+// Build all util get functions that allow you to define a default if the item is not in the json stream.
 UTIL_GET_WITH_DEFAULT_FUNCTIONS
 
 #undef ADD_FUNCTION
 
+//*** These versions log what is going on.
+#define ADD_FUNCTION(__GET_NAME__,__CHECK_NAME__,__TYPE__)                                                                    \
+   inline __TYPE__ __GET_NAME__##Log(const rapidjson::Value& pJson,const std::string& pKey,__TYPE__ pDefault, bool Verbose)   \
+   {                                                                                                                          \
+      __TYPE__ value = pDefault;                                                                                              \
+      if( pJson.HasMember(pKey) )                                                                                             \
+      {                                                                                                                       \
+         assert( pJson[pKey].__CHECK_NAME__() );                                                                              \
+         if( pJson[pKey].__CHECK_NAME__() )                                                                                   \
+         {                                                                                                                    \
+            value = pJson[pKey].__GET_NAME__();                                                                               \
+            if( Verbose )                                                                                                     \
+               std::cout << pKey << " set to [" << value << "]" << std::endl;                                                 \
+         }                                                                                                                    \
+         else                                                                                                                 \
+            std::cout << pKey << " is not a " << #__TYPE__ << " type, it will be ignored, correct the json." << std::endl;    \
+      }                                                                                                                       \
+      else if( Verbose )                                                                                                      \
+      {                                                                                                                       \
+         std::cout << pKey << " not found, set to default [" << value << "]" << std::endl;                                    \
+      }                                                                                                                       \
+      return value;                                                                                                           \
+   }
+
+// Build all util get functions that allow you to define a default if the item is not in the json stream.
+UTIL_GET_WITH_DEFAULT_FUNCTIONS
+
+#undef ADD_FUNCTION
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild
 

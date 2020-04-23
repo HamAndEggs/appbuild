@@ -53,7 +53,7 @@ public:
 
 private:
 
-	bool ReadConfigurations(const rapidjson::Value& pSettings);
+	bool ReadConfigurations(const rapidjson::Value& pConfigs);
 
 	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);

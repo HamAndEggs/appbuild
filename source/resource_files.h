@@ -29,7 +29,7 @@ namespace appbuild{
 class ResourceFiles
 {
 public:
-    typedef StringMap::const_iterator const_iterator;
+    typedef StringSet::const_iterator const_iterator;
 
 	ResourceFiles();
 	ResourceFiles(const ResourceFiles& pOther);
@@ -43,14 +43,12 @@ public:
 	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	bool GetNeedsRebuild()const{return mFiles.size() > 0;} // Checks the date time of the resource files against the cpp file that is created. If any are newer then the resource file is rebuilt.
-	bool GetIncludeLZ4Code()const{return mIncludeLZ4Code;}
-
+    bool GetIncludeLZ4Code()const{return true;} // Not  implemented yet, but almost is.....
 private:
-	void AddFile(const char* pFileName,const char* pGroupName,const std::string& pPathedProjectFilename);
+	void AddFile(const std::string&,const std::string& pPathedProjectFilename);
 
-	StringMap mFiles;
-	bool mIncludeLZ4Code;	// By default we include this, but if your project is using it it could cause link issues. And so you have the option of not including it.
-	bool mWriteAsJsonArray;	// So if we write it out again, we know to write as an array.
+	StringSet mFiles;
+
 };
 
 //////////////////////////////////////////////////////////////////////////

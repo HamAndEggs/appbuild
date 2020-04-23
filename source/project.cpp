@@ -25,6 +25,7 @@
 
 #include "project.h"
 #include "misc.h"
+#include "shell.h"
 #include "arg_list.h"
 #include "build_task_resource_files.h"
 #include "logging.h"
@@ -256,8 +257,7 @@ void Project::Write(rapidjson::Document& pDocument)const
 
 	for( const auto& conf : mBuildConfigurations )
 	{
-		//configurations.AddMember(conf.first,conf.second->Write(alloc),alloc);
-		
+		AddMember(configurations,conf.first,conf.second->Write(alloc),alloc);
 	}
 	pDocument.AddMember("configurations",configurations,alloc);
 
@@ -298,42 +298,39 @@ const Configuration* Project::GetActiveConfiguration(const std::string& pConfigN
 	return NULL;
 }
 
-bool Project::ReadConfigurations(const rapidjson::Value& pSettings)
+bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 {
-	assert(pSettings.IsNull() == false);
-	assert(pSettings.IsObject());
-/*
-	for(auto& configs : pSettings->GetObject()->GetChildren() )
+	assert(pConfigs.IsObject());
+
+	if( pConfigs.IsObject() )
 	{
-		const char* name = configs.first;
-		if( name )
+		for(auto& configs : pConfigs.GetObject() )
 		{
-			if( configs.second.size() > 1 )
+			const std::string name = configs.name.GetString();
+			const rapidjson::Value& val = configs.value;
+
+			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
+			{
+				mBuildConfigurations[name] = new Configuration(name,val,mPathedProjectFilename,mProjectDir,mLoggingMode);
+			}
+			else
 			{
 				std::cerr << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
 				return false;
 			}
-			else if( configs.second.size() < 1 )
-			{
-				std::cerr << "Configuration \'"<< name << "\' has no body to the object, check syntax. Error in project " << mPathedProjectFilename << std::endl;
-				return false;
-			}
-			else
-			{
-				const rapidjson::Value& Obj = configs.second[0];
-				if(Obj)
-				{
-					mBuildConfigurations[name] = new Configuration(name,Obj,mPathedProjectFilename,mProjectDir,mLoggingMode);
-				}
-			}
-		}
-		else
-		{
-			std::cerr << "Malformed configuration in project without a name in project" << mPathedProjectFilename << std::endl;
-			return false;
 		}
 	}
-*/
+	else if( pConfigs.IsArray() )
+	{
+		std::cerr << "Configuration is not an object, it is an array, do not use an array, error in project " << mPathedProjectFilename << std::endl;
+		return false;
+	}
+	else
+	{
+		std::cerr << "Configuration is not an object, error in project " << mPathedProjectFilename << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
