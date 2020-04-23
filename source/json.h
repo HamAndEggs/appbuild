@@ -25,7 +25,7 @@
 #define RAPIDJSON_HAS_STDSTRING 1
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -33,11 +33,15 @@ namespace appbuild{
 inline bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson)
 {
    std::ofstream file(pFilename);
-   if( file )
+   if( file.is_open() )
    {
       rapidjson::OStreamWrapper osw(file);
-      rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+      rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
       return pJson.Accept(writer);
+   }
+   else
+   {
+      std::cout << "Failed to open json file  " << pFilename << " for writing" << std::endl;
    }
    return false;
 }
@@ -55,6 +59,7 @@ inline bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
       // Have to invert result as I want tru if it worked, false if it failed.
       return pJson.HasParseError() == false;
    }
+
    return false;
 }
 

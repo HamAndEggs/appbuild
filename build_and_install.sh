@@ -50,9 +50,6 @@ gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configu
 echo "source_files.cpp"
 gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
 
-echo "resource_files.cpp"
-gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/resource_files.cpp -o bin/resource_files.o &
-
 # doing a few at a time.
 wait
 
@@ -72,7 +69,7 @@ gcc -I /usr/include $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
 wait
 
 echo "Linking"
-gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/resource_files.o ./bin/shell.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/shell.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
 
 if [ -f ./bin/appbuild ]; then
     if [ "$1" == "-y" ]; then

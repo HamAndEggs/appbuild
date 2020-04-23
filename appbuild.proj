@@ -39,7 +39,6 @@
 		"./source/main.cpp",
 		"./source/misc.cpp",
 		"./source/project.cpp",
-		"./source/resource_files.cpp",
 		"./source/source_files.cpp",
 		"./source/she_bang.cpp"
 	]

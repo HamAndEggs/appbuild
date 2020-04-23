@@ -37,7 +37,7 @@ SourceFiles::SourceFiles(const SourceFiles& pOther)
 const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
 	mProjectDir = pOther.mProjectDir;
-	mSourceFiles = pOther.mSourceFiles;
+	mFiles = pOther.mFiles;
 	return pOther;
 }
 
@@ -53,9 +53,9 @@ bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
 	return true;
 }
 
-const rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
+rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
 {
-	return BuildStringArray(mSourceFiles,pAllocator);
+	return BuildStringArray(mFiles,pAllocator);
 }
 
 void SourceFiles::AddFile(const std::string& pFileName)
@@ -66,7 +66,7 @@ void SourceFiles::AddFile(const std::string& pFileName)
 		// If the source file exists then we'll continue, else show an error.
 		if( FileExists(InputFilename) )
 		{
-			mSourceFiles.insert(pFileName);
+			mFiles.insert(pFileName);
 
 		}
 		else

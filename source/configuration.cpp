@@ -302,7 +302,7 @@ rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAlloc
 
 	if( mSourceFiles.size() > 0 )
 	{
-		mSourceFiles.Write(pAllocator);
+		jsonConfig.AddMember("source_files",mSourceFiles.Write(pAllocator),pAllocator);
 	}
 
 	return jsonConfig;

@@ -43,6 +43,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
 		mSourceFiles(GetPath(pFilename)),
+		mResourceFiles(GetPath(pFilename)),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
@@ -97,7 +98,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		// Add the source files
 		if( ProjectJson.HasMember("resource_files") )
 		{
-			mResourceFiles.Read(ProjectJson["resource_files"],mPathedProjectFilename);
+			mResourceFiles.Read(ProjectJson["resource_files"]);
 		}
     }
 	else
@@ -175,9 +176,9 @@ bool Project::Build(const Configuration* pActiveConfig)
 
 	// See if we need to build the resoure files first.
 	SourceFiles GeneratedResourceFiles(mProjectDir);
-	if( mResourceFiles.GetNeedsRebuild() )
+	if( mResourceFiles.size() > 0 )
 	{
-		// We runthis build task now as it's a prebuild step and will need to make new tasks of it's own.
+		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
 		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mLoggingMode);
 
 		ResourceTask->Execute();
@@ -260,6 +261,10 @@ void Project::Write(rapidjson::Document& pDocument)const
 		AddMember(configurations,conf.first,conf.second->Write(alloc),alloc);
 	}
 	pDocument.AddMember("configurations",configurations,alloc);
+	pDocument.AddMember("source_files",mSourceFiles.Write(alloc),alloc);
+
+	if( mResourceFiles.size() > 0 )
+		pDocument.AddMember("resource_files",mResourceFiles.Write(alloc),alloc);
 
 }
 

@@ -35,19 +35,19 @@ public:
 
 	const SourceFiles& operator = (const SourceFiles& pOther);
 
-    const_iterator begin()const{return mSourceFiles.begin();}
-    const_iterator end()const{return mSourceFiles.end();}
-	const size_t size()const{return mSourceFiles.size();}
+    const_iterator begin()const{return mFiles.begin();}
+    const_iterator end()const{return mFiles.end();}
+	const size_t size()const{return mFiles.size();}
 	const bool IsEmpty()const{return size() == 0;}
 
 	bool Read(const rapidjson::Value& pSourceElement);
-	const rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
+	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
 	void AddFile(const std::string& pFileName);
 
 private:
 	std::string mProjectDir;
-	StringSet mSourceFiles;
+	StringSet mFiles;
 };
 
 //////////////////////////////////////////////////////////////////////////

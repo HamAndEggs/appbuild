@@ -31,7 +31,6 @@
 // Holds the information for each build task.
 //////////////////////////////////////////////////////////////////////////
 namespace appbuild{
-class ResourceFiles;
 class SourceFiles;
 
 struct ResourceFilesTOC;
@@ -39,7 +38,7 @@ class BuildTaskResourceFiles : public BuildTask
 {
 public:
 
-	BuildTaskResourceFiles(const std::string& pTaskName,const ResourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode);
+	BuildTaskResourceFiles(const std::string& pTaskName,const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode);
 	virtual ~BuildTaskResourceFiles();
 
 	virtual const std::string& GetOutputFilename()const{return mOutputPath;}

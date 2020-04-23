@@ -23,7 +23,7 @@
 #include "dependencies.h"
 #include "configuration.h"
 #include "source_files.h"
-#include "resource_files.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // Holds all the information about the project file.
@@ -73,7 +73,7 @@ private:
 
 	Dependencies mDependencies;
 	SourceFiles mSourceFiles;
-	ResourceFiles mResourceFiles;
+	SourceFiles mResourceFiles;
 	BuildConfigurations mBuildConfigurations;
 
 	StringVec mDependencyLibrarySearchPaths;

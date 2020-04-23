@@ -23,7 +23,6 @@
 #include <sys/stat.h>
 
 #include "lz4/lz4.h"
-#include "resource_files.h"
 #include "build_task_resource_files.h"
 #include "build_task_compile.h"
 #include "misc.h"
@@ -109,9 +108,9 @@ public:
 	}
 };
 
-BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const ResourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode): BuildTask(pTaskName,pLoggingMode),
+BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode): BuildTask(pTaskName,pLoggingMode),
 	mOutputPath(CleanPath(pOutputPath + "/resources/")),
-	mIncludeLZ4Code(pResourceFiles.GetIncludeLZ4Code())
+	mIncludeLZ4Code(true)
 {
 	for( auto& rf : pResourceFiles )
 		mResourceFiles.push_back(rf);
