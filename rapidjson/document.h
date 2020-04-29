@@ -1949,7 +1949,7 @@ private:
         if (count) {
             Member* m = static_cast<Member*>(allocator.Malloc(count * sizeof(Member)));
             SetMembersPointer(m);
-            std::memcpy(m, members, count * sizeof(Member));
+            std::memcpy((void*)m, members, count * sizeof(Member));
         }
         else
             SetMembersPointer(0);
