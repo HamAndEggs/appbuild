@@ -47,6 +47,7 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	mDebugLevel("2"),
 	mWarningsAsErrors(false),
 	mEnableAllWarnings(false),
+	mFatalErrors(false),
 	mSourceFiles(pProjectDir)
 {
 	AddIncludeSearchPath("/usr/include");
@@ -73,6 +74,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mDebugLevel("2"),
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
+		mFatalErrors(false),
 		mSourceFiles(pProjectDir)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
@@ -229,6 +231,8 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	mCppStandard = GetStringLog(pConfig,"standard",mCppStandard,mLoggingMode >= LOG_VERBOSE);
 	mWarningsAsErrors = GetBoolLog(pConfig,"warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
 	mEnableAllWarnings = GetBoolLog(pConfig,"enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
+	mFatalErrors = GetBoolLog(pConfig,"fatal_errors",mFatalErrors,mLoggingMode >= LOG_VERBOSE);
+	
 
 	// See if there are any projects we are not dependent on.
 	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
@@ -268,6 +272,8 @@ rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAlloc
 	jsonConfig.AddMember("debug_level",mDebugLevel,pAllocator);
 	jsonConfig.AddMember("warnings_as_errors",mWarningsAsErrors,pAllocator);
 	jsonConfig.AddMember("enable_all_warnings",mEnableAllWarnings,pAllocator);
+	jsonConfig.AddMember("fatal_errors",mFatalErrors,pAllocator);
+	
 	
 
 	if( mGTKVersion.size() > 0 )
@@ -430,6 +436,9 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 				if( mEnableAllWarnings )
 					args.AddArg("-Wall");
+
+				if( mFatalErrors )
+					args.AddArg("-Wfatal-errors");
 
 				args.AddArg("-o");
 				args.AddArg(OutputFilename);

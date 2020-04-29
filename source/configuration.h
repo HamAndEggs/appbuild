@@ -129,6 +129,7 @@ private:
 	std::string mGTKVersion;	// The version of GTK, currently 2.0 or 3.0. Is used in a call to "pkg-config --cflags gtk+-[VERSION]". If empty not called and not added.
 	bool mWarningsAsErrors;		// If true then any warnings will become errors using the compiler option -Werror
 	bool mEnableAllWarnings;	// If true then the option -Wall is used.
+	bool mFatalErrors;			// If true, -Wfatal-errors, is added to the build args.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;
