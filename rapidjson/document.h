@@ -1936,7 +1936,7 @@ private:
         if (count) {
             GenericValue* e = static_cast<GenericValue*>(allocator.Malloc(count * sizeof(GenericValue)));
             SetElementsPointer(e);
-            std::memcpy(e, values, count * sizeof(GenericValue));
+            std::memcpy((void*)e, values, count * sizeof(GenericValue));
         }
         else
             SetElementsPointer(0);
@@ -1976,7 +1976,7 @@ private:
             str = static_cast<Ch *>(allocator.Malloc((s.length + 1) * sizeof(Ch)));
             SetStringPointer(str);
         }
-        std::memcpy(str, s, s.length * sizeof(Ch));
+        std::memcpy((void*)str, s, s.length * sizeof(Ch));
         str[s.length] = '\0';
     }
 
