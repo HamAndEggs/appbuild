@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script builds and installs the appbuild app. It does a full rebuild each time.
-# Anything in the bin folder will be deleted.
+# Anything in the bin folder before this script is run will be deleted.
 
 echo "Preparing build folder"
 
@@ -11,67 +11,68 @@ mkdir -p ./bin
 COMPILE_FLAGS_C="-DNDEBUG -O3 -Wall -c"
 COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
 COMPILE_INCLUDES="-I/usr/include -I./"
+LINKER_FLAGS="-lstdc++ -lpthread -lrt"
+EXEC_OUTPUT_FILE="./bin/appbuild"
+MAX_THREADS=$((lscpu | grep "^CPU(s):") | awk '{print $2}')
 
-#echo $COMPILE_FLAGS_C
-#echo $COMPILE_FLAGS_CPP11
+echo "Compiling with $MAX_THREADS threads"
+echo
+# The files that make the app.
+SOURCE_FILES=(
+		"./source/shell.cpp"
+		"./source/arg_list.cpp"
+		"./source/build_task.cpp"
+		"./source/build_task_compile.cpp"
+		"./source/build_task_resource_files.cpp"
+		"./source/configuration.cpp"
+		"./source/dependencies.cpp"
+		"./source/lz4/lz4.c"
+		"./source/main.cpp"
+		"./source/misc.cpp"
+		"./source/project.cpp"
+		"./source/source_files.cpp"
+		"./source/she_bang.cpp")
 
-# Compile the cpp code.
-echo "Compiling"
+OBJECT_FILES=""
 
-echo "shell.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/shell.cpp -o bin/shell.o &
+#********************************************************************************************************************
+# The meat and potatoes of the build...
+#********************************************************************************************************************
 
-echo "build_task.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task.cpp -o bin/build_task.o &
+# Do the compile
+let COUNT=0
+for t in ${SOURCE_FILES[@]}; do
+    SOURCE_FILE="$t"
+    BASE_NAME=$(basename $t)
+    
+    OBJECT_FILE="./bin/$BASE_NAME.o"
+    OBJECT_FILES+="$OBJECT_FILE "
 
-echo "build_task_compile.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task_compile.cpp -o bin/build_task_compile.o &
+    if [[ $BASE_NAME == *.cpp ]]; then
+        COMPILE_FLAGS=$COMPILE_FLAGS_CPP11
+    elif [[ $BASE_NAME == *.c ]]; then
+        COMPILE_FLAGS=$COMPILE_FLAGS_C
+    fi
 
-# doing a few at a time.
+    echo "$BASE_NAME"
+    gcc $COMPILE_INCLUDES $COMPILE_FLAGS $SOURCE_FILE -o $OBJECT_FILE &
+
+    #Four threads at a time please.
+    let COUNT+=1
+    if [ $COUNT == "$MAX_THREADS" ]; then
+        let COUNT=0
+        wait
+    fi
+done
+
+# Wait for stragglers to finish
 wait
 
-echo "build_task_resource_files.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/build_task_resource_files.cpp -o bin/build_task_resource_files.o &
-
-echo "lz4.c"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_C -c source/lz4/lz4.c -o bin/lz4.o &
-
-echo "project.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/project.cpp -o bin/project.o &
-
-# doing a few at a time.
-wait
-
-echo "dependencies.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/dependencies.cpp -o bin/dependencies.o &
-
-echo "configuration.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/configuration.cpp -o bin/configuration.o &
-
-echo "source_files.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/source_files.cpp -o bin/source_files.o &
-
-# doing a few at a time.
-wait
-
-echo "misc.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/misc.cpp -o bin/misc.o &
-
-echo "main.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/main.cpp -o bin/main.o &
-
-echo "arg_list.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/arg_list.cpp -o bin/arg_list.o &
-
-echo "she_bang.cpp"
-gcc $COMPILE_INCLUDES $COMPILE_FLAGS_CPP11 source/she_bang.cpp -o bin/she_bang.o &
-
-# Wait for last jobs to be done.
-wait
-
+# Link it
 echo "Linking"
-gcc ./bin/lz4.o ./bin/build_task.o ./bin/build_task_compile.o ./bin/build_task_resource_files.o ./bin/dependencies.o ./bin/arg_list.o ./bin/misc.o ./bin/main.o ./bin/project.o ./bin/source_files.o ./bin/shell.o ./bin/configuration.o ./bin/she_bang.o -lstdc++ -lpthread -lrt -o ./bin/appbuild
+gcc $OBJECT_FILES $LINKER_FLAGS -o $EXEC_OUTPUT_FILE
 
+# Copy it if they want it.
 if [ -f ./bin/appbuild ]; then
     if [ "$1" == "-y" ]; then
         answer="y"
