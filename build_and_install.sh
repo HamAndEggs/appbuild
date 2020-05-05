@@ -31,7 +31,8 @@ SOURCE_FILES=(
 		"./source/misc.cpp"
 		"./source/project.cpp"
 		"./source/source_files.cpp"
-		"./source/she_bang.cpp")
+		"./source/she_bang.cpp"
+        "./source/new_project.cpp")
 
 OBJECT_FILES=""
 

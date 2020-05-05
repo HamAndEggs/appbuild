@@ -67,7 +67,7 @@ class SourceFiles;
 class Configuration
 {
 public:
-	Configuration(const std::string& pProjectDir,const std::string& pProjectName,int pLoggingMode);// Creates a default configuration suitable for simple c++11 projects.
+	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation = "0",const std::string& pDebugLevel = "2");// Creates a default configuration suitable for simple c++11 projects.
 	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode);
 	~Configuration();
 
@@ -89,6 +89,8 @@ public:
 
 	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
+	void AddDefine(const std::string& pDefine);
+
 private:
 	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
@@ -102,7 +104,6 @@ private:
 	void AddLibrary(const std::string& pLib);
 
 	bool AddDefines(const rapidjson::Value& pDefines);
-	void AddDefine(const std::string& pDefine);
 
 	bool AddDependantProjects(const rapidjson::Value& pLibs);
 

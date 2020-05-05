@@ -58,7 +58,7 @@ rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocat
 	return BuildStringArray(mFiles,pAllocator);
 }
 
-void SourceFiles::AddFile(const std::string& pFileName)
+bool SourceFiles::AddFile(const std::string& pFileName)
 {
 	if(pFileName.size() > 0)
 	{
@@ -67,13 +67,18 @@ void SourceFiles::AddFile(const std::string& pFileName)
 		if( FileExists(InputFilename) )
 		{
 			mFiles.insert(pFileName);
-
+			return true;
 		}
 		else
 		{
 			std::cout << "Input filename \'" << pFileName << "\' not found at \'" << InputFilename << "\'" << std::endl;
 		}
 	}
+	else
+	{
+		std::cout << "SourceFiles::AddFile passed with zero length string" << std::endl;
+	}
+	return false;
 }
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

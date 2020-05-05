@@ -39,7 +39,31 @@ class Project
 {
 public:
 
+	/**
+	 * @brief Construct a new basic project object that can build the passed in source file.
+	 * The project created has two configurations, one for debugging and one for release.
+	 * @param pProjectName The name of the new project object.
+	 * @param pSourceFiles The source files to add to the new project.
+	 * @param pReleaseIsDefault True then the release profile is chosen by default to build.
+	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
+	 */
+	Project(const std::string& pProjectName,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode);
+
+	/**
+	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
+	 * 
+	 * @param pFilename The filename of the project file to load.
+	 * @param pNumThreads The number of threads to build the project with.
+	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
+	 * @param pRebuild If true then the build process will be a full rebuild.
+	 * @param pTruncateOutput Sometimes the errors from the compiler can be too long, this will cause these errors to be truncated.
+	 */
 	Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
+
+	/**
+	 * @brief Destroy the Project object
+	 * 
+	 */
 	~Project();
 
 	operator bool ()const{return mOk;}

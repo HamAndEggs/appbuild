@@ -42,6 +42,15 @@ std::string CleanPath(const std::string& pPath);
 std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
+/**
+ * @brief Get the Relative Path based on the passed relitive path.
+ * In debug the following errors will result in an assertion.
+ * @param pCWD The directory that you want the full path to be relitive too. This path should also start with a / if it does not the function will just return the full path unchanged.
+ * @param pFullPath The full path, if it does not start with a / it will be assumed to be already relitive and so just returned.
+ * @return std::string If either input string is empty './' will be returned.
+ */
+std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath);
+
 
 // If pNumChars == 0 then full length is used.
 // assert(cppmake::CompareNoCase("onetwo","one",3) == true);
@@ -67,6 +76,10 @@ std::string TrimWhiteSpace(const std::string &s);
 std::string GetTimeString(const char* pFormat = "%d-%m-%Y %X");
 
 std::string GetTimeDifference(const std::chrono::system_clock::time_point& pStart,const std::chrono::system_clock::time_point& pEnd);
+
+
+//////////////////////////////////////////////////////////////////////////
+bool DoMiscUnitTests();
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild

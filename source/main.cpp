@@ -26,6 +26,7 @@
 #include "project.h"
 #include "misc.h"
 #include "she_bang.h"
+#include "new_project.h"
 #include "logging.h"
 
 class CommandLineOptions
@@ -38,13 +39,15 @@ public:
 	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
 	bool GetTimeBuild()const{return mTimeBuild;}
+	bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
+	bool GetCreateNewProject()const{return mNewProjectName.size() > 0;}
 	int GetLoggingMode()const{return mLoggingMode;}
 	int GetNumThreads()const{return mNumThreads;}
 	int GetTruncateOutput()const{return mTruncateOutput;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
 	const std::string& GetActiveConfig()const{return mActiveConfig;}
 	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
-	const bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
+	const std::string& GetNewProjectName()const{return mNewProjectName;}
 
 	void PrintHelp()const;
 	void PrintVersion()const;
@@ -62,6 +65,7 @@ private:
 	std::vector<std::string> mProjectFiles;
 	std::string mActiveConfig;
 	std::string mUpdatedOutputFileName;
+	std::string mNewProjectName;
 };
 
 int main(int argc, char *argv[])
@@ -73,6 +77,8 @@ int main(int argc, char *argv[])
 		std::cout << "argv[" << n << "] " << argv[n] << std::endl;
     }
 #endif
+
+	assert( appbuild::DoMiscUnitTests() );
 
     // We have to special case the arg for using the app as a shebang.
     // This is because the getopt_long reorders commandline options.
@@ -96,6 +102,10 @@ int main(int argc, char *argv[])
 	else if( Args.GetShowVersion() )
 	{
 		Args.PrintVersion();
+	}
+	else if (Args.GetCreateNewProject() )
+	{
+		return appbuild::CreateNewProject(Args.GetNewProjectName(),Args.GetLoggingMode());
 	}
 	else if( Args.GetProjectFiles().size() > 0 )
 	{
@@ -185,6 +195,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,	't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
 		DEF_ARG(ARG_TIME_BUILD,no_argument,				'T',"time-build","Shows the total time of the build from start to finish.")												\
 		DEF_ARG(ARG_SHEBANG,no_argument,				'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
+		DEF_ARG(ARG_NEW_PROJECT,required_argument,		'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for sourec files and addes them to a new project file.\nIf a project file already exists thenn it will fail.") \
 		
 
 enum eArguments
@@ -285,8 +296,20 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			break;
 
         case ARG_SHEBANG:
-    		std::cout << "-# (she-bang) must be the first and oly option, it can not be used with ither options." << std::endl;
+    		std::cout << "-# (she-bang) must be the first and only option, it can not be used with other options." << std::endl;
             mShowHelp = true;
+			break;
+
+		case ARG_NEW_PROJECT:
+			if( optarg && strlen(optarg) > 0 )
+			{
+				mNewProjectName = optarg;
+			}
+			else
+			{
+	    		std::cout << "--new-project was not passed a valid project name." << std::endl;
+				mShowHelp = true;
+			}
 			break;
 
 		default:
@@ -349,7 +372,7 @@ void CommandLineOptions::PrintHelp()const
 	appbuild::StringVec LongArgs;
 	appbuild::StringVec Descriptions;
 
-#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) if(true){ShortArgs.push_back(#ARG_SHORT_NAME);if(TAKES_ARGUMENT==required_argument){LongArgs.push_back(ARG_LONG_NAME "=arg");}else{LongArgs.push_back(ARG_LONG_NAME);}Descriptions.push_back(ARG_DESC);};
+#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) if(true){ShortArgs.push_back(#ARG_SHORT_NAME);if(TAKES_ARGUMENT==required_argument){LongArgs.push_back("--" ARG_LONG_NAME "=arg");}else{LongArgs.push_back("--" ARG_LONG_NAME);}Descriptions.push_back(ARG_DESC);};
 	ARGUMENTS
 #undef DEF_ARG
 
