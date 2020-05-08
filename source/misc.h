@@ -39,7 +39,17 @@ std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension 
 std::string GetPath(const std::string& pPathedFileName);
 std::string GetCurrentWorkingDirectory();
 std::string CleanPath(const std::string& pPath);
+
+/**
+ * @brief Get the Extension of the passed filename,
+ * E.G. hello.text will return text
+ * 
+ * @param pFileName 
+ * @param pToLower 
+ * @return std::string The extension found or a zero length string. The extension returned does not include the dot.
+ */
 std::string GetExtension(const std::string& pFileName,bool pToLower = true);
+
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**

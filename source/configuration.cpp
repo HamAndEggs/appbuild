@@ -40,7 +40,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	mComplier("gcc"),
 	mLinker("gcc"),
 	mArchiver("ar"),
-	mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
+	mOutputPath(CleanPath("./bin/" + pConfigName + "/")),
 	mOutputName(pOutputName),
 	mCppStandard("c++11"),
 	mOptimisation(pOptimisation),
@@ -61,7 +61,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	{
 		std::cout << "Configuration " << pConfigName << std::endl;
 		std::cout << "    mProjectDir " << mProjectDir << std::endl;
-		std::cout << "    mOutputPath " << mProjectDir << std::endl;
+		std::cout << "    mOutputPath " << mOutputPath << std::endl;
 		std::cout << "    mOutputName " << mOutputName << std::endl;
 		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
 	}
@@ -443,7 +443,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,includeSearchPaths) )
 			{
-				bool isCfile = GetExtension(InputFilename) == ".c";
+				bool isCfile = GetExtension(InputFilename) == "c";
 
 				// Going to build the file, so delete the obj that is there.
 				// If we do not do this then it can effect the dependency system.

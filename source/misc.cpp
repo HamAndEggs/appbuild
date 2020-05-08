@@ -131,7 +131,12 @@ std::string GetExtension(const std::string& pFileName,bool pToLower)
         result = pFileName.substr(found,pFileName.size()-found);
         if( pToLower )
             std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+
+        // Remove leading .
+        if( result.at(0) == '.' )
+            result = result.erase(0,1);
     }
+
     return result;
 }
 
@@ -165,6 +170,7 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
             if( FilterMatch(fname,pFilter) )
                 FoundFiles.push_back(fname);
         }
+        closedir(dir);
     }
     else
     {
@@ -363,6 +369,12 @@ bool DoMiscUnitTests()
 
     assert( GetRelativePath("/home/richard/games/chess","/home/richard/games/chess/game1") == "./game1/" );
     assert( GetRelativePath("/home/richard/games","/home/richard/music") == "../music/" );
+
+    assert( GetExtension("test.txt") == "txt");
+    assert( GetExtension("test.txT") == "txt");
+    assert( GetExtension("test").size() == 0 );
+    assert( GetExtension("test.bmp.jpeg") == "jpeg" );
+
 
     std::cout << "Unit tests for misc source file passed." << std::endl;
     return true;

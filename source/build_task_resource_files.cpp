@@ -357,7 +357,7 @@ bool BuildTaskResourceFiles::Main()
 void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFile,bool pWriteToProjectFileLocation)
 {
 	const std::string fname = pWriteToProjectFileLocation ? CleanPath(pFile.mFilename) : CleanPath(mOutputPath + pFile.mFilename);
-	if( GetExtension(fname) != ".h" )
+	if( GetExtension(fname) != "h" )
 		mGeneratedResourceFiles.push_back(fname);
 	
 	if( FileExists(fname) )
