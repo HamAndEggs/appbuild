@@ -43,7 +43,7 @@ public:
 	bool Read(const rapidjson::Value& pSourceElement);
 	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
 
-	void AddFile(const std::string& pFileName);
+	bool AddFile(const std::string& pFileName);
 
 private:
 	std::string mProjectDir;

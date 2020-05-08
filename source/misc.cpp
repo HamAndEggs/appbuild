@@ -131,7 +131,12 @@ std::string GetExtension(const std::string& pFileName,bool pToLower)
         result = pFileName.substr(found,pFileName.size()-found);
         if( pToLower )
             std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+
+        // Remove leading .
+        if( result.at(0) == '.' )
+            result = result.erase(0,1);
     }
+
     return result;
 }
 
@@ -165,6 +170,7 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
             if( FilterMatch(fname,pFilter) )
                 FoundFiles.push_back(fname);
         }
+        closedir(dir);
     }
     else
     {
@@ -172,6 +178,71 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
     }
 
     return FoundFiles;
+}
+
+std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath)
+{
+    assert( pCWD.size() > 0 );
+    assert( pFullPath.size() > 0 );
+    assert( pCWD.at(0) == '/' );
+    assert( pFullPath.at(0) == '/' );
+
+    const std::string cwd = CleanPath(pCWD);
+    const std::string fullPath = CleanPath(pFullPath);
+
+    assert( cwd.at(0) == '/' );
+    assert( fullPath.at(0) == '/' );
+
+    if( cwd.size() == 0 )
+        return "./";
+
+    if( fullPath.size() == 0 )
+        return "./";
+
+    if( cwd.at(0) != '/' )
+        return fullPath;
+
+    if( fullPath.at(0) != '/' )
+        return fullPath;
+
+    // Now do the real work.
+    // First substitue the parts of CWD that match FULL path. Starting at the start of CWD.
+    const StringVec cwdFolders = SplitString(cwd,"/");
+    const StringVec fullPathFolders = SplitString(fullPath,"/");
+
+    const size_t count = std::min(cwdFolders.size(),fullPathFolders.size()); 
+
+    size_t posOfFirstDifference = 0;
+    for( size_t n = 0 ; n < count && CompareNoCase(cwdFolders[n].c_str(),fullPathFolders[n].c_str()) ; n++ )
+    {
+        posOfFirstDifference++;
+    }
+
+    // Now to start building the path.
+    // For every dir left in CWD add a ../
+    std::string relativePath = "";
+    for( size_t n = posOfFirstDifference ; n < cwdFolders.size() ; n++ )
+    {
+        relativePath += "../";
+    }
+
+    // Now add the rest of the full path passed in.
+    // If relativePath is still zero length, add a ./ to it.
+    if( relativePath.size() == 0 )
+    {
+        relativePath += "./";
+    }
+
+    for( size_t n = posOfFirstDifference ; n < fullPathFolders.size() ; n++ )
+    {
+        relativePath += fullPathFolders[n] + "/";
+    }
+
+#ifdef DEBUG_BUILD
+    std::cout << "GetRelativePath(" << pCWD << "," << pFullPath << ") == " << relativePath << std::endl;
+#endif
+
+    return relativePath;
 }
 
 char* CopyString(const char* pString, size_t pMaxLength)
@@ -280,6 +351,33 @@ std::string GetTimeDifference(const std::chrono::system_clock::time_point& pStar
         time += std::to_string(Seconds) + " Seconds ";
 
     return time;
+}
+
+//////////////////////////////////////////////////////////////////////////
+bool DoMiscUnitTests()
+{
+    assert(CompareNoCase("onetwo","one",3) == true);
+    assert(CompareNoCase("onetwo","ONE",3) == true);
+    assert(CompareNoCase("OneTwo","one",3) == true);
+    assert(CompareNoCase("onetwo","oneX",3) == true);
+    assert(CompareNoCase("OnE","oNe") == true);
+    assert(CompareNoCase("onetwo","one") == false);
+    assert(CompareNoCase("onetwo","onetwothree",6) == true);
+    assert(CompareNoCase("onetwo","onetwothreeX",6) == true);
+    assert(CompareNoCase("onetwo","onetwothree") == false);
+    assert(CompareNoCase("onetwo","onetwo") == true);
+
+    assert( GetRelativePath("/home/richard/games/chess","/home/richard/games/chess/game1") == "./game1/" );
+    assert( GetRelativePath("/home/richard/games","/home/richard/music") == "../music/" );
+
+    assert( GetExtension("test.txt") == "txt");
+    assert( GetExtension("test.txT") == "txt");
+    assert( GetExtension("test").size() == 0 );
+    assert( GetExtension("test.bmp.jpeg") == "jpeg" );
+
+
+    std::cout << "Unit tests for misc source file passed." << std::endl;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

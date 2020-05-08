@@ -34,6 +34,41 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
+Project::Project(const std::string& pPathedProjectFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode):
+	mNumThreads(1),
+	mLoggingMode(pLoggingMode),
+	mRebuild(false),
+	mTruncateOutput(0),
+	mPathedProjectFilename(pPathedProjectFilename),
+	mProjectDir(GetPath(pPathedProjectFilename)),
+	mDependencies(pPathedProjectFilename),
+	mSourceFiles(pSourceFiles),
+	mResourceFiles(GetPath(pPathedProjectFilename)),
+	mOk(false)
+{
+	const std::string outputName = GetFileName(mPathedProjectFilename,true);
+	Configuration* newConfig = NULL;
+	// Add a release and debug configuration.
+	
+	newConfig = new Configuration("release",outputName,mProjectDir,mLoggingMode,pReleaseIsDefault == true,"2","0");
+	newConfig->AddDefine("NDEBUG");
+	newConfig->AddDefine("RELEASE_BUILD");
+	mBuildConfigurations["release"] = newConfig;
+
+	newConfig = new Configuration("debug",outputName,mProjectDir,mLoggingMode,pReleaseIsDefault == false,"0","2");
+	newConfig->AddDefine("DEBUG_BUILD");
+	mBuildConfigurations["debug"] = newConfig;
+
+	if( pLoggingMode  >= LOG_VERBOSE )
+	{
+		std::cout << "Project file name and path is " << pPathedProjectFilename << std::endl;
+		std::cout << "Project path is " << mProjectDir << std::endl;
+	}
+
+
+	mOk = mSourceFiles.size() > 0;
+}
+
 Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mLoggingMode(pLoggingMode),
@@ -78,7 +113,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 			if( mLoggingMode >= LOG_VERBOSE )
 				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
 
-			const Configuration* config = new Configuration(mProjectDir,GetFileName(mPathedProjectFilename,true),mLoggingMode);
+			const Configuration* config = new Configuration("default",mProjectDir,GetFileName(mPathedProjectFilename,true),mLoggingMode,true);
 			mBuildConfigurations[config->GetName()] = config;
 		}
 
@@ -97,6 +132,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 
 		// Add the source files
 		if( ProjectJson.HasMember("resource_files") )
+
 		{
 			mResourceFiles.Read(ProjectJson["resource_files"]);
 		}

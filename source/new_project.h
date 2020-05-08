@@ -1,12 +1,12 @@
-#ifndef __NEW_PROJECT_H__
-#define __NEW_PROJECT_H__
+#ifndef __SHE_BANG_H__
+#define __SHE_BANG_H__
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-extern int BuildFromShebang(int argc,char *argv[]);
+extern int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode);
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild
 
-#endif //__NEW_PROJECT_H__
+#endif //__SHE_BANG_H__

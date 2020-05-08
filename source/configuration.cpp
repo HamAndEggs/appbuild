@@ -30,21 +30,21 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-Configuration::Configuration(const std::string& pProjectDir,const std::string& pProjectName,int pLoggingMode):// Creates a default configuration suitable for simple c++11 projects.
+Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation,const std::string& pDebugLevel):// Creates a default configuration suitable for simple c++11 projects.
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
 	mLoggingMode(pLoggingMode),
-	mIsDefaultConfig(true),
+	mIsDefaultConfig(pIsDefaultConfig),
 	mOk(true),
 	mTargetType(TARGET_EXEC),
 	mComplier("gcc"),
 	mLinker("gcc"),
 	mArchiver("ar"),
-	mOutputPath(CleanPath(pProjectDir + "./bin/")),
-	mOutputName(pProjectName),
+	mOutputPath(CleanPath("./bin/" + pConfigName + "/")),
+	mOutputName(pOutputName),
 	mCppStandard("c++11"),
-	mOptimisation("0"),
-	mDebugLevel("2"),
+	mOptimisation(pOptimisation),
+	mDebugLevel(pDebugLevel),
 	mWarningsAsErrors(false),
 	mEnableAllWarnings(false),
 	mFatalErrors(false),
@@ -56,6 +56,16 @@ Configuration::Configuration(const std::string& pProjectDir,const std::string& p
 	AddLibrary("pthread");
 
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
+
+	if( pLoggingMode  >= LOG_VERBOSE )
+	{
+		std::cout << "Configuration " << pConfigName << std::endl;
+		std::cout << "    mProjectDir " << mProjectDir << std::endl;
+		std::cout << "    mOutputPath " << mOutputPath << std::endl;
+		std::cout << "    mOutputName " << mOutputName << std::endl;
+		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
+	}
+
 }
 
 Configuration::Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode):
@@ -149,8 +159,10 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	else
 	{
 		if( mLoggingMode >= LOG_VERBOSE )
+		{
 			std::cout << "The \'define\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
-		AddDefine("NDEBUG");	
+		}
+		AddDefine("NDEBUG");
 	}
 
 	// Look for the output folder name. If not found default to bin.
@@ -159,6 +171,18 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mOutputPath = pConfig["output_path"].GetString();
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
+
+		// If path is absolute make it relitive.
+		// In this app all paths except includes are relitive to the project files location.
+		if( mOutputPath.at(0) == '/' )
+		{
+			mOutputPath = GetRelativePath(GetCurrentWorkingDirectory(),mOutputPath);
+
+			if( mLoggingMode >= LOG_VERBOSE )
+			{
+				std::cout << "The \'output_path\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is an absolute path, changing to " << mOutputPath << std::endl;
+			}
+		}
 	}
 	else if(mLoggingMode >= LOG_VERBOSE)
 	{
@@ -245,6 +269,15 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	if( pConfig.HasMember("source_files") )
 	{
 		mSourceFiles.Read(pConfig["source_files"]);
+	}
+
+	if( pLoggingMode  >= LOG_VERBOSE )
+	{
+		std::cout << "Configuration " << pConfigName << std::endl;
+		std::cout << "    mProjectDir " << mProjectDir << std::endl;
+		std::cout << "    mOutputPath " << mProjectDir << std::endl;
+		std::cout << "    mOutputName " << mOutputName << std::endl;
+		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
 	}
 
 	// If we get here, then all is ok.
@@ -410,7 +443,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,includeSearchPaths) )
 			{
-				bool isCfile = GetExtension(InputFilename) == ".c";
+				bool isCfile = GetExtension(InputFilename) == "c";
 
 				// Going to build the file, so delete the obj that is there.
 				// If we do not do this then it can effect the dependency system.
@@ -472,7 +505,10 @@ bool Configuration::AddIncludeSearchPaths(const rapidjson::Value& pPaths)
 void Configuration::AddIncludeSearchPath(const std::string& pPath)
 {
 	const std::string path = PreparePath(pPath);
-	mIncludeSearchPaths.push_back(path);
+	if( path.size() > 0 )
+	{
+		mIncludeSearchPaths.push_back(path);
+	}
 }
 
 bool Configuration::AddLibrarySearchPaths(const rapidjson::Value& pPaths)
