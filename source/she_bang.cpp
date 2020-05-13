@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <vector>
 
 #include "json.h"
 
@@ -167,7 +168,14 @@ int BuildFromShebang(int argc,char *argv[])
         SourceFiles SourceFiles(CWD);
         SourceFiles.AddFile(GetFileName(sourcePathedFile));
 
-        Project sheBangProject(projectFilename,SourceFiles,exename,configName,loggingMode);
+        Configuration* newConfig = new Configuration(configName,exename,projectTempFolder,loggingMode,true,"2","0");
+        newConfig->AddDefine("NDEBUG");
+        newConfig->AddDefine("RELEASE_BUILD");
+
+        std::vector<Configuration*> configs;
+        configs.push_back(newConfig);
+
+        Project sheBangProject(projectFilename,SourceFiles,configs,loggingMode);
         if( sheBangProject == false )
         {
             std::cout << "Failed to create default project file, [" << projectFilename << "]" << std::endl;        

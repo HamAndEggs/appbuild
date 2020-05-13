@@ -163,8 +163,21 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
 
     std::cout << "SourceFiles.size() == " << SourceFiles.size() << std::endl;
 
+    std::vector<Configuration*> configs;
+	Configuration* newConfig = NULL;
+	// Add a release and debug configuration.
+	
+	newConfig = new Configuration("release",pNewProjectName,projectPath,pLoggingMode,true,"2","0");
+	newConfig->AddDefine("NDEBUG");
+	newConfig->AddDefine("RELEASE_BUILD");
+    configs.push_back(newConfig);
+
+	newConfig = new Configuration("debug",pNewProjectName,projectPath,pLoggingMode,false,"0","2");
+	newConfig->AddDefine("DEBUG_BUILD");
+    configs.push_back(newConfig);
+
     // Now build the project object.
-    Project newProject(pathedProjectFilename,SourceFiles,true,pLoggingMode);
+    Project newProject(pathedProjectFilename,SourceFiles,configs,pLoggingMode);
     if( newProject == false )
     {
         std::cout << "Failed to create default project file, [" << pathedProjectFilename << "]" << std::endl;        

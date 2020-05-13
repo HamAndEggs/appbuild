@@ -17,6 +17,8 @@
 #ifndef _PROJECT_H_
 #define _PROJECT_H_
 
+#include <vector>
+
 #include "json.h"
 
 #include "build_task.h"
@@ -45,24 +47,10 @@ public:
 	 *  This constructure is mainly used for the shebang code.
 	 * @param pFilename The filename of the project file that was loaded.
 	 * @param pSourceFiles The source files to add to the new project.
-	 * @param pExecutableName The name of the binaray that will be created.
-	 * @param pConfigName The name of the configuration that is created to make this build happen.
-	 * 						This is done as the calling code needs to know the out put path.
-	 * 						And if they don't need to do the build then there is no object to ask.
-	 * 						By doing this they can be sure of the path without wasting time creating a project in ram.
+	 * @param pConfigurations The configurations to add to this project.
 	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::string pExecutableName,const std::string& pConfigName,int pLoggingMode);
-
-	/**
-	 * @brief Construct a new basic project object that can build the passed in source file.
-	 * The project created has two configurations, one for debugging and one for release.
-	 * @param pFilename The filename of the project file that was loaded.
-	 * @param pSourceFiles The source files to add to the new project.
-	 * @param pReleaseIsDefault True then the release profile is chosen by default to build.
-	 * @param pLoggingMode Sets the logging mode for when passing the json file.
-	 */
-	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode);
+	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::vector<Configuration*>& pConfigurations,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
