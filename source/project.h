@@ -38,21 +38,36 @@ namespace appbuild{
 class Project
 {
 public:
+/****** TODO and NOTE!!! I need to change coe from passing in pFilename to a project root path. ******/
+ 
+	/**
+	 * @brief Construct a new basic project object that can build the passed in source file.
+	 *  This constructure is mainly used for the shebang code.
+	 * @param pFilename The filename of the project file that was loaded.
+	 * @param pSourceFiles The source files to add to the new project.
+	 * @param pExecutableName The name of the binaray that will be created.
+	 * @param pConfigName The name of the configuration that is created to make this build happen.
+	 * 						This is done as the calling code needs to know the out put path.
+	 * 						And if they don't need to do the build then there is no object to ask.
+	 * 						By doing this they can be sure of the path without wasting time creating a project in ram.
+	 * @param pLoggingMode Sets the logging mode for when passing the json file.
+	 */
+	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::string pExecutableName,const std::string& pConfigName,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new basic project object that can build the passed in source file.
 	 * The project created has two configurations, one for debugging and one for release.
-	 * @param pProjectName The name of the new project object.
+	 * @param pFilename The filename of the project file that was loaded.
 	 * @param pSourceFiles The source files to add to the new project.
 	 * @param pReleaseIsDefault True then the release profile is chosen by default to build.
-	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
+	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pProjectName,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode);
+	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
 	 * 
-	 * @param pFilename The filename of the project file to load.
+	 * @param pFilename The filename of the project file that was loaded.
 	 * @param pNumThreads The number of threads to build the project with.
 	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
 	 * @param pRebuild If true then the build process will be a full rebuild.

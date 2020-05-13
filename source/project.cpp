@@ -34,16 +34,46 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pPathedProjectFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode):
+Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::string pExecutableName,const std::string& pConfigName,int pLoggingMode):
 	mNumThreads(1),
 	mLoggingMode(pLoggingMode),
 	mRebuild(false),
 	mTruncateOutput(0),
-	mPathedProjectFilename(pPathedProjectFilename),
-	mProjectDir(GetPath(pPathedProjectFilename)),
-	mDependencies(pPathedProjectFilename),
+	mPathedProjectFilename(pFilename),
+	mProjectDir(GetPath(pFilename)),
+	mDependencies(pFilename),
 	mSourceFiles(pSourceFiles),
-	mResourceFiles(GetPath(pPathedProjectFilename)),
+	mResourceFiles(GetPath(pFilename)),
+	mOk(false)
+{
+	Configuration* newConfig = NULL;
+	// Add a release and debug configuration.
+	
+	newConfig = new Configuration(pConfigName,pExecutableName,mProjectDir,mLoggingMode,true,"2","0");
+	newConfig->AddDefine("NDEBUG");
+	newConfig->AddDefine("RELEASE_BUILD");
+	mBuildConfigurations[pConfigName] = newConfig;
+
+	if( pLoggingMode  >= LOG_VERBOSE )
+	{
+		std::cout << "Project file name and path is " << pFilename << std::endl;
+		std::cout << "Project path is " << mProjectDir << std::endl;
+	}
+
+	mOk = mSourceFiles.size() > 0;
+}
+
+
+Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode):
+	mNumThreads(1),
+	mLoggingMode(pLoggingMode),
+	mRebuild(false),
+	mTruncateOutput(0),
+	mPathedProjectFilename(pFilename),
+	mProjectDir(GetPath(pFilename)),
+	mDependencies(pFilename),
+	mSourceFiles(pSourceFiles),
+	mResourceFiles(GetPath(pFilename)),
 	mOk(false)
 {
 	const std::string outputName = GetFileName(mPathedProjectFilename,true);
@@ -61,7 +91,7 @@ Project::Project(const std::string& pPathedProjectFilename,const SourceFiles& pS
 
 	if( pLoggingMode  >= LOG_VERBOSE )
 	{
-		std::cout << "Project file name and path is " << pPathedProjectFilename << std::endl;
+		std::cout << "Project file name and path is " << pFilename << std::endl;
 		std::cout << "Project path is " << mProjectDir << std::endl;
 	}
 

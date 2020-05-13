@@ -56,25 +56,32 @@ int BuildFromShebang(int argc,char *argv[])
     if( FileExists(sourcePathedFile) == false )
         return EXIT_FAILURE;
 
+    // Get the path to the source file, need this as we need to insert the project configuration name so we can find it.
+    const std::string sourceFilePath = GetPath(sourcePathedFile);
+
+    // The projects configuration name we'll use.
+    const std::string configName = "shebang";
+
     // Now we need to create the path to the compiled exec.
     // This is done so we only have to build when something changes.
     // To ensure no clashes I take the fulled pathed source file name
     // and add /tmp to the start for the temp folder. I also add .exe at the end.
-    const std::string exename = std::string("/tmp") + sourcePathedFile + ".exe";
+    const std::string exename = GetFileName(sourcePathedFile) + ".exe";
+    const std::string pathedExeName = std::string("/tmp") + sourceFilePath + "/bin/" + configName + "/" + exename;
 
     // Also create the project file that will be used to build the exe if needs be.
-    const std::string project = std::string("/tmp") + sourcePathedFile + ".proj";
+    const std::string projectFilename = std::string("/tmp") + sourcePathedFile + ".proj";
 
     // We need the source file without the shebang too.
     const std::string tempSourcefile = std::string("/tmp") + sourcePathedFile;
 
     // The temp folder that it's all done in.
-    const std::string projectTempFolder = GetPath(project);
+    const std::string projectTempFolder = GetPath(projectFilename);
 
 #ifdef DEBUG_BUILD
     std::cout << "CWD " << CWD << std::endl;
     std::cout << "sourcePathedFile " << sourcePathedFile << std::endl;
-    std::cout << "exenameFileExists " << exename << std::endl;
+    std::cout << "exenameFileExists " << pathedExeName << std::endl;
 #endif
 
     // Make sure our temp folder is there.
@@ -140,59 +147,8 @@ int BuildFromShebang(int argc,char *argv[])
         }
     }
 
-    // What I am doing is creating a project file, and then calling the normal code path for creating an execuatable.
-    if( FileExists(project) == false || rebuildNeeded )
-    {
-#ifdef DEBUG_BUILD
-        std::cout << "Project file rebuild needed!" << std::endl;
-#endif
-
-#ifdef DEBUG_BUILD
-        std::cout << "Linking with libs: ";
-        for(const auto& lib : libraryFiles)
-            std::cout << lib << " ";
-
-        std::cout << std::endl;
-#endif
-
-        rebuildNeeded = true;
-        SourceFiles sourceFiles(CWD);
-        BuildConfigurations buildConfigurations;
-
-        rapidjson::Document jsonOutput;
-        rapidjson::Document::AllocatorType& alloc = jsonOutput.GetAllocator();
-        jsonOutput.SetObject(); // Root object is an object not an array.
-        rapidjson::Value configurations(rapidjson::kObjectType);
-            rapidjson::Value shebang(rapidjson::kObjectType);
-                // Setup as a release build
-                shebang.AddMember("default",true,alloc);
-                shebang.AddMember("output_path","./",alloc);
-                shebang.AddMember("output_name",GetFileName(exename),alloc);
-                shebang.AddMember("optimisation","2",alloc);
-                shebang.AddMember("debug_level","0",alloc);
-
-                rapidjson::Value libs(rapidjson::kArrayType);
-                for(const auto& lib : libraryFiles)
-                    PushBack(libs,lib,alloc);
-                shebang.AddMember("libs",libs,alloc);
-            configurations.AddMember("shebang",shebang,alloc);
-        jsonOutput.AddMember("configurations",configurations,alloc);
-
-        rapidjson::Value source_files(rapidjson::kArrayType);
-            PushBack(source_files,GetFileName(sourcePathedFile),alloc);
-        jsonOutput.AddMember("source_files",source_files,alloc);
-
-        // We need to make the project file.
-        std::ofstream updatedProjectFile(project);
-        if( SaveJson(project,jsonOutput) == false )
-        {
-            std::cerr << "Failed to write to the tempory project file [" << project << "] needed to create the cached exe, please check there is a system temp folder that can be used." << std::endl;
-            return EXIT_FAILURE;
-        }
-    }
-
     // Now do the normal build thing.
-    const std::string file = GetFileName(project);
+    const std::string file = GetFileName(projectFilename);
 
     if( chdir(projectTempFolder.c_str()) != 0 )
     {
@@ -208,16 +164,17 @@ int BuildFromShebang(int argc,char *argv[])
 #else
         int loggingMode = LOG_ERROR;
 #endif
+        SourceFiles SourceFiles(CWD);
+        SourceFiles.AddFile(GetFileName(sourcePathedFile));
 
-        Project TheProject(file,1,loggingMode,false,0);
-
-        if( TheProject == false )
+        Project sheBangProject(projectFilename,SourceFiles,exename,configName,loggingMode);
+        if( sheBangProject == false )
         {
-            std::cerr << "There was an error in the project file \'" << file << "\'" << std::endl;
+            std::cout << "Failed to create default project file, [" << projectFilename << "]" << std::endl;        
             return EXIT_FAILURE;
         }
 
-        const appbuild::Configuration* ActiveConfig = TheProject.GetActiveConfiguration("");
+        const appbuild::Configuration* ActiveConfig = sheBangProject.GetActiveConfiguration("");
         if( ActiveConfig == NULL )
         {
             std::cerr << "No configuration found in the project file \'" << file << "\'" << std::endl;
@@ -230,7 +187,7 @@ int BuildFromShebang(int argc,char *argv[])
             return EXIT_FAILURE;
         }
 
-        if( TheProject.Build(ActiveConfig) == false )
+        if( sheBangProject.Build(ActiveConfig) == false )
         {
             std::cerr << "Build failed for project file \'" << file << "\'" << std::endl;
             return EXIT_FAILURE;
@@ -239,7 +196,7 @@ int BuildFromShebang(int argc,char *argv[])
 
 
     // See if we have the output file, if so run it!
-    if( FileExists(exename) )
+    if( FileExists(pathedExeName) )
     {// I will not be using ExecuteShellCommand as I need to replace this exec to allow the input and output to be taken over.
 
         if( chdir(CWD.c_str()) != 0 )
@@ -254,7 +211,7 @@ std::cout << "Running exec...." << std::endl;
 
         char** TheArgs = new char*[(argc - 3) + 2];// -3 for the args sent into appbuild shebang, then +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
         int c = 0;
-        TheArgs[c++] = CopyString(exename);
+        TheArgs[c++] = CopyString(pathedExeName);
         for( int n = 3 ; n < argc ; n++ )
         {
             char* str = CopyString(argv[n],ARG_MAX);
@@ -283,7 +240,7 @@ std::cout << "TheArgs[n] " << TheArgs[n] << std::endl;
     }
     else
     {
-        std::cerr << "Failed to find executable " << exename << std::endl;
+        std::cerr << "Failed to find executable " << pathedExeName << std::endl;
         return EXIT_FAILURE;
     }
 
