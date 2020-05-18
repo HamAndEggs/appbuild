@@ -17,6 +17,8 @@
 #ifndef _PROJECT_H_
 #define _PROJECT_H_
 
+#include <vector>
+
 #include "json.h"
 
 #include "build_task.h"
@@ -38,23 +40,24 @@ namespace appbuild{
 class Project
 {
 public:
-
+/****** TODO and NOTE!!! I need to change code from passing in pFilename to a project root path. Does need to know the file it came from. But should know it's working directory ******/
+ 
 	/**
 	 * @brief Construct a new basic project object that can build the passed in source file.
-	 * The project created has two configurations, one for debugging and one for release.
-	 * @param pProjectName The name of the new project object.
+	 *  This constructure is mainly used for the shebang code and auto generation of projects when creating a new applications / libraries.
+	 * @param pFilename The filename of the project file that was loaded.
 	 * @param pSourceFiles The source files to add to the new project.
-	 * @param pReleaseIsDefault True then the release profile is chosen by default to build.
-	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
+	 * @param pConfigurations The configurations to add to this project.
+	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pProjectName,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode);
+	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::vector<Configuration*>& pConfigurations,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
 	 * 
-	 * @param pFilename The filename of the project file to load.
+	 * @param pFilename The filename of the project file that was loaded.
 	 * @param pNumThreads The number of threads to build the project with.
-	 * @param pLoggingMode Sets thhe logging mode for when passing the json file.
+	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 * @param pRebuild If true then the build process will be a full rebuild.
 	 * @param pTruncateOutput Sometimes the errors from the compiler can be too long, this will cause these errors to be truncated.
 	 */
@@ -71,7 +74,7 @@ public:
 	bool Build(const Configuration* pActiveConfig);
 	bool RunOutputFile(const Configuration*pActiveConfig);
 	void Write(rapidjson::Document& pDocument)const;
-	const Configuration* GetActiveConfiguration(const std::string& pConfigName)const; // Tries to return a sutible configuration to build with if pConfigName is not found.
+	const Configuration* GetActiveConfiguration(const std::string& pConfigName)const; // Tries to return a suitable configuration to build with if pConfigName is not found.
 
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
@@ -106,8 +109,12 @@ private:
 
 	bool mOk;	// Project loaded ok.
 
-	// Not a fan of statics, but this is a good use case.
-	// I use it to trap dependacy loops.
+	/**
+	 * @brief This is used to prevent recursive project references.
+	 * For example ProjectA is dependant on ProjectB which is dependant on ProjectC which is dependant on ProjectA
+	 * This is a rare case where a static is useful. I have made sure it still remains behind the closed doors for the class.
+	 * Not a fan of statics, but this is a good use case.
+	 */
 	static StringSet sLoadedProjects;
 
 };

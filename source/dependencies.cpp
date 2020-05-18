@@ -57,7 +57,9 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 	// Get the object files info, if this fails then the file is not there, if it is not a regular file then that is wrong and so will rebuild it too.
 	if( GetFileTime(pObjectFile,ObjFileTime) )
 	{
-		// Before scanning the file, check against the project file time, if one was set. This is to supprot shebang. NOT the same as project file missing.
+		// Before scanning the file, check against the project file time, if one was set. NOT the same as project file missing.
+		// If the project file has changed in anyway we MUST rebuild everything as it's hard to know what the full impact could be.
+		// mUsingProjectFile exists because the SHEBANG functionality does not generate a project file to test against. 
 		if( mUsingProjectFile && FileYoungerThanObjectFile(mProjectFileTime,ObjFileTime) )
 			return true;
 

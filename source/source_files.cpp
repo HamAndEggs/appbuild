@@ -20,11 +20,12 @@
 
 #include "source_files.h"
 #include "misc.h"
+#include "logging.h"
 
 namespace appbuild{
 
 //////////////////////////////////////////////////////////////////////////
-SourceFiles::SourceFiles(const std::string& pProjectPath) :mProjectDir(pProjectPath)
+SourceFiles::SourceFiles(const std::string& pProjectPath,int pLoggingMode) :mProjectDir(pProjectPath), mLoggingMode(pLoggingMode)
 {
 
 }
@@ -38,6 +39,7 @@ const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 {
 	mProjectDir = pOther.mProjectDir;
 	mFiles = pOther.mFiles;
+	mLoggingMode = pOther.mLoggingMode;
 	return pOther;
 }
 
@@ -62,19 +64,30 @@ bool SourceFiles::AddFile(const std::string& pFileName)
 {
 	if(pFileName.size() > 0)
 	{
-		const std::string InputFilename = mProjectDir + pFileName;
+		const bool isAbsolute = GetIsPathAbsolute(pFileName);
+		if( mLoggingMode == LOG_INFO && isAbsolute )
+		{
+			std::cout << "SourceFiles::AddFile passed a file with an absolute path, for projects files this is not a good idea. Are you sure you wish to do this? File was " << pFileName << std::endl;
+		}
+
+		// Make the string we're going to check a constant so we can be sure we don't accidentally change it.
+		const std::string InputFilename = (isAbsolute) ? (pFileName) : (mProjectDir + pFileName);
 		// If the source file exists then we'll continue, else show an error.
 		if( FileExists(InputFilename) )
 		{
 			mFiles.insert(pFileName);
 			return true;
 		}
+		else if( isAbsolute )
+		{
+			std::cout << "Input filename with absolute path was not found, is this what you indented? Filename is " << pFileName << std::endl;
+		}
 		else
 		{
-			std::cout << "Input filename \'" << pFileName << "\' not found at \'" << InputFilename << "\'" << std::endl;
+			std::cout << "Input filename " << pFileName << " not found at " << InputFilename << "" << std::endl;
 		}
 	}
-	else
+	else if( mLoggingMode == LOG_INFO )
 	{
 		std::cout << "SourceFiles::AddFile passed with zero length string" << std::endl;
 	}

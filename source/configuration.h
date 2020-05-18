@@ -68,7 +68,7 @@ class Configuration
 {
 public:
 	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation = "0",const std::string& pDebugLevel = "2");// Creates a default configuration suitable for simple c++11 projects.
-	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode);
+	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pDefaultOutputName,const std::string& pProjectDir,int pLoggingMode);
 	~Configuration();
 
 	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
@@ -90,6 +90,7 @@ public:
 	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 	void AddDefine(const std::string& pDefine);
+	void AddLibrary(const std::string& pLib);
 
 private:
 	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
@@ -101,7 +102,6 @@ private:
 	void AddLibrarySearchPath(const std::string& pPath);
 
 	bool AddLibraries(const rapidjson::Value& pLibs);
-	void AddLibrary(const std::string& pLib);
 
 	bool AddDefines(const rapidjson::Value& pDefines);
 

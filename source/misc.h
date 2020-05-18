@@ -31,6 +31,21 @@ bool DirectoryExists(const char* pDirname);	//Will return false if name name is 
 inline bool FileExists(const std::string& pFilename){return FileExists(pFilename.c_str());}
 inline bool DirectoryExists(const std::string& pDirname){return DirectoryExists(pDirname.c_str());}
 
+/**
+ * @brief Checks if the path passed is absolute.
+ * abstracted out like this in case it needs to be changed / ported.
+ * Just checks first char.
+ * 
+ * @param pPath 
+ * @return true 
+ * @return false 
+ */
+inline bool GetIsPathAbsolute(const std::string& pPath)
+{
+   return pPath.size() > 0 && pPath.at(0) == '/';
+}
+
+
 // Splits string into list have names to be made into directories, so don't include any filenames as they will be made into a folder.
 // Returns true if all was ok.
 bool MakeDir(const std::string& pPath);
@@ -39,6 +54,8 @@ std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension 
 std::string GetPath(const std::string& pPathedFileName);
 std::string GetCurrentWorkingDirectory();
 std::string CleanPath(const std::string& pPath);
+
+
 
 /**
  * @brief Get the Extension of the passed filename,

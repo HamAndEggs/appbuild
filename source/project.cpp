@@ -31,40 +31,32 @@
 #include "logging.h"
 
 namespace appbuild{
+
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pPathedProjectFilename,const SourceFiles& pSourceFiles,bool pReleaseIsDefault,int pLoggingMode):
+Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::vector<Configuration*>& pConfigurations,int pLoggingMode):
 	mNumThreads(1),
 	mLoggingMode(pLoggingMode),
 	mRebuild(false),
 	mTruncateOutput(0),
-	mPathedProjectFilename(pPathedProjectFilename),
-	mProjectDir(GetPath(pPathedProjectFilename)),
-	mDependencies(pPathedProjectFilename),
+	mPathedProjectFilename(pFilename),
+	mProjectDir(GetPath(pFilename)),
+	mDependencies(pFilename),
 	mSourceFiles(pSourceFiles),
-	mResourceFiles(GetPath(pPathedProjectFilename)),
+	mResourceFiles(GetPath(pFilename),pLoggingMode),
 	mOk(false)
 {
-	const std::string outputName = GetFileName(mPathedProjectFilename,true);
-	Configuration* newConfig = NULL;
-	// Add a release and debug configuration.
+	for( auto& c : pConfigurations )
+	{
+		mBuildConfigurations[c->GetName()] = c;
+	}
 	
-	newConfig = new Configuration("release",outputName,mProjectDir,mLoggingMode,pReleaseIsDefault == true,"2","0");
-	newConfig->AddDefine("NDEBUG");
-	newConfig->AddDefine("RELEASE_BUILD");
-	mBuildConfigurations["release"] = newConfig;
-
-	newConfig = new Configuration("debug",outputName,mProjectDir,mLoggingMode,pReleaseIsDefault == false,"0","2");
-	newConfig->AddDefine("DEBUG_BUILD");
-	mBuildConfigurations["debug"] = newConfig;
-
 	if( pLoggingMode  >= LOG_VERBOSE )
 	{
-		std::cout << "Project file name and path is " << pPathedProjectFilename << std::endl;
+		std::cout << "Project file name and path is " << pFilename << std::endl;
 		std::cout << "Project path is " << mProjectDir << std::endl;
 	}
-
 
 	mOk = mSourceFiles.size() > 0;
 }
@@ -77,8 +69,8 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		mPathedProjectFilename(pFilename),
 		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
-		mSourceFiles(GetPath(pFilename)),
-		mResourceFiles(GetPath(pFilename)),
+		mSourceFiles(GetPath(pFilename),pLoggingMode),
+		mResourceFiles(GetPath(pFilename),pLoggingMode),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
@@ -132,7 +124,6 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 
 		// Add the source files
 		if( ProjectJson.HasMember("resource_files") )
-
 		{
 			mResourceFiles.Read(ProjectJson["resource_files"]);
 		}
@@ -211,7 +202,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	BuildTaskStack BuildTasks;
 
 	// See if we need to build the resoure files first.
-	SourceFiles GeneratedResourceFiles(mProjectDir);
+	SourceFiles GeneratedResourceFiles(mProjectDir,mLoggingMode);
 	if( mResourceFiles.size() > 0 )
 	{
 		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
@@ -343,6 +334,10 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 {
 	assert(pConfigs.IsObject());
 
+	// Use the name of the project, without it's extension, as the default out bin name.
+	// This is done as this tool supports minimal project files that just list source files.
+	const std::string defaultOutputName = GetFileName(mPathedProjectFilename,true);
+
 	if( pConfigs.IsObject() )
 	{
 		for(auto& configs : pConfigs.GetObject() )
@@ -352,7 +347,12 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 
 			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
 			{
-				mBuildConfigurations[name] = new Configuration(name,val,mPathedProjectFilename,mProjectDir,mLoggingMode);
+				mBuildConfigurations[name] = new Configuration(name,val,defaultOutputName,mProjectDir,mLoggingMode);
+				if( mBuildConfigurations[name]->GetOk() == false )
+				{
+					std::cerr << "Configuration \'"<< name << "\' failed to load, error in project " << mPathedProjectFilename << std::endl;
+					return false;
+				}
 			}
 			else
 			{

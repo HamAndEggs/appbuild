@@ -48,7 +48,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	mWarningsAsErrors(false),
 	mEnableAllWarnings(false),
 	mFatalErrors(false),
-	mSourceFiles(pProjectDir)
+	mSourceFiles(pProjectDir,pLoggingMode)
 {
 	AddIncludeSearchPath("/usr/include");
 	AddIncludeSearchPath(pProjectDir);
@@ -68,7 +68,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 
 }
 
-Configuration::Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pPathedProjectFilename,const std::string& pProjectDir,int pLoggingMode):
+Configuration::Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pDefaultOutputName,const std::string& pProjectDir,int pLoggingMode):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
 		mLoggingMode(pLoggingMode),
@@ -79,13 +79,14 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mLinker("gcc"),
 		mArchiver("ar"),
 		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
+		mOutputName(pDefaultOutputName),
 		mCppStandard("c++11"),
 		mOptimisation("0"),
 		mDebugLevel("2"),
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
 		mFatalErrors(false),
-		mSourceFiles(pProjectDir)		
+		mSourceFiles(pProjectDir,pLoggingMode)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
 		std::cout << "Project Directory: " << pProjectDir << std::endl;
@@ -98,7 +99,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	{
         if( AddIncludeSearchPaths(pConfig["include"]) == false )
         {
-            std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+            std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
             return; // We're done, no need to continue.
         }
     }
@@ -107,7 +108,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
     	AddIncludeSearchPath("/usr/include");
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, using defaults" << std::endl;
+    		std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " is missing, using defaults" << std::endl;
         }
     }
 
@@ -116,7 +117,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
     {
         if( AddLibrarySearchPaths(pConfig["libpaths"]) == false )
         {
-            std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+            std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
             return; // We're done, no need to continue.
         }
     }
@@ -126,7 +127,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
         AddLibrary("pthread");
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, using defaults" << std::endl;
+    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is missing, using defaults" << std::endl;
         }
     }
 
@@ -136,14 +137,14 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	{
 		if( AddLibraries(pConfig["libs"]) == false  )
 		{
-			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
 			return; // We're done, no need to continue.
 		}
 	}
 	else
 	{
 		if( mLoggingMode >= LOG_VERBOSE )
-			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, adding stdc++ for a default." << std::endl;
+			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is missing, adding stdc++ for a default." << std::endl;
 		
 		AddLibrary("stdc++");
 	}
@@ -152,7 +153,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	{
 		if( AddDefines(pConfig["define"]) == false  )
 		{
-			std::cout << "The \'defines\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+			std::cout << "The \'defines\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
 			return; // We're done, no need to continue.
 		}
 	}	
@@ -160,7 +161,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	{
 		if( mLoggingMode >= LOG_VERBOSE )
 		{
-			std::cout << "The \'define\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is missing, adding NDEBUG for a default." << std::endl;
+			std::cout << "The \'define\' object in the \'settings\' " << mConfigName << " is missing, adding NDEBUG for a default." << std::endl;
 		}
 		AddDefine("NDEBUG");
 	}
@@ -172,21 +173,21 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 
-		// If path is absolute make it relitive.
-		// In this app all paths except includes are relitive to the project files location.
-		if( mOutputPath.at(0) == '/' )
+		// If path is absolute make it relative.
+		// In this app all paths except includes are relative to the project files location.
+		if( GetIsPathAbsolute(mOutputPath) )
 		{
 			mOutputPath = GetRelativePath(GetCurrentWorkingDirectory(),mOutputPath);
 
 			if( mLoggingMode >= LOG_VERBOSE )
 			{
-				std::cout << "The \'output_path\' object in the \'settings\' " << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is an absolute path, changing to " << mOutputPath << std::endl;
+				std::cout << "The \'output_path\' object in the \'settings\' " << mConfigName << " is an absolute path, changing to " << mOutputPath << std::endl;
 			}
 		}
 	}
 	else if(mLoggingMode >= LOG_VERBOSE)
 	{
-		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' object of the project file \'" << pPathedProjectFilename << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
+		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
 	}
 
 	// Find out what they wish to build.
@@ -203,7 +204,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		// Was it set?
 		if( mTargetType == TARGET_NOT_SET )
 		{
-			std::cout << "The \'target\' object \"" << TargetName << "\" in the configuration:" << mConfigName << " object of this project file \'" << pPathedProjectFilename << "\' is not a valid type." << std::endl;
+			std::cout << "The \'target\' object \"" << TargetName << "\" in the configuration:" << mConfigName << " is not a valid type." << std::endl;
 			return; // We're done, no need to continue.
 		}
 	}
@@ -236,7 +237,6 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	}
 	else
 	{
-		mOutputName = GetFileName(pPathedProjectFilename,true);
 		if( mTargetType == TARGET_LIBRARY )
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";
@@ -244,7 +244,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'output_name\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
+    		std::cout << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
         }
 	}
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
@@ -261,7 +261,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	// See if there are any projects we are not dependent on.
 	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
 	{
-		std::cout << "The \'dependencies\' object in the \'settings\' object of this project file \'" << pPathedProjectFilename << "\' is not an array" << std::endl;
+		std::cout << "The \'dependencies\' object in the \'settings\' is not an array" << std::endl;
 		return; // We're done, no need to continue.
 	}
 
