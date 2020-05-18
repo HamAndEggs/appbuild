@@ -8,7 +8,10 @@ echo "Preparing build folder"
 rm -drf ./bin
 mkdir -p ./bin
 
-COMPILE_FLAGS_C="-DNDEBUG -O3 -Wall -c"
+RELEASE_COMPILE_FLAGS_C="-DNDEBUG -O3 -Wall -c"
+DEBUG_COMPILE_FLAGS_C="-DDEBUG_BUILD -O0 -Wall -c"
+
+COMPILE_FLAGS_C=$RELEASE_COMPILE_FLAGS_C
 COMPILE_FLAGS_CPP11="-std=c++11 $COMPILE_FLAGS_C"
 COMPILE_INCLUDES="-I/usr/include -I./"
 LINKER_FLAGS="-lstdc++ -lpthread -lrt"

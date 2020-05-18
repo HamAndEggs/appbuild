@@ -48,7 +48,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	mWarningsAsErrors(false),
 	mEnableAllWarnings(false),
 	mFatalErrors(false),
-	mSourceFiles(pProjectDir)
+	mSourceFiles(pProjectDir,pLoggingMode)
 {
 	AddIncludeSearchPath("/usr/include");
 	AddIncludeSearchPath(pProjectDir);
@@ -86,7 +86,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
 		mFatalErrors(false),
-		mSourceFiles(pProjectDir)		
+		mSourceFiles(pProjectDir,pLoggingMode)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
 		std::cout << "Project Directory: " << pProjectDir << std::endl;
@@ -173,9 +173,9 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 
-		// If path is absolute make it relitive.
-		// In this app all paths except includes are relitive to the project files location.
-		if( mOutputPath.at(0) == '/' )
+		// If path is absolute make it relative.
+		// In this app all paths except includes are relative to the project files location.
+		if( GetIsPathAbsolute(mOutputPath) )
 		{
 			mOutputPath = GetRelativePath(GetCurrentWorkingDirectory(),mOutputPath);
 
