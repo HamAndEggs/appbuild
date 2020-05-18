@@ -162,9 +162,9 @@ UTIL_GET_WITH_DEFAULT_FUNCTIONS
             if( Verbose )                                                                                                     \
                std::cout << pKey << " set to [" << value << "]" << std::endl;                                                 \
          }                                                                                                                    \
-         else                                                                                                                 \
-            std::cout << pKey << " is not a " << #__TYPE__ << " type, it will be ignored, correct the json." << std::endl;    \
-      }                                                                                                                       \
+         else                                                                                                                                                 \
+            std::cout << "json read error, " << pKey << " is not a " << #__TYPE__ << " type, it will be ignored, correct the projects json." << std::endl;    \
+      }                                                                                                                                                       \
       else if( Verbose )                                                                                                      \
       {                                                                                                                       \
          std::cout << pKey << " not found, set to default [" << value << "]" << std::endl;                                    \

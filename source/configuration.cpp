@@ -30,7 +30,7 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation,const std::string& pDebugLevel):// Creates a default configuration suitable for simple c++11 projects.
+Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation,const std::string& pDebugLevel):// Creates a default configuration suitable for simple c++14 projects.
 	mConfigName("default"),
 	mProjectDir(pProjectDir),
 	mLoggingMode(pLoggingMode),
@@ -42,7 +42,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	mArchiver("ar"),
 	mOutputPath(CleanPath("./bin/" + pConfigName + "/")),
 	mOutputName(pOutputName),
-	mCppStandard("c++11"),
+	mCppStandard("c++14"),
 	mOptimisation(pOptimisation),
 	mDebugLevel(pDebugLevel),
 	mWarningsAsErrors(false),
@@ -80,7 +80,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mArchiver("ar"),
 		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
 		mOutputName(pDefaultOutputName),
-		mCppStandard("c++11"),
+		mCppStandard("c++14"),
 		mOptimisation("0"),
 		mDebugLevel("2"),
 		mWarningsAsErrors(false),
@@ -581,14 +581,14 @@ bool Configuration::AddDependantProjects(const rapidjson::Value& pLibs)
 			}
 			else
 			{
-				std::cout << "Dependancy list has a none string entry, please correct. Item being ignored." << std::endl;
+				std::cout << "Dependency list has a none string entry, please correct. Item being ignored." << std::endl;
 			}
 		}
 		return true;
 	}
 	else
 	{
-		std::cout << "Dependancy list for projects is not an array type, please correct." << std::endl;
+		std::cout << "Dependency list for projects is not an array type, please correct." << std::endl;
 	}
 	return false;	
 }

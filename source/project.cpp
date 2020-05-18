@@ -83,10 +83,10 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 
 	if( ReadJson(mPathedProjectFilename,ProjectJson) )
     {
-		// Is the project file already loaded, if so then there is a dependancy loop, we have to fail else will compile for ever.
+		// Is the project file already loaded, if so then there is a dependency loop, we have to fail else will compile for ever.
 		if( sLoadedProjects.find(mPathedProjectFilename) != sLoadedProjects.end() )
 		{
-			std::cout << "Dependancy loop detected, the project file \'" << mPathedProjectFilename << "\' has already been referenced as a dependancy." << std::endl;
+			std::cout << "Dependency loop detected, the project file \'" << mPathedProjectFilename << "\' has already been referenced as a dependency." << std::endl;
 			return;
 		}
 
@@ -105,7 +105,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 			if( mLoggingMode >= LOG_VERBOSE )
 				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
 
-			const Configuration* config = new Configuration("default",mProjectDir,GetFileName(mPathedProjectFilename,true),mLoggingMode,true);
+			const Configuration* config = new Configuration("release",GetFileName(mPathedProjectFilename,true),mProjectDir,mLoggingMode,true,"2","0");
 			mBuildConfigurations[config->GetName()] = config;
 		}
 
@@ -183,7 +183,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 				mDependencyLibrarySearchPaths.push_back(RelitiveOutputpath);
 
 				if( mLoggingMode >= LOG_VERBOSE )
-					std::cout << "Adding dependancy for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelitiveOutputpath << "\'" << std::endl;
+					std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelitiveOutputpath << "\'" << std::endl;
 			}
 		}
 		else

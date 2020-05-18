@@ -14,8 +14,7 @@
             ],
 			"target":"executable",
 			"output_name":"runme",
-			"optimisation":2,
-			"standard":"c++11"
+			"optimisation":"2"
 		},
 		"debug":
 		{
@@ -28,9 +27,8 @@
 				"../hello_lib"
             ],
 			"target":"executable",
-			"output_name":"dependancy_dbg",
-			"optimisation":0,
-			"standard":"c++11"
+			"output_name":"dependency_dbg",
+			"optimisation":"0"
 		}
 	},
     "source_files":

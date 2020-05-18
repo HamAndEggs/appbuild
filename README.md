@@ -54,7 +54,7 @@ The "source_files" member can either be an array, as above or an object with man
 ```
 
 ## Configurations
-The 'dependancy' example project shows a use of the "configuration" object in the project Json file. The configuration object can have any number of children objects defining the different configurations that can be build, the most common would be release and debug. There is no reserved configuration names and you're free to name them what you like although I expect most will use 'release' and 'debug'. Below is an example...
+The 'dependency' example project shows a use of the "configuration" object in the project Json file. The configuration object can have any number of children objects defining the different configurations that can be build, the most common would be release and debug. There is no reserved configuration names and you're free to name them what you like although I expect most will use 'release' and 'debug'. Below is an example...
 
 ```json
 {
@@ -63,16 +63,16 @@ The 'dependancy' example project shows a use of the "configuration" object in th
 		"release":
 		{
 			"target":"executable",
-			"output_name":"dependancy",
+			"output_name":"dependency",
 			"optimisation":2,
-			"standard":"c++11"
+			"standard":"c++14"
 		},
 		"debug":
 		{
 			"target":"executable",
-			"output_name":"dependancy_dbg",
+			"output_name":"dependency_dbg",
 			"optimisation":0,
-			"standard":"c++11"
+			"standard":"c++14"
 		}
 	},
     "source_files":
