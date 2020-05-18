@@ -30,7 +30,7 @@ class SourceFiles
 public:
     typedef StringSet::const_iterator const_iterator;
 
-	SourceFiles(const std::string& pProjectPath);
+	SourceFiles(const std::string& pProjectPath,int pLoggingMode);
 	SourceFiles(const SourceFiles& pOther);
 
 	const SourceFiles& operator = (const SourceFiles& pOther);
@@ -48,6 +48,7 @@ public:
 private:
 	std::string mProjectDir;
 	StringSet mFiles;
+    int mLoggingMode;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -90,6 +90,7 @@ public:
 	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 	void AddDefine(const std::string& pDefine);
+	void AddLibrary(const std::string& pLib);
 
 private:
 	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
@@ -101,7 +102,6 @@ private:
 	void AddLibrarySearchPath(const std::string& pPath);
 
 	bool AddLibraries(const rapidjson::Value& pLibs);
-	void AddLibrary(const std::string& pLib);
 
 	bool AddDefines(const rapidjson::Value& pDefines);
 

@@ -184,14 +184,14 @@ std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath
 {
     assert( pCWD.size() > 0 );
     assert( pFullPath.size() > 0 );
-    assert( pCWD.at(0) == '/' );
-    assert( pFullPath.at(0) == '/' );
+    assert( GetIsPathAbsolute(pCWD) );
+    assert( GetIsPathAbsolute(pFullPath) );
 
     const std::string cwd = CleanPath(pCWD);
     const std::string fullPath = CleanPath(pFullPath);
 
-    assert( cwd.at(0) == '/' );
-    assert( fullPath.at(0) == '/' );
+    assert( GetIsPathAbsolute(cwd) );
+    assert( GetIsPathAbsolute(fullPath) );
 
     if( cwd.size() == 0 )
         return "./";

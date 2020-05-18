@@ -44,7 +44,7 @@ Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,co
 	mProjectDir(GetPath(pFilename)),
 	mDependencies(pFilename),
 	mSourceFiles(pSourceFiles),
-	mResourceFiles(GetPath(pFilename)),
+	mResourceFiles(GetPath(pFilename),pLoggingMode),
 	mOk(false)
 {
 	for( auto& c : pConfigurations )
@@ -69,8 +69,8 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 		mPathedProjectFilename(pFilename),
 		mProjectDir(GetPath(pFilename)),
 		mDependencies(pFilename),
-		mSourceFiles(GetPath(pFilename)),
-		mResourceFiles(GetPath(pFilename)),
+		mSourceFiles(GetPath(pFilename),pLoggingMode),
+		mResourceFiles(GetPath(pFilename),pLoggingMode),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
@@ -202,7 +202,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	BuildTaskStack BuildTasks;
 
 	// See if we need to build the resoure files first.
-	SourceFiles GeneratedResourceFiles(mProjectDir);
+	SourceFiles GeneratedResourceFiles(mProjectDir,mLoggingMode);
 	if( mResourceFiles.size() > 0 )
 	{
 		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
