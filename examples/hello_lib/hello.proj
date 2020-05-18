@@ -10,8 +10,7 @@
 			],
 			"target":"library",
 			"output_name":"runme",
-			"optimisation":2,
-			"standard":"c++11"
+			"optimisation":"2"
 		},
 		"debug":
 		{
@@ -21,9 +20,7 @@
 				"A_NUMBER_DEF=2"
 			],
 			"target":"library",
-			"output_name":"hello_dbg",
-			"optimisation":0,
-			"standard":"c++11"
+			"output_name":"hello_dbg"
 		}
 	},
 	"source_files":

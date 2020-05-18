@@ -52,6 +52,10 @@ bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
 			AddFile(file.GetString());
 		}
 	}
+	else
+	{
+		std::cout << "Source files object tried to pass an element that was not an array. Please correct your project file" << std::endl;
+	}
 	return true;
 }
 
