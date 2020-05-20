@@ -50,7 +50,7 @@ public:
 	 * @param pConfigurations The configurations to add to this project.
 	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::vector<Configuration*>& pConfigurations,int pLoggingMode);
+	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
@@ -71,21 +71,28 @@ public:
 
 	operator bool ()const{return mOk;}
 
-	bool Build(const Configuration* pActiveConfig);
-	bool RunOutputFile(const Configuration*pActiveConfig);
+	bool Build(const std::string& pConfigName);
+	bool RunOutputFile(const std::string& pConfigName);
 	void Write(rapidjson::Document& pDocument)const;
-	const Configuration* GetActiveConfiguration(const std::string& pConfigName)const; // Tries to return a suitable configuration to build with if pConfigName is not found.
 
+	/**
+	 * @brief Tries to find a configuration that can be used if the user did not specify one.
+	 * 
+	 * @return std::string The name of a configuration to use or null if no default could be determined.
+	 */
+	std::string FindDefaultConfigurationName()const;
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
 private:
 
+	ConfigurationPtr GetConfiguration(const std::string& pName)const;
+
 	bool ReadConfigurations(const rapidjson::Value& pConfigs);
 
-	bool CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks);
-	bool LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles);
-	bool ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutputFiles);
-	bool LinkSharedLibrary(const Configuration* pConfig,const StringVec& pOutputFiles);
+	bool CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks);
+	bool LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
+	bool ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
+	bool LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 
 
 	// Some options that are passed into the constructor.

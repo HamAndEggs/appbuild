@@ -163,16 +163,16 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
 
     std::cout << "SourceFiles.size() == " << SourceFiles.size() << std::endl;
 
-    std::vector<Configuration*> configs;
-	Configuration* newConfig = NULL;
+    ConfigurationsVec configs;
+	std::shared_ptr<Configuration> newConfig = nullptr;
 	// Add a release and debug configuration.
 	
-	newConfig = new Configuration("release",pNewProjectName,projectPath,pLoggingMode,true,"2","0");
+	newConfig = std::make_shared<Configuration>("release",pNewProjectName,projectPath,pLoggingMode,true,"2","0");
 	newConfig->AddDefine("NDEBUG");
 	newConfig->AddDefine("RELEASE_BUILD");
     configs.push_back(newConfig);
 
-	newConfig = new Configuration("debug",pNewProjectName,projectPath,pLoggingMode,false,"0","2");
+	newConfig = std::make_shared<Configuration>("debug",pNewProjectName,projectPath,pLoggingMode,false,"0","2");
 	newConfig->AddDefine("DEBUG_BUILD");
     configs.push_back(newConfig);
 

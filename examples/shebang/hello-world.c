@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-void main()
+int main()
 {
-    printf("Hello world\n");
+    printf("C program Shebang Hello world\n");
+    return 0;
 }

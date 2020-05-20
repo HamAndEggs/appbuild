@@ -85,6 +85,9 @@ int BuildFromShebang(int argc,char *argv[])
     // The projects configuration name we'll use.
     const std::string configName = "shebang";
 
+    // This is the temp folder path we use to cache build results.
+    const std::string tempFolderPath("/tmp/appbuild/");
+
     // Use the source file as the 'project name' for error reports.
     // This is the name of the project that the user will expect to see in errors.
     const std::string usersProjectName = sourcePathedFile;
@@ -94,14 +97,15 @@ int BuildFromShebang(int argc,char *argv[])
     // To ensure no clashes I take the fully pathed source file name
     // and add /tmp to the start for the temp folder. I also add .exe at the end.
     const std::string exename = GetFileName(sourcePathedFile) + ".exe";
-    const std::string pathedExeName = std::string("/tmp") + sourceFilePath + "/bin/" + configName + "/" + exename;
+    const std::string pathedExeName = CleanPath(tempFolderPath + sourceFilePath + "/bin/" + configName + "/" + exename);
+
+    // We need the source file without the shebang too.
+    const std::string tempSourcefile = CleanPath(tempFolderPath + sourcePathedFile);
 
     // Also create the project file that will be used to build the exe if needs be.
     // We don't really make this file but the objects involved need to think they were loaded from a file. Maybe that is an error in the design.
-    const std::string fakeProjectFilename = std::string("/tmp") + sourcePathedFile + ".proj";
+    const std::string fakeProjectFilename = tempSourcefile + ".proj";
 
-    // We need the source file without the shebang too.
-    const std::string tempSourcefile = std::string("/tmp") + sourcePathedFile;
 
     // The temp folder that it's all done in.
     const std::string projectTempFolder = GetPath(tempSourcefile);
@@ -207,7 +211,7 @@ int BuildFromShebang(int argc,char *argv[])
         SourceFiles SourceFiles(CWD,LOGGING_MODE);
         SourceFiles.AddFile(GetFileName(sourcePathedFile));
 
-        Configuration* newConfig = new Configuration(configName,exename,projectTempFolder,LOGGING_MODE,true,"2","0");
+        std::unique_ptr<Configuration> newConfig = std::make_unique<Configuration>(configName,exename,projectTempFolder,LOGGING_MODE,true,"2","0");
         newConfig->AddDefine("NDEBUG");
         newConfig->AddDefine("RELEASE_BUILD");
 
@@ -216,8 +220,8 @@ int BuildFromShebang(int argc,char *argv[])
             newConfig->AddLibrary(lib);
         }
 
-        std::vector<Configuration*> configs;
-        configs.push_back(newConfig);
+        ConfigurationsVec configs;
+        configs.push_back(std::move(newConfig));
 
         Project sheBangProject(fakeProjectFilename,SourceFiles,configs,LOGGING_MODE);
         if( sheBangProject == false )
@@ -226,20 +230,14 @@ int BuildFromShebang(int argc,char *argv[])
             return EXIT_FAILURE;
         }
 
-        const appbuild::Configuration* ActiveConfig = sheBangProject.GetActiveConfiguration("");
-        if( ActiveConfig == NULL )
+        const std::string configName = sheBangProject.FindDefaultConfigurationName();
+        if( configName.size() == 0 )
         {
-            std::cerr << "No configuration found in the project file \'" << file << "\'" << std::endl;
+            std::cerr << "No configuration found in the shebang virtual project, implementation error, please log a bug. \'" << file << "\'" << std::endl;
             return EXIT_FAILURE;
         }
 
-        if( ActiveConfig->GetOk() == false )
-        {
-            std::cerr << "There is a problem with the configuration \'" << ActiveConfig->GetName() << "\' in the project file \'" << file << "\'. Please check the output for errors." << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        if( sheBangProject.Build(ActiveConfig) == false )
+        if( sheBangProject.Build(configName) == false )
         {
             std::cerr << "Build failed for project file \'" << file << "\'" << std::endl;
             return EXIT_FAILURE;
@@ -253,7 +251,7 @@ int BuildFromShebang(int argc,char *argv[])
 
         if( chdir(CWD.c_str()) != 0 )
         {
-            std::cerr << "Failed to return to the orginal run folder " << CWD << std::endl;
+            std::cerr << "Failed to return to the original run folder " << CWD << std::endl;
             return EXIT_FAILURE;
         }
 
