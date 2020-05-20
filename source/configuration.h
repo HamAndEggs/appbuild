@@ -144,17 +144,10 @@ private:
 	StringMap mDependantProjects;
 };
 
-class BuildConfigurations : public std::map<std::string,const Configuration*>
-{
-public:
-	virtual ~BuildConfigurations()
-	{
-		for(auto& config : *this )
-		{
-			delete config.second;
-		}
-	}
-};
+typedef std::shared_ptr<const Configuration> ConfigurationPtr;
+typedef std::map<std::string,ConfigurationPtr> BuildConfigurations;
+typedef std::vector<ConfigurationPtr> ConfigurationsVec;
+
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

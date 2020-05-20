@@ -45,7 +45,18 @@ public:
 	int GetNumThreads()const{return mNumThreads;}
 	int GetTruncateOutput()const{return mTruncateOutput;}
 	std::vector<std::string> GetProjectFiles()const{return mProjectFiles;}
-	const std::string& GetActiveConfig()const{return mActiveConfig;}
+
+	/**
+	 * @brief Get the Active Config name
+	 * 
+	 * @param pDefault A name to use if the user did not supply one.
+	 * @return const std::string& 
+	 */
+	const std::string& GetActiveConfig(const std::string& pDefault)const
+	{
+		return mActiveConfig.size() > 0 ? mActiveConfig : pDefault;
+	}
+
 	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
 	const std::string& GetNewProjectName()const{return mNewProjectName;}
 
@@ -76,9 +87,13 @@ int main(int argc, char *argv[])
     {
 		std::cout << "argv[" << n << "] " << argv[n] << std::endl;
     }
-#endif
 
+    std::cout << std::endl << "Runtime debug only unit tests." << std::endl;
 	assert( appbuild::DoMiscUnitTests() );
+	std::cout << std::endl;
+	std::cout << std::endl;
+
+#endif
 
     // We have to special case the arg for using the app as a shebang.
     // This is because the getopt_long reorders commandline options.
@@ -112,12 +127,11 @@ int main(int argc, char *argv[])
 		// Options read ok, now parse the project.
 		for(const std::string& file : Args.GetProjectFiles() )
 		{
-
 			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetLoggingMode(),Args.GetReBuild(),Args.GetTruncateOutput());
 			if( TheProject )
 			{
-				const std::string configname = Args.GetActiveConfig();
-				const appbuild::Configuration* ActiveConfig = TheProject.GetActiveConfiguration(configname);
+				const std::string configname = Args.GetActiveConfig(TheProject.FindDefaultConfigurationName());
+
 				if( Args.GetUpdatedProject() )
 				{
 					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
@@ -133,32 +147,25 @@ int main(int argc, char *argv[])
 					{
 						std::cout << "Failed to write to the destination file." << std::endl;
 					}
-				}
-				else if( ActiveConfig )
+				}// This is an if else as after loading the project we only needed to update the project with the defaults we would not want it to then also build.
+				else if( configname.size() > 0 )
 				{
-					if( ActiveConfig->GetOk() )
+					const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
+					if( TheProject.Build(configname) )
 					{
-						const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
-						if( TheProject.Build(ActiveConfig) )
+						if( Args.GetTimeBuild() )
 						{
-							if( Args.GetTimeBuild() )
-							{
-								std::cout << "Build took: " << appbuild::GetTimeDifference(build_start,std::chrono::system_clock::now()) << std::endl;
-							}
-
-							if( Args.GetRunAfterBuild() )
-							{
-								TheProject.RunOutputFile(ActiveConfig);
-							}
+							std::cout << "Build took: " << appbuild::GetTimeDifference(build_start,std::chrono::system_clock::now()) << std::endl;
 						}
-						else
+
+						if( Args.GetRunAfterBuild() )
 						{
-							std::cout << "Build failed for project file \'" << file << "\'" << std::endl;
+							TheProject.RunOutputFile(configname);
 						}
 					}
 					else
 					{
-						std::cout << "There is a problem with the configuration \'" << ActiveConfig->GetName() << "\' in the project file \'" << file << "\'. Please check the output for errors." << std::endl;
+						std::cout << "Build failed for project file \'" << file << "\'" << std::endl;
 					}
 				}
 				else

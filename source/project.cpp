@@ -35,7 +35,7 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,const std::vector<Configuration*>& pConfigurations,int pLoggingMode):
+Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode):
 	mNumThreads(1),
 	mLoggingMode(pLoggingMode),
 	mRebuild(false),
@@ -105,7 +105,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 			if( mLoggingMode >= LOG_VERBOSE )
 				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
 
-			const Configuration* config = new Configuration("release",GetFileName(mPathedProjectFilename,true),mProjectDir,mLoggingMode,true,"2","0");
+			ConfigurationPtr config = std::make_shared<Configuration>("release",GetFileName(mPathedProjectFilename,true),mProjectDir,mLoggingMode,true,"2","0");
 			mBuildConfigurations[config->GetName()] = config;
 		}
 
@@ -144,13 +144,17 @@ Project::~Project()
 	sLoadedProjects.erase(mPathedProjectFilename);
 }
 
-bool Project::Build(const Configuration* pActiveConfig)
+bool Project::Build(const std::string& pConfigName)
 {
-	assert(pActiveConfig);
-	if(!pActiveConfig)return false;
+	ConfigurationPtr activeConfig = GetConfiguration(pConfigName);
+
+	if(activeConfig == nullptr)
+	{
+		return false;
+	}
 
 	// See if there are any dependant projects that need to be built first.
-	const StringMap& DependantProjects = pActiveConfig->GetDependantProjects();
+	const StringMap& DependantProjects = activeConfig->GetDependantProjects();
 	for( auto& proj : DependantProjects )
 	{
 		const std::string ProjectFile = proj.first;
@@ -167,23 +171,24 @@ bool Project::Build(const Configuration* pActiveConfig)
 		{
 			std::string configname = proj.second;
 			if( configname.empty() )
-				configname = pActiveConfig->GetName();
+				configname = activeConfig->GetName();
 
-			const appbuild::Configuration* DepConfig = TheProject.GetActiveConfiguration(configname);
-			if( !DepConfig || TheProject.Build(DepConfig) == false )
+			if( TheProject.Build(configname) == false )
 			{
 				return false;
 			}
 
 			// That worked, lets add it's output file to our input libs.
+			ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
+			assert( DepConfig != nullptr );// Should not happen, it was built ok...		
 			if( DepConfig->GetTargetType() == TARGET_LIBRARY )
 			{
-				const std::string RelitiveOutputpath = GetPath(DepConfig->GetPathedTargetName());
+				const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
 				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
-				mDependencyLibrarySearchPaths.push_back(RelitiveOutputpath);
+				mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
 
 				if( mLoggingMode >= LOG_VERBOSE )
-					std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelitiveOutputpath << "\'" << std::endl;
+					std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
 			}
 		}
 		else
@@ -196,7 +201,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	// We know what config to build with, lets go.
     if( mLoggingMode >= LOG_INFO )
     {
-    	std::cout << "Compiling configuration \'" << pActiveConfig->GetName() << "\'" << std::endl;
+    	std::cout << "Compiling configuration \'" << activeConfig->GetName() << "\'" << std::endl;
     }
 
 	BuildTaskStack BuildTasks;
@@ -206,7 +211,7 @@ bool Project::Build(const Configuration* pActiveConfig)
 	if( mResourceFiles.size() > 0 )
 	{
 		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
-		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,pActiveConfig->GetOutputPath(),mLoggingMode);
+		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,activeConfig->GetOutputPath(),mLoggingMode);
 
 		ResourceTask->Execute();
 		while( ResourceTask->GetIsCompleted() == false )
@@ -222,53 +227,56 @@ bool Project::Build(const Configuration* pActiveConfig)
 	}
 
 	StringVec OutputFiles;
-	if( pActiveConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
+	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
-			if( !CompileSource(pActiveConfig,BuildTasks) )
+			if( !CompileSource(activeConfig,BuildTasks) )
 			{
 				return false;
 			}
 		}
 
-		switch(pActiveConfig->GetTargetType())
+		switch(activeConfig->GetTargetType())
 		{
 		case TARGET_EXEC:
 			// Link. May just do a link if none of the source files needed to be build.
-			return LinkTarget(pActiveConfig,OutputFiles);
+			return LinkTarget(activeConfig,OutputFiles);
 
 		case TARGET_LIBRARY:
-			return ArchiveLibrary(pActiveConfig,OutputFiles);
+			return ArchiveLibrary(activeConfig,OutputFiles);
 
 		case TARGET_SHARED_LIBRARY:
-			return LinkSharedLibrary(pActiveConfig,OutputFiles);
+			return LinkSharedLibrary(activeConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
-			std::cerr << "Target type not set, unable to compile configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 			break;
 		}
 	}
 	else
 	{
-		std::cerr << "Unable to create build tasks for the configuration \'" << pActiveConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cerr << "Unable to create build tasks for the configuration \'" << activeConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
 	}
 
 	return false;
 }
 
-bool Project::RunOutputFile(const Configuration* pActiveConfig)
+bool Project::RunOutputFile(const std::string& pConfigName)
 {
-	assert(pActiveConfig);
-	if(!pActiveConfig)return false;
+	ConfigurationPtr activeConfig = GetConfiguration(pConfigName);
+	if(activeConfig == nullptr)
+	{
+		return false;
+	}
 
 	std::string PathedTargetName;
-	if( pActiveConfig->GetTargetType() == TARGET_EXEC )
+	if( activeConfig->GetTargetType() == TARGET_EXEC )
 	{
 		char command[256];
 		command[0] = 0;
 
-		strcat(command,pActiveConfig->GetPathedTargetName().c_str());
+		strcat(command,activeConfig->GetPathedTargetName().c_str());
 
 		char* TheArgs[]={command,NULL};
 		return execvp(TheArgs[0],TheArgs) == 0;
@@ -295,39 +303,38 @@ void Project::Write(rapidjson::Document& pDocument)const
 
 }
 
-const Configuration* Project::GetActiveConfiguration(const std::string& pConfigName)const
+std::string Project::FindDefaultConfigurationName()const
 {
-		// See if there is a default config, but only if the name was not specified.
-	if( pConfigName.size() == 0 )
-		for( auto conf : mBuildConfigurations )
-			if( conf.second->GetIsDefaultConfig() )
-				return conf.second;
-	
-	auto FoundConfig = mBuildConfigurations.find(pConfigName);
-	if( FoundConfig != mBuildConfigurations.end() )
-	{
-		return FoundConfig->second;
-	}
-	else if( mBuildConfigurations.size() == 1 )// If there is only one config, then just used that.
-		return mBuildConfigurations.begin()->second;
+	for( auto conf : mBuildConfigurations )
+		if( conf.second->GetIsDefaultConfig() )
+			return conf.first;
 
-	if( pConfigName.size() > 0 )
-		std::cerr << "The configuration \'" << pConfigName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
-	else if( mBuildConfigurations.size() < 1 )
-	{//Should not get here, but just in case, show an error.
-		std::cerr << "No configurations found in the project file \'" << mPathedProjectFilename << "\' can not continue." << std::endl;
-	}
-	else
+	if( mBuildConfigurations.size() == 1 )
+		return mBuildConfigurations.begin()->first;
+
+	std::cerr << "No configuration was specified to build, your choices are:-" << std::endl;
+	for(auto conf : mBuildConfigurations )
 	{
-		std::cerr << "No configuration was specified to build, your choices are:-" << std::endl;
-		for(auto conf : mBuildConfigurations )
+		std::cout << conf.first << std::endl;
+	}
+	std::cerr << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
+
+	return "";
+}
+
+ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
+{
+	if( pName.size() > 0 )
+	{
+		auto FoundConfig = mBuildConfigurations.find(pName);
+		if( FoundConfig != mBuildConfigurations.end() )
 		{
-			std::cout << conf.first << std::endl;
+			return FoundConfig->second;
 		}
-		std::cerr << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
+		std::cerr << "The configuration \'" << pName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
@@ -347,7 +354,7 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 
 			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
 			{
-				mBuildConfigurations[name] = new Configuration(name,val,defaultOutputName,mProjectDir,mLoggingMode);
+				mBuildConfigurations[name] = std::make_shared<Configuration>(name,val,defaultOutputName,mProjectDir,mLoggingMode);
 				if( mBuildConfigurations[name]->GetOk() == false )
 				{
 					std::cerr << "Configuration \'"<< name << "\' failed to load, error in project " << mPathedProjectFilename << std::endl;
@@ -375,7 +382,7 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 	return true;
 }
 
-bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildTasks)
+bool Project::CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks)
 {
 	assert(pConfig);
 	if( !pConfig )
@@ -477,7 +484,7 @@ bool Project::CompileSource(const Configuration* pConfig,BuildTaskStack& pBuildT
 	return CompileOk;
 }
 
-bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFiles)
+bool Project::LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 {
 	assert(pConfig);
 	if( !pConfig )
@@ -527,7 +534,7 @@ bool Project::LinkTarget(const Configuration* pConfig,const StringVec& pOutputFi
 	return ok;
 }
 
-bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutputFiles)
+bool Project::ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 {
 	ArgList Arguments;
 
@@ -573,7 +580,7 @@ bool Project::ArchiveLibrary(const Configuration* pConfig,const StringVec& pOutp
 	return ok;
 }
 
-bool Project::LinkSharedLibrary(const Configuration* pConfig,const StringVec& pOutputFiles)
+bool Project::LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 {/*
 	ArgList Arguments("-shared");
 
