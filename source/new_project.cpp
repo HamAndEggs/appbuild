@@ -40,7 +40,7 @@ StringVec FindSourceFiles(const std::string& pPath,int pLoggingMode)
                 }
                 if( ent->d_type == DT_DIR )
                 {
-                    StringVec subFolderFiles = FindSourceFiles(pPath + fname,pLoggingMode);
+                    StringVec subFolderFiles = FindSourceFiles(pPath + fname + "/",pLoggingMode);
                     for( auto f : subFolderFiles )
                     {
                         FoundFiles.push_back(f);
