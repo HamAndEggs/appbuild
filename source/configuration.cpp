@@ -52,8 +52,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 {
 	AddIncludeSearchPath("/usr/include");
 	AddIncludeSearchPath(pProjectDir);
-	AddLibrary("stdc++");
-	AddLibrary("pthread");
+	AddDefaultLibs();
 
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 
@@ -123,15 +122,13 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
     }
     else
     {
-        AddLibrary("stdc++");
-        AddLibrary("pthread");
         if( mLoggingMode >= LOG_VERBOSE )
         {
     		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is missing, using defaults" << std::endl;
         }
     }
 
-	// These go into a different place for now as they have to be adde to the args after the object files have been.
+	// These go into a different place for now as they have to be added to the args after the object files have been.
 	// This is because of the way linkers work.
 	if( pConfig.HasMember("libs") )
 	{
@@ -143,10 +140,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 	}
 	else
 	{
-		if( mLoggingMode >= LOG_VERBOSE )
-			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is missing, adding stdc++ for a default." << std::endl;
-		
-		AddLibrary("stdc++");
+		AddDefaultLibs();
 	}
 
 	if( pConfig.HasMember("define") )
@@ -700,6 +694,32 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 	}
 
 	return false;
+}
+
+void Configuration::AddDefaultLibs()
+{
+	// make_array is still experimental, at the time of writing, so not using. I only use the parts of the language that have most support accross platforms. (its called experience)
+	const std::array<std::string,3> defaultLibs =
+	{
+		"m", // Maths lib. Yes the C guys called a lib m	
+		"stdc++",
+		"pthread"
+	};
+
+	if( mLoggingMode >= LOG_VERBOSE )
+	{
+		std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is missing, adding ";
+		for( auto lib : defaultLibs )
+		{
+			std::cout << "'" << lib << "' ";
+		}
+
+		std::cout << "for the library defaults." << std::endl;
+	}
+
+	for( auto lib : defaultLibs )
+		AddLibrary(lib);
+
 }
 
 //////////////////////////////////////////////////////////////////////////

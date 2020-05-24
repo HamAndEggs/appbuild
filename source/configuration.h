@@ -111,6 +111,15 @@ private:
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
 	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
 
+	/**
+	 * @brief Adds the default libs to get most basic apps linking and running.
+	 * This is only used when the project file does not have the libs section or we're creating a project file as a start.
+	 * Also used for she bang.
+	 * These are not added 'as well as' but if there is nothing else set.
+	 * That is if we did not then it would not build from a minimal project file.
+	 */
+	void AddDefaultLibs();
+
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
 	const int mLoggingMode;
