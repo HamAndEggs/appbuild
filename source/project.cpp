@@ -306,11 +306,26 @@ void Project::Write(rapidjson::Document& pDocument)const
 std::string Project::FindDefaultConfigurationName()const
 {
 	for( auto conf : mBuildConfigurations )
+	{
 		if( conf.second->GetIsDefaultConfig() )
+		{
+			if( mLoggingMode >= LOG_VERBOSE )
+			{
+				std::cout << "Found a configuration marked as default, " << conf.second->GetName() << std::endl;
+			}
+
 			return conf.first;
+		}
+	}
 
 	if( mBuildConfigurations.size() == 1 )
+	{
+		if( mLoggingMode >= LOG_VERBOSE )
+		{
+			std::cout << "No default configuration, there is only one so using that as the default, " << mBuildConfigurations.begin()->second->GetName() << std::endl;
+		}
 		return mBuildConfigurations.begin()->first;
+	}
 
 	std::cerr << "No configuration was specified to build, your choices are:-" << std::endl;
 	for(auto conf : mBuildConfigurations )
