@@ -83,6 +83,13 @@ public:
 	std::string FindDefaultConfigurationName()const;
 	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
+	/**
+	 * @brief Returns a vector of all the configuration names in the project.
+	 * 
+	 * @return const StringVec 
+	 */
+	const StringVec GetConfigurationNames()const;
+
 private:
 
 	ConfigurationPtr GetConfiguration(const std::string& pName)const;

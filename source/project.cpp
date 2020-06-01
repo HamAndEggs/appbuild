@@ -337,6 +337,21 @@ std::string Project::FindDefaultConfigurationName()const
 	return "";
 }
 
+	/**
+	 * @brief Returns a vector of all the configuration names in the project.
+	 * 
+	 * @return const StringVec 
+	 */
+const StringVec Project::GetConfigurationNames()const
+{
+	StringVec names;
+	for( auto c : mBuildConfigurations )
+	{
+		names.push_back(c.first);
+	}
+	return names;
+}
+
 ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
 {
 	if( pName.size() > 0 )
@@ -393,6 +408,23 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 		std::cerr << "Configuration is not an object, error in project " << mPathedProjectFilename << std::endl;
 		return false;
 	}
+
+	// If more than one configuration then list the ones read.
+	if( mLoggingMode >= LOG_INFO )
+	{
+		if( mBuildConfigurations.size() > 0 )
+		{
+			std::string comma = " ";
+			std::cout << "Multiple configurations available: ";
+			for( auto c : mBuildConfigurations )
+			{
+				std::cout << comma << c.first;
+				comma = ", ";
+			}
+			std::cout << std::endl;
+		}
+	}
+
 
 	return true;
 }
