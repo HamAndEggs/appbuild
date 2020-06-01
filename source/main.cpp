@@ -432,10 +432,20 @@ void CommandLineOptions::PrintHelp()const
 
 void CommandLineOptions::PrintVersion()const
 {
-#ifdef BUILT_BY_APPBUILD
-	std::cout << "Build date and time " << APP_BUILD_DATE_TIME << std::endl;
-	std::cout << "Build date " << APP_BUILD_DATE << std::endl;
+#ifdef APP_BUILD_VERSION
+	std::cout << "Version " << APP_BUILD_VERSION << std::endl;
+#endif
+
+#ifdef APP_BUILD_DATE
+	std::cout << "Build date and time " << APP_BUILD_DATE << std::endl;
+#endif
+
+#ifdef APP_BUILD_TIME
 	std::cout << "Build time " << APP_BUILD_TIME << std::endl;
+#endif
+
+#ifdef APP_BUILD_GIT_BRANCH
+	std::cout << "Build from git branch " << APP_BUILD_GIT_BRANCH << std::endl;
 #endif
 }
 

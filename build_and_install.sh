@@ -74,11 +74,20 @@ function PrepareBuildFolder()
 # The meat and potatoes of the build...
 #********************************************************************************************************************
 DO_UNIT_TESTS="FALSE"
-RELEASE_COMPILE_FLAGS="-DNDEBUG -O3 -Wall -c"
-DEBUG_COMPILE_FLAGS="-DDEBUG_BUILD -O0 -Wall -c"
+
+APP_BUILD_DATE=$(date +%d/%m/%Y)
+APP_BUILD_TIME=$(date +%H:%M)
+APP_BUILD_GIT_BRANCH=$(git branch --show-current)
+APP_BUILD_VERSION=$(cat ./version)
+
+APP_BUILD_GENERATED_DEFINES="-DAPP_BUILD_DATE=\"$APP_BUILD_DATE\" -DAPP_BUILD_TIME=\"$APP_BUILD_TIME\" -DAPP_BUILD_GIT_BRANCH=\"$APP_BUILD_GIT_BRANCH\" -DAPP_BUILD_VERSION=\"$APP_BUILD_VERSION\""
+
+RELEASE_COMPILE_FLAGS="-DNDEBUG -O3 -Wall"
+DEBUG_COMPILE_FLAGS="-DDEBUG_BUILD -O0 -Wall"
 
 # Check for build type, if not given assume release.
 COMPILE_FLAGS_C=$RELEASE_COMPILE_FLAGS
+
 
 while [ "$1" != "" ];
 do
@@ -130,7 +139,7 @@ for t in ${SOURCE_FILES[@]}; do
     fi
 
     echo "$BASE_NAME"
-    gcc $COMPILE_INCLUDES $COMPILE_FLAGS $SOURCE_FILE -o $OBJECT_FILE &
+    gcc $COMPILE_INCLUDES $COMPILE_FLAGS $APP_BUILD_GENERATED_DEFINES -c $SOURCE_FILE -o $OBJECT_FILE &
 
     #Four threads at a time please.
     let COUNT+=1
