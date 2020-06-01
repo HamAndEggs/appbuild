@@ -23,7 +23,7 @@
 #include <sys/wait.h>
 #include <limits.h>
 #include <poll.h>
-
+#include <string.h>
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,10 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
         // This replaces the current process so no need to clean up the memory leaks before here. ;)
         execvp(TheArgs[0], TheArgs);
 
-        std::cout << "ExecuteShellCommand execl() failure!" << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;
+        const char* errorString = strerror(errno);
+
+        std::cout << "ExecuteShellCommand execl() failure!" << std::endl << "Error: " << errorString << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;        
+
         _exit(1);
     }
 

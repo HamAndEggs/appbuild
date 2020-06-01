@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <chrono>
-#include <string.h>
 
 #include "json.h"
 #include "string_types.h"
@@ -41,6 +40,8 @@ public:
 	bool GetTimeBuild()const{return mTimeBuild;}
 	bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
 	bool GetCreateNewProject()const{return mNewProjectName.size() > 0;}
+	bool GetInteractiveMode()const{return mInteractiveMode;}
+
 	int GetLoggingMode()const{return mLoggingMode;}
 	int GetNumThreads()const{return mNumThreads;}
 	int GetTruncateOutput()const{return mTruncateOutput;}
@@ -64,12 +65,15 @@ public:
 	void PrintVersion()const;
 	void PrintGetHelp()const;
 
+	bool ProcessInteractiveMode(appbuild::Project& pTheProject);
+
 private:
 	bool mShowHelp;
 	bool mShowVersion;
 	bool mRunAfterBuild;
 	bool mReBuild;
 	bool mTimeBuild;
+	bool mInteractiveMode;
 	int mLoggingMode;
     int mNumThreads;
 	int mTruncateOutput;
@@ -130,6 +134,15 @@ int main(int argc, char *argv[])
 			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetLoggingMode(),Args.GetReBuild(),Args.GetTruncateOutput());
 			if( TheProject )
 			{
+				if( Args.GetInteractiveMode() )
+				{
+					if( Args.ProcessInteractiveMode(TheProject) == false )
+					{
+						// User aborted interactive mode, so return.
+						return EXIT_FAILURE;
+					}
+				}
+
 				const std::string configname = Args.GetActiveConfig(TheProject.FindDefaultConfigurationName());
 
 				if( Args.GetUpdatedProject() )
@@ -147,7 +160,7 @@ int main(int argc, char *argv[])
 					{
 						std::cout << "Failed to write to the destination file." << std::endl;
 					}
-				}// This is an if else as after loading the project we only needed to update the project with the defaults we would not want it to then also build.
+				}// This is an if else as after loading, if the project is to be updated with the defaults, then we do not want to then also build.
 				else if( configname.size() > 0 )
 				{
 					const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
@@ -203,6 +216,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_TIME_BUILD,no_argument,				'T',"time-build","Shows the total time of the build from start to finish.")												\
 		DEF_ARG(ARG_SHEBANG,no_argument,				'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
 		DEF_ARG(ARG_NEW_PROJECT,required_argument,		'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for source files and adds them to a new project file.\nIf a project file already exists then it will fail.") \
+		DEF_ARG(ARG_INTERACTIVE,no_argument,			'i',"interactive","If the project has multiple configurations then a menu will allow you to select which to build.\nThe default configuration, if marked, will be selected by default.")	\
 		
 
 enum eArguments
@@ -218,6 +232,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mRunAfterBuild(false),
 	mReBuild(false),
 	mTimeBuild(false),
+	mInteractiveMode(false),
     mLoggingMode(appbuild::LOG_INFO),
 	mNumThreads(std::thread::hardware_concurrency()),
 	mTruncateOutput(0)
@@ -273,6 +288,10 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_TIME_BUILD:
 			mTimeBuild = true;
+			break;
+
+		case ARG_INTERACTIVE:
+			mInteractiveMode = true;
 			break;
 
 		case ARG_ACTIVE_CONFIG:
@@ -344,7 +363,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	if( mProjectFiles.size() == 0 )
 	{
 		// If no project files specified and not asking for help options, then auto find a proj file.
-		// If only one is found use that, elso don't use any as it maybe not what they intended.
+		// If only one is found use that, else don't use any as it maybe not what they intended.
 		const appbuild::StringVec ProjFiles = appbuild::FindFiles(appbuild::GetCurrentWorkingDirectory(),"*.proj");
 		if( ProjFiles.size() == 1 )
 		{
@@ -420,8 +439,59 @@ void CommandLineOptions::PrintVersion()const
 #endif
 }
 
-
 void CommandLineOptions::PrintGetHelp()const
 {
 	std::cout << "Try 'appbuild --help' for more information."  << std::endl;
+}
+
+bool CommandLineOptions::ProcessInteractiveMode(appbuild::Project& pTheProject)
+{
+	std::cout << "Choose the configuration to build or just enter for the default." << std::endl;
+	const appbuild::StringVec Configs = pTheProject.GetConfigurationNames();
+	const std::string defaultName = pTheProject.FindDefaultConfigurationName();
+	
+	int index = 0;
+	for( auto c : Configs )
+	{
+		index++;
+		std::cout << c << " [" << index << "]";
+
+		if( c == defaultName )
+		{
+			std::cout << "*";
+		}
+
+		std::cout << std::endl;
+	}
+	std::cout << "Choose [1-" << index << "] ";
+		
+	std::cout << std::flush;
+
+	int choice = std::cin.get();
+
+	if( choice == '\n' )
+	{
+		std::cout << "Using default, " << defaultName << std::endl;
+		mActiveConfig = defaultName;
+	}
+	else
+	{
+		choice -= '1';
+		if( choice >= 1 && choice <= index  )
+		{
+			std::cout << Configs[choice] << " chosen" << std::endl;
+			mActiveConfig = Configs[choice];
+		}
+		else
+		{// Assume they chose to quit.
+			return false;
+		}
+	}
+
+	if( mActiveConfig.size() > 0 )
+	{
+		std::cout << "appbuild -c " << mActiveConfig << std::endl;
+	}
+
+	return true;
 }
