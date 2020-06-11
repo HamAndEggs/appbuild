@@ -19,6 +19,8 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <chrono>
+#include <string>
+#include <vector>
 
 #include "json.h"
 #include "string_types.h"
@@ -33,8 +35,10 @@ class CommandLineOptions
 public:
 	CommandLineOptions(int argc, char *argv[]);
 
+	bool GetShowInformationOnly()const{return mShowHelp || mShowVersion || mShowTypeSizes;}
 	bool GetShowHelp()const{return mShowHelp;}
 	bool GetShowVersion()const{return mShowVersion;}
+	bool GetShowTypeSizes()const{return mShowTypeSizes;}
 	bool GetRunAfterBuild()const{return mRunAfterBuild;}
 	bool GetReBuild()const{return mReBuild;}
 	bool GetTimeBuild()const{return mTimeBuild;}
@@ -63,6 +67,7 @@ public:
 
 	void PrintHelp()const;
 	void PrintVersion()const;
+	void PrintTypeSizes()const;
 	void PrintGetHelp()const;
 
 	bool ProcessInteractiveMode(appbuild::Project& pTheProject);
@@ -70,6 +75,7 @@ public:
 private:
 	bool mShowHelp;
 	bool mShowVersion;
+	bool mShowTypeSizes;
 	bool mRunAfterBuild;
 	bool mReBuild;
 	bool mTimeBuild;
@@ -114,13 +120,22 @@ int main(int argc, char *argv[])
 
 	CommandLineOptions Args(argc,argv);
 
-    if( Args.GetShowHelp() )
+    if( Args.GetShowInformationOnly() )
 	{
-		Args.PrintHelp();
-	}
-	else if( Args.GetShowVersion() )
-	{
-		Args.PrintVersion();
+		if( Args.GetShowHelp() )
+		{
+			Args.PrintHelp();
+		}
+
+		if( Args.GetShowVersion() )
+		{
+			Args.PrintVersion();
+		}
+
+		if( Args.GetShowTypeSizes() )
+		{
+			Args.PrintTypeSizes();
+		}
 	}
 	else if (Args.GetCreateNewProject() )
 	{
@@ -205,6 +220,7 @@ int main(int argc, char *argv[])
 #define ARGUMENTS																																							\
 		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																			\
 		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")																\
+		DEF_ARG(ARG_SHOW_TYPE_SIZES,no_argument,		's',"type-info","Output the byte sizes of a selection of types at the time appbuild was built.")					\
 		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")																\
 		DEF_ARG(ARG_QUIET,no_argument,				    'q',"quiet","Print no information about progress, just errors will be displayed.")                       			\
 		DEF_ARG(ARG_REBUILD,no_argument,				'r',"rebuild","Clean and rebuild all the source files.")															\
@@ -229,6 +245,7 @@ enum eArguments
 CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mShowHelp(false),
 	mShowVersion(false),
+	mShowTypeSizes(false),
 	mRunAfterBuild(false),
 	mReBuild(false),
 	mTimeBuild(false),
@@ -268,6 +285,10 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_VERSION:
 			mShowVersion = true;
+			break;
+
+		case ARG_SHOW_TYPE_SIZES:
+			mShowTypeSizes = true;
 			break;
 
 		case ARG_VERBOSE:
@@ -445,8 +466,46 @@ void CommandLineOptions::PrintVersion()const
 #endif
 
 #ifdef APP_BUILD_GIT_BRANCH
-	std::cout << "Build from git branch " << APP_BUILD_GIT_BRANCH << std::endl;
+	// APP_BUILD_GIT_BRANCH maybe zero length if git is a bit old, as in RPi images.
+	// So need to check that.
+	if( std::string(APP_BUILD_GIT_BRANCH).size() > 1 )
+	{
+		std::cout << "Build from git branch " << APP_BUILD_GIT_BRANCH << std::endl;
+	}
 #endif
+}
+
+void CommandLineOptions::PrintTypeSizes()const
+{
+	std::cout  << std::endl << "***** Type size info at build time *****" << std::endl;
+#define SHOW_TYPE_SIZE(__TYPE__) std::cout << "sizeof(" << #__TYPE__ << ") = " << sizeof(__TYPE__)  << std::endl;
+	SHOW_TYPE_SIZE(void*);
+	SHOW_TYPE_SIZE(char*);
+	SHOW_TYPE_SIZE(int*);
+	std::cout << std::endl;
+	SHOW_TYPE_SIZE(char);
+	SHOW_TYPE_SIZE(short);
+	SHOW_TYPE_SIZE(int);
+	SHOW_TYPE_SIZE(long);
+	SHOW_TYPE_SIZE(long int);
+	SHOW_TYPE_SIZE(long long);
+	SHOW_TYPE_SIZE(uint8_t);
+	SHOW_TYPE_SIZE(uint16_t);
+	SHOW_TYPE_SIZE(uint32_t);
+	SHOW_TYPE_SIZE(uint64_t);
+	SHOW_TYPE_SIZE(float);
+	SHOW_TYPE_SIZE(double);
+	SHOW_TYPE_SIZE(size_t);
+	SHOW_TYPE_SIZE(timeval);
+	SHOW_TYPE_SIZE(__time_t);
+	SHOW_TYPE_SIZE(__suseconds_t);
+	std::cout << std::endl;
+	SHOW_TYPE_SIZE(std::string);
+	SHOW_TYPE_SIZE(std::vector<int>);
+	SHOW_TYPE_SIZE(std::vector<uint32_t>);
+	SHOW_TYPE_SIZE(std::vector<long>);
+#undef SHOW_TYPE_SIZE
+	std::cout << "*********************************"  << std::endl << std::endl;
 }
 
 void CommandLineOptions::PrintGetHelp()const
