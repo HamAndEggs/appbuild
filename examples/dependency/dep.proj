@@ -13,7 +13,6 @@
 				"../hello_lib"
             ],
 			"target":"executable",
-			"output_name":"runme",
 			"optimisation":"2"
 		},
 		"debug":
@@ -27,7 +26,6 @@
 				"../hello_lib"
             ],
 			"target":"executable",
-			"output_name":"dependency_dbg",
 			"optimisation":"0"
 		}
 	},

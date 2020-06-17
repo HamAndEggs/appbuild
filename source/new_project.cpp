@@ -177,7 +177,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     configs.push_back(newConfig);
 
     // Now build the project object.
-    Project newProject(pathedProjectFilename,SourceFiles,configs,pLoggingMode);
+    Project newProject(pNewProjectName,projectPath,SourceFiles,configs,pLoggingMode);
     if( newProject == false )
     {
         std::cout << "Failed to create default project file, [" << pathedProjectFilename << "]" << std::endl;        

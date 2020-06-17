@@ -22,6 +22,12 @@
 #include <map>
 #include <set>
 
+// This is here to allow to_string to be used in macros where the input type could be a basic type or a more complex one, such as a string.
+namespace std
+{
+   inline const std::string& to_string(const std::string& pString){return pString;}
+};
+
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 typedef std::vector<std::string> StringVec;

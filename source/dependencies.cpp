@@ -24,15 +24,15 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-Dependencies::Dependencies() : mUsingProjectFile(false)
+Dependencies::Dependencies()
 {
-    mProjectFileTime.tv_nsec = 0;
-    mProjectFileTime.tv_sec = 0;
 }
 
-Dependencies::Dependencies(const std::string& pProjectFile) : mUsingProjectFile(true)
+void Dependencies::AddGenericFileDependency(const std::string& pPathedFileName)
 {
-	GetFileTime(pProjectFile,mProjectFileTime);
+	timespec FileTime;
+	GetFileTime(pPathedFileName,FileTime);
+	mGenericFileDependencies[pPathedFileName] = FileTime;
 }
 
 bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::string& pObjectFile,const StringVec& pIncludePaths)
@@ -57,20 +57,24 @@ bool Dependencies::RequiresRebuild(const std::string& pSourceFile,const std::str
 	// Get the object files info, if this fails then the file is not there, if it is not a regular file then that is wrong and so will rebuild it too.
 	if( GetFileTime(pObjectFile,ObjFileTime) )
 	{
-		// Before scanning the file, check against the project file time, if one was set. NOT the same as project file missing.
-		// If the project file has changed in anyway we MUST rebuild everything as it's hard to know what the full impact could be.
-		// mUsingProjectFile exists because the SHEBANG functionality does not generate a project file to test against. 
-		if( mUsingProjectFile && FileYoungerThanObjectFile(mProjectFileTime,ObjFileTime) )
-			return true;
+		// Before scanning the file, check against the generic file times, if any was set. NOT the same as project file missing.
+		// If a file has changed in anyway we MUST rebuild everything as it's hard to know what the full impact could be. Example, the project file.
+		for( auto dependency : mGenericFileDependencies )
+		{
+			if( FileYoungerThanObjectFile(dependency.second,ObjFileTime) )
+			{
+				return true;
+			}
+		}
 
-		return CheckDependencies(pSourceFile,ObjFileTime,IncludePaths);
+		return CheckSourceDependencies(pSourceFile,ObjFileTime,IncludePaths);
 	}
 
 	// Obj not there, so build it.
 	return true;
 }
 
-bool Dependencies::CheckDependencies(const std::string& pSourceFile,const timespec& pObjFileTime,const StringVec& pIncludePaths)
+bool Dependencies::CheckSourceDependencies(const std::string& pSourceFile,const timespec& pObjFileTime,const StringVec& pIncludePaths)
 {
 	// Check that we have not already checked this file.
 	auto found = mFileDependencyState.find(pSourceFile);
@@ -93,7 +97,7 @@ bool Dependencies::CheckDependencies(const std::string& pSourceFile,const timesp
 			if( mFileCheckedState[filename] == false )
 			{
 				mFileCheckedState[filename] = true;
-				bool result = CheckDependencies(filename,pObjFileTime,pIncludePaths);
+				bool result = CheckSourceDependencies(filename,pObjFileTime,pIncludePaths);
 				mFileDependencyState[filename] = result;
 				if( result )
 					return true;

@@ -40,28 +40,29 @@ namespace appbuild{
 class Project
 {
 public:
-/****** TODO and NOTE!!! I need to change code from passing in pFilename to a project root path. Does need to know the file it came from. But should know it's working directory ******/
- 
 	/**
 	 * @brief Construct a new basic project object that can build the passed in source file.
 	 *  This constructure is mainly used for the shebang code and auto generation of projects when creating a new applications / libraries.
-	 * @param pFilename The filename of the project file that was loaded.
+	 * @param pProjectName The name of the project that will uniquely identify it within a group of loaded projects.
+	 * @param pProjectPath The root path that all paths in the project are relative too.
 	 * @param pSourceFiles The source files to add to the new project.
 	 * @param pConfigurations The configurations to add to this project.
 	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pFilename,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
+	Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
 	 * 
-	 * @param pFilename The filename of the project file that was loaded.
+	 * @param pProjectJson The root json for the project definition.
+	 * @param pProjectName The name of the project that will uniquely identify it within a group of loaded projects.
+	 * @param pProjectPath The root path that all paths in the project are relative too.
 	 * @param pNumThreads The number of threads to build the project with.
 	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 * @param pRebuild If true then the build process will be a full rebuild.
 	 * @param pTruncateOutput Sometimes the errors from the compiler can be too long, this will cause these errors to be truncated.
 	 */
-	Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
+	Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
 
 	/**
 	 * @brief Destroy the Project object
@@ -81,7 +82,6 @@ public:
 	 * @return std::string The name of a configuration to use or null if no default could be determined.
 	 */
 	std::string FindDefaultConfigurationName()const;
-	const std::string& GetPathedProjectFilename()const{return mPathedProjectFilename;}
 
 	/**
 	 * @brief Returns a vector of all the configuration names in the project.
@@ -90,17 +90,24 @@ public:
 	 */
 	const StringVec GetConfigurationNames()const;
 
+	/**
+	 * @brief Adds a generic file to the list of file dates to be tested against.
+	 * This is used for the project file, if there is one, and maybe some embedded resource files.
+	 * 
+	 * @param pPathedFileName Full path to the file, the file is NOT parsed in anyway. If it's date is younger than the object file being tested a rebuild will be triggered.
+	 */
+	void AddGenericFileDependency(const std::string& pPathedFileName);
+
 private:
 
 	ConfigurationPtr GetConfiguration(const std::string& pName)const;
 
-	bool ReadConfigurations(const rapidjson::Value& pConfigs);
+	bool ReadConfigurations(const rapidjson::Value& pConfigs,const std::string& pDefaultOutputName);
 
 	bool CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 	bool ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 	bool LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
-
 
 	// Some options that are passed into the constructor.
 	const size_t mNumThreads;
@@ -109,8 +116,8 @@ private:
 	const size_t mTruncateOutput;
 	
 	// This project file, fully pathed.
-	const std::string mPathedProjectFilename;
-	const std::string mProjectDir;
+	const std::string mProjectName; //!< The name of the project that will uniquely identify it within a group of loaded projects.
+	const std::string mProjectDir; //!< The root path that all paths in the project are relative too.
 
 	Dependencies mDependencies;
 	SourceFiles mSourceFiles;

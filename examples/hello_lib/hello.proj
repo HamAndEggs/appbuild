@@ -9,7 +9,6 @@
 				"A_NUMBER_DEF=7"
 			],
 			"target":"library",
-			"output_name":"runme",
 			"optimisation":"2"
 		},
 		"debug":
@@ -19,8 +18,7 @@
 				"DEBUG_BUILD",
 				"A_NUMBER_DEF=2"
 			],
-			"target":"library",
-			"output_name":"hello_dbg"
+			"target":"library"
 		}
 	},
 	"source_files":

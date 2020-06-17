@@ -30,14 +30,21 @@ namespace appbuild{
 class Dependencies
 {
 public:
-	Dependencies();// No project file, for shebang support.
-	Dependencies(const std::string& pProjectFile);
+	Dependencies();
 
 	// Returns true if the object file date is older than the source file or any of it's dependencies.
 	bool RequiresRebuild(const std::string& pSourceFile,const std::string& pObjectFile,const StringVec& pIncludePaths);
 
+	/**
+	 * @brief Adds a generic file to the list of file dates to be tested against.
+	 * This is used for the project file, if there is one, and maybe some embedded resource files.
+	 * 
+	 * @param pPathedFileName Full path to the file, the file is NOT parsed in anyway. If it's date is younger than the object file being tested a rebuild will be triggered.
+	 */
+	void AddGenericFileDependency(const std::string& pPathedFileName);
+
 private:
-	bool CheckDependencies(const std::string& pSourceFile,const timespec& pObjFileTime,const StringVec& pIncludePaths);
+	bool CheckSourceDependencies(const std::string& pSourceFile,const timespec& pObjFileTime,const StringVec& pIncludePaths);
 	bool GetFileTime(const std::string& pFilename,timespec& rFileTime);
 	bool FileYoungerThanObjectFile(const std::string& pFilename,const timespec& pObjFileTime);
 	bool FileYoungerThanObjectFile(const timespec& pOtherTime,const timespec& pObjFileTime)const;
@@ -48,13 +55,13 @@ private:
 	typedef std::unordered_map<std::string,StringSet> DependencyMap;
 	typedef std::unordered_map<std::string,bool> FileState;	// True if it is out of date and thus the source file needs building, false it is not. If not found we have not checked it yet.
 
-    const bool mUsingProjectFile;
+
 	DependencyMap mDependencies;
 	FileTimeMap mFileTimes;
 	FileState mFileDependencyState;
 	FileState mFileCheckedState;
-	timespec mProjectFileTime;	// All files have their dates compared against this so that if you touch the project file it does a rebuild all.
 
+	FileTimeMap mGenericFileDependencies;	//!< A list of files who's dates are checked against the object file, and if younger will ask for a rebuild of the source file. This is a separate list so we can explcity check these files.
 };
 
 //////////////////////////////////////////////////////////////////////////

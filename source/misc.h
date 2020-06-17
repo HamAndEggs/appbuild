@@ -55,6 +55,13 @@ std::string GetPath(const std::string& pPathedFileName);
 std::string GetCurrentWorkingDirectory();
 std::string CleanPath(const std::string& pPath);
 
+/**
+ * @brief Based on the string passed in will attempt to make a reasonble guess for an output file name.
+ * 
+ * @param pProjectName A string that should contain something to work with. A reasonble prompt.
+ * @return std::string If no guess can be made, the string "binary" will be returned.
+ */
+std::string GuessOutputName(const std::string& pProjectName);
 
 
 /**
