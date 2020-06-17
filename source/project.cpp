@@ -408,7 +408,7 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs,const std::str
 	// If more than one configuration then list the ones read.
 	if( mLoggingMode >= LOG_INFO )
 	{
-		if( mBuildConfigurations.size() > 0 )
+		if( mBuildConfigurations.size() > 1 )
 		{
 			std::string comma = " ";
 			std::cout << "Multiple configurations available: ";
