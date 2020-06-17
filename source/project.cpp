@@ -212,7 +212,7 @@ bool Project::Build(const std::string& pConfigName)
 	if( mResourceFiles.size() > 0 )
 	{
 		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
-		BuildTaskResourceFiles ResourceTask("Resource Files",mResourceFiles,activeConfig->GetOutputPath(),mLoggingMode);
+		BuildTaskResourceFiles ResourceTask(mResourceFiles,activeConfig->GetOutputPath(),mLoggingMode);
 
 		ResourceTask.Execute();
 		while( ResourceTask.GetIsCompleted() == false )

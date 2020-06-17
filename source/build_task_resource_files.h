@@ -38,7 +38,7 @@ class BuildTaskResourceFiles : public BuildTask
 {
 public:
 
-	BuildTaskResourceFiles(const std::string& pTaskName,const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode);
+	BuildTaskResourceFiles(const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode);
 	virtual ~BuildTaskResourceFiles();
 
 	virtual const std::string& GetOutputFilename()const{return mOutputPath;}
