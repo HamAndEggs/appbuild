@@ -68,7 +68,7 @@ class Configuration
 {
 public:
 	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation = "0",const std::string& pDebugLevel = "2");// Creates a default configuration suitable for simple c++14 projects.
-	Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pDefaultOutputName,const std::string& pProjectDir,int pLoggingMode);
+	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig);
 	~Configuration();
 
 	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;

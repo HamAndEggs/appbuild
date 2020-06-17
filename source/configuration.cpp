@@ -67,7 +67,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 
 }
 
-Configuration::Configuration(const std::string& pConfigName,const rapidjson::Value& pConfig,const std::string& pDefaultOutputName,const std::string& pProjectDir,int pLoggingMode):
+Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
 		mLoggingMode(pLoggingMode),
@@ -78,7 +78,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		mLinker("gcc"),
 		mArchiver("ar"),
 		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
-		mOutputName(pDefaultOutputName),
+		mOutputName(pOutputName),
 		mCppStandard("c++14"),
 		mOptimisation("0"),
 		mDebugLevel("2"),
@@ -229,9 +229,9 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
 		}
 		mOutputName = filename;
 	}
-	else
-	{
-		if( mTargetType == TARGET_LIBRARY )
+	else if( mTargetType == TARGET_EXEC )
+	{// If the target is an executable then we're safe to use a default name. For other output types, user has to supply an output.
+		if( mTargetType == TARGET_LIBRARY || mTargetType == TARGET_SHARED_LIBRARY )
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";
 		}
@@ -241,6 +241,7 @@ Configuration::Configuration(const std::string& pConfigName,const rapidjson::Val
     		std::cout << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
         }
 	}
+
 	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
 	
 	mOptimisation = GetStringLog(pConfig,"optimisation",mOptimisation,mLoggingMode >= LOG_VERBOSE);

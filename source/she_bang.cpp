@@ -5,6 +5,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <vector>
+#include <memory>
 
 #include "json.h"
 
@@ -196,9 +197,6 @@ int BuildFromShebang(int argc,char *argv[])
         std::cout << "Skipping rebuild, executable is not out of date." << std::endl;
     }
 
-    // Now do the normal build thing.
-    const std::string file = GetFileName(fakeProjectFilename);
-
     if( chdir(projectTempFolder.c_str()) != 0 )
     {
         std::cerr << "Failed to " << projectTempFolder << std::endl;
@@ -223,7 +221,7 @@ int BuildFromShebang(int argc,char *argv[])
         ConfigurationsVec configs;
         configs.push_back(std::move(newConfig));
 
-        Project sheBangProject(fakeProjectFilename,SourceFiles,configs,LOGGING_MODE);
+        Project sheBangProject(usersProjectName,projectTempFolder,SourceFiles,configs,LOGGING_MODE);
         if( sheBangProject == false )
         {
             std::cout << "Failed to create default project, [" << usersProjectName << "]" << std::endl;        
@@ -233,13 +231,13 @@ int BuildFromShebang(int argc,char *argv[])
         const std::string configName = sheBangProject.FindDefaultConfigurationName();
         if( configName.size() == 0 )
         {
-            std::cerr << "No configuration found in the shebang virtual project, implementation error, please log a bug. \'" << file << "\'" << std::endl;
+            std::cerr << "No configuration found in the shebang virtual project, implementation error, please log a bug. \'" << usersProjectName << "\'" << std::endl;
             return EXIT_FAILURE;
         }
 
         if( sheBangProject.Build(configName) == false )
         {
-            std::cerr << "Build failed for project file \'" << file << "\'" << std::endl;
+            std::cerr << "Build failed for project \'" << usersProjectName << "\'" << std::endl;
             return EXIT_FAILURE;
         }
     }

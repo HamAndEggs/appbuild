@@ -45,6 +45,7 @@ public:
 	bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
 	bool GetCreateNewProject()const{return mNewProjectName.size() > 0;}
 	bool GetInteractiveMode()const{return mInteractiveMode;}
+	bool GetProjectIsEmbedded()const{return GetProjectJsonKey().size() > 0;}
 
 	int GetLoggingMode()const{return mLoggingMode;}
 	int GetNumThreads()const{return mNumThreads;}
@@ -65,11 +66,20 @@ public:
 	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
 	const std::string& GetNewProjectName()const{return mNewProjectName;}
 
+	const std::string& GetProjectJsonKey()const{return mProjectJsonKey;}
+
 	void PrintHelp()const;
 	void PrintVersion()const;
 	void PrintTypeSizes()const;
 	void PrintGetHelp()const;
 
+	/**
+	 * @brief Handles the menu interactions of the 'limited' interactive mode.
+	 * 
+	 * @param pTheProject The project used for the selections being asked for.
+	 * @return true Continue with the selection made.
+	 * @return false They chose to quit the application.
+	 */
 	bool ProcessInteractiveMode(appbuild::Project& pTheProject);
 
 private:
@@ -87,6 +97,7 @@ private:
 	std::string mActiveConfig;
 	std::string mUpdatedOutputFileName;
 	std::string mNewProjectName;
+	std::string mProjectJsonKey; //!< If set then the code is looking for a project embedded in other json. This is the key it will look for in the ROOT document.
 };
 
 int main(int argc, char *argv[])
@@ -146,65 +157,94 @@ int main(int argc, char *argv[])
 		// Options read ok, now parse the project.
 		for(const std::string& file : Args.GetProjectFiles() )
 		{
-			appbuild::Project TheProject(file,Args.GetNumThreads(),Args.GetLoggingMode(),Args.GetReBuild(),Args.GetTruncateOutput());
-			if( TheProject )
+			// Read the project file.
+			rapidjson::Document ProjectJson;
+
+			if( appbuild::ReadJson(file,ProjectJson) )
 			{
-				if( Args.GetInteractiveMode() )
+				rapidjson::Value& projectRoot = ProjectJson;
+				// Is the project settings embedded in another file?
+				if( Args.GetProjectIsEmbedded() )
 				{
-					if( Args.ProcessInteractiveMode(TheProject) == false )
+					if( projectRoot.HasMember(Args.GetProjectJsonKey()) )
 					{
-						// User aborted interactive mode, so return.
+						projectRoot = projectRoot[Args.GetProjectJsonKey()];
+					}
+					else
+					{
+						std::cout << "The project was not found in Json object \'" << Args.GetProjectJsonKey() << "\' inside the file \'" << file << "\'" << std::endl;
+						Args.PrintGetHelp();
 						return EXIT_FAILURE;
 					}
+					
 				}
 
-				const std::string configname = Args.GetActiveConfig(TheProject.FindDefaultConfigurationName());
-
-				if( Args.GetUpdatedProject() )
+				const std::string projectPath = appbuild::GetPath(file);
+				appbuild::Project TheProject(projectRoot,file,projectPath,Args.GetNumThreads(),Args.GetLoggingMode(),Args.GetReBuild(),Args.GetTruncateOutput());
+				if( TheProject )
 				{
-					std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
-
-					rapidjson::Document jsonOutput;
-					jsonOutput.SetObject(); // Root object is an object not an array.
-					TheProject.Write(jsonOutput);
-					if( appbuild::SaveJson(Args.GetUpdatedOutputFileName(),jsonOutput) )
+					TheProject.AddGenericFileDependency(file);
+					if( Args.GetInteractiveMode() )
 					{
-						std::cout << "Project file updated" << std::endl;
+						if( Args.ProcessInteractiveMode(TheProject) == false )
+						{
+							// User aborted interactive mode, so return.
+							return EXIT_FAILURE;
+						}
+					}
+
+					const std::string configname = Args.GetActiveConfig(TheProject.FindDefaultConfigurationName());
+
+					if( Args.GetUpdatedProject() )
+					{
+						std::cout << "Updating project file and writing the results too \'" << Args.GetUpdatedOutputFileName() << "\'" << std::endl;
+
+						rapidjson::Document jsonOutput;
+						jsonOutput.SetObject(); // Root object is an object not an array.
+						TheProject.Write(jsonOutput);
+						if( appbuild::SaveJson(Args.GetUpdatedOutputFileName(),jsonOutput) )
+						{
+							std::cout << "Project file updated" << std::endl;
+						}
+						else
+						{
+							std::cout << "Failed to write to the destination file." << std::endl;
+						}
+					}// This is an if else as after loading, if the project is to be updated with the defaults, then we do not want to then also build.
+					else if( configname.size() > 0 )
+					{
+						const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
+						if( TheProject.Build(configname) )
+						{
+							if( Args.GetTimeBuild() )
+							{
+								std::cout << "Build took: " << appbuild::GetTimeDifference(build_start,std::chrono::system_clock::now()) << std::endl;
+							}
+
+							if( Args.GetRunAfterBuild() )
+							{
+								TheProject.RunOutputFile(configname);
+							}
+						}
+						else
+						{
+							std::cout << "Build failed for project file \'" << file << "\'" << std::endl;
+						}
 					}
 					else
 					{
-						std::cout << "Failed to write to the destination file." << std::endl;
-					}
-				}// This is an if else as after loading, if the project is to be updated with the defaults, then we do not want to then also build.
-				else if( configname.size() > 0 )
-				{
-					const std::chrono::system_clock::time_point build_start = std::chrono::system_clock::now();
-					if( TheProject.Build(configname) )
-					{
-						if( Args.GetTimeBuild() )
-						{
-							std::cout << "Build took: " << appbuild::GetTimeDifference(build_start,std::chrono::system_clock::now()) << std::endl;
-						}
-
-						if( Args.GetRunAfterBuild() )
-						{
-							TheProject.RunOutputFile(configname);
-						}
-					}
-					else
-					{
-						std::cout << "Build failed for project file \'" << file << "\'" << std::endl;
+						std::cout << "No configuration found in the project file \'" << file << "\'" << std::endl;
 					}
 				}
 				else
 				{
-					std::cout << "No configuration found in the project file \'" << file << "\'" << std::endl;
+					std::cout << "There was an error in the project file \'" << file << "\'" << std::endl;
+					Args.PrintGetHelp();
 				}
 			}
 			else
 			{
-				std::cout << "There was an error in the project file \'" << file << "\'" << std::endl;
-				Args.PrintGetHelp();
+				std::cout << "The project file \'" << file << "\' could not be loaded" << std::endl;
 			}
 		}
 	}
@@ -233,6 +273,7 @@ int main(int argc, char *argv[])
 		DEF_ARG(ARG_SHEBANG,no_argument,				'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
 		DEF_ARG(ARG_NEW_PROJECT,required_argument,		'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for source files and adds them to a new project file.\nIf a project file already exists then it will fail.") \
 		DEF_ARG(ARG_INTERACTIVE,no_argument,			'i',"interactive","If the project has multiple configurations then a menu will allow you to select which to build.\nThe default configuration, if marked, will be selected by default.")	\
+		DEF_ARG(ARG_EMBEDDED_PROJECT,required_argument, 'e',"embedded-project","A project can be in the root of other json data, that is embedded in the json file of another application.\nThis allows you to state the key name in the root document where to find the appbuild proecjt.") \
 		
 
 enum eArguments
@@ -313,6 +354,16 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_INTERACTIVE:
 			mInteractiveMode = true;
+			break;
+
+		case ARG_EMBEDDED_PROJECT:
+			if( optarg )
+				mProjectJsonKey = optarg;
+			else
+			{
+				mShowHelp = true;
+				std::cout << "Option -e (embedded-project) was not passed correct value. -e keyname or -embedded-project=keyname where keyname is the object key in the root document." << std::endl;
+			}
 			break;
 
 		case ARG_ACTIVE_CONFIG:

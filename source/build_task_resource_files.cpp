@@ -108,7 +108,7 @@ public:
 	}
 };
 
-BuildTaskResourceFiles::BuildTaskResourceFiles(const std::string& pTaskName, const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode): BuildTask(pTaskName,pLoggingMode),
+BuildTaskResourceFiles::BuildTaskResourceFiles(const SourceFiles& pResourceFiles,const std::string& pOutputPath,int pLoggingMode): BuildTask("Resource Files",pLoggingMode),
 	mOutputPath(CleanPath(pOutputPath + "/resources/")),
 	mIncludeLZ4Code(true)
 {

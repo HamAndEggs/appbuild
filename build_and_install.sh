@@ -181,12 +181,14 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
             Message $BOLDBLUE "Build hello world"
             cd ./hello_world
             valgrind $EXEC_OUTPUT_FILE -x -V -r
+            $EXEC_OUTPUT_FILE -x
             cd ..
             echo
 #****************************************************
             Message $BOLDBLUE "Build dependency test"
             cd ./dependency
-            valgrind $EXEC_OUTPUT_FILE -x -V -r
+            valgrind $EXEC_OUTPUT_FILE -V -r
+            $EXEC_OUTPUT_FILE -x
             cd ..
             echo
 #****************************************************
@@ -199,7 +201,7 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
 #****************************************************
             Message $BOLDBLUE "Build failure test"
             cd ./unit-test-1-build-fail
-            valgrind $EXEC_OUTPUT_FILE -x -V -r
+            valgrind $EXEC_OUTPUT_FILE -V -r
             cd ..
             echo
 #****************************************************
@@ -207,6 +209,13 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
             cd ./shebang
             $EXEC_OUTPUT_FILE -# ./hello_world.c
             $EXEC_OUTPUT_FILE -# ./hello_world.cpp
+            cd ..
+            echo
+#****************************************************
+            Message $BOLDBLUE "Build embedded project test"
+            cd ./embedded-project
+            valgrind $EXEC_OUTPUT_FILE -V -e appbuild embedded-project.example
+            $EXEC_OUTPUT_FILE -x -e appbuild embedded-project.example
             cd ..
             echo
 #****************************************************

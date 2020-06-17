@@ -21,6 +21,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <algorithm>
+#include <cctype>
 
 #include "misc.h"
 
@@ -120,6 +121,34 @@ std::string GetCurrentWorkingDirectory()
 std::string CleanPath(const std::string& pPath)
 {
     return ReplaceString(ReplaceString(pPath,"/./","/"),"//","/");
+}
+
+std::string GuessOutputName(const std::string& pProjectName)
+{
+    if( pProjectName.size() > 0 )
+    {
+        // Lets see if assuming its a path to a file will give us something.
+        std::string aGuess = GetFileName(pProjectName,true);
+        if( aGuess.size() > 0 )
+            return aGuess;
+
+        // That was unexpected. So lets just removed all characters I don't like and see what we get.
+        // At the end of the day if the user does not like it they can set it in the project file.
+        // This code is here to allow for minimal project files.
+        aGuess.reserve(pProjectName.size());
+        for( auto c : pProjectName )
+        {
+            if( std::isalnum(c) )
+                aGuess += c;
+        }
+
+        // What about that?
+        if( aGuess.size() > 0 )
+            return aGuess;
+
+    }
+    // We have nothing, so lets just use this.
+    return "binary";
 }
 
 std::string GetExtension(const std::string& pFileName,bool pToLower)

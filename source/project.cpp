@@ -35,16 +35,15 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode):
+Project::Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode):
 	mNumThreads(1),
 	mLoggingMode(pLoggingMode),
 	mRebuild(false),
 	mTruncateOutput(0),
-	mPathedProjectFilename(pFilename),
-	mProjectDir(GetPath(pFilename)),
-	mDependencies(pFilename),
+	mProjectName(pProjectName),
+	mProjectDir(pProjectPath),
 	mSourceFiles(pSourceFiles),
-	mResourceFiles(GetPath(pFilename),pLoggingMode),
+	mResourceFiles(pProjectPath,pLoggingMode),
 	mOk(false)
 {
 	for( auto& c : pConfigurations )
@@ -54,84 +53,80 @@ Project::Project(const std::string& pFilename,const SourceFiles& pSourceFiles,Co
 	
 	if( pLoggingMode  >= LOG_VERBOSE )
 	{
-		std::cout << "Project file name and path is " << pFilename << std::endl;
+		std::cout << "Project name is " << pProjectName << std::endl;
 		std::cout << "Project path is " << mProjectDir << std::endl;
 	}
 
 	mOk = mSourceFiles.size() > 0;
 }
 
-Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
+Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mLoggingMode(pLoggingMode),
 		mRebuild(pRebuild),
 		mTruncateOutput(pTruncateOutput),
-		mPathedProjectFilename(pFilename),
-		mProjectDir(GetPath(pFilename)),
-		mDependencies(pFilename),
-		mSourceFiles(GetPath(pFilename),pLoggingMode),
-		mResourceFiles(GetPath(pFilename),pLoggingMode),
+		mProjectName(pProjectName),
+		mProjectDir(pProjectPath),
+		mSourceFiles(pProjectPath,pLoggingMode),
+		mResourceFiles(pProjectPath,pLoggingMode),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
-
+	
 	if( pLoggingMode >= LOG_VERBOSE )
-		std::cout << "Reading project file " << mPathedProjectFilename << std::endl;
+	{
+		std::cout << "Project name is " << pProjectName << std::endl;
+		std::cout << "Project path is " << mProjectDir << std::endl;
+	}
 
-	// Now build our project object.
-	rapidjson::Document ProjectJson;
+	// Is the project file already loaded, if so then there is a dependency loop, we have to fail else will compile for ever.
+	if( sLoadedProjects.find(mProjectName) != sLoadedProjects.end() )
+	{
+		std::cout << "Dependency loop detected, the project \'" << mProjectName << "\' has already been referenced as a dependency." << std::endl;
+		return;
+	}
 
-	if( ReadJson(mPathedProjectFilename,ProjectJson) )
-    {
-		// Is the project file already loaded, if so then there is a dependency loop, we have to fail else will compile for ever.
-		if( sLoadedProjects.find(mPathedProjectFilename) != sLoadedProjects.end() )
-		{
-			std::cout << "Dependency loop detected, the project file \'" << mPathedProjectFilename << "\' has already been referenced as a dependency." << std::endl;
+	// Record this file that we have loaded so we know it has been is loaded. Detects circular dependencies.
+	sLoadedProjects.insert(mProjectName);
+
+	// Lets make up a reasonble name for the exe.
+	// Use the passed in project name, but we do need to ensure that there is not characters to do with paths as they will cause problems.
+	// The passed in project name could be anything, so may include path info. It's used to uniquely identify the project in a build. So could be verbose.
+	const std::string defaultOutputName = GuessOutputName(mProjectName);
+
+	// Read the configs.
+	if( pProjectJson.HasMember("configurations") )
+	{
+		if( !ReadConfigurations(pProjectJson["configurations"],defaultOutputName) )
 			return;
-		}
+	}
 
-		// Record this file that we are loaded so we know it is loaded.
-		sLoadedProjects.insert(mPathedProjectFilename);
+	if( mBuildConfigurations.size() == 0 )
+	{
+		if( mLoggingMode >= LOG_VERBOSE )
+			std::cout << "No configurations found in the project \'" << mProjectName << "\' using default exec configuration." << std::endl;
 
-		// Read the configs.
-		if( ProjectJson.HasMember("configurations") )
-		{
-			if( !ReadConfigurations(ProjectJson["configurations"]) )
-				return;
-		}
+		ConfigurationPtr config = std::make_shared<Configuration>("release",defaultOutputName,mProjectDir,mLoggingMode,true,"2","0");
+		mBuildConfigurations[config->GetName()] = config;
+	}
 
-		if( mBuildConfigurations.size() == 0 )
-		{
-			if( mLoggingMode >= LOG_VERBOSE )
-				std::cout << "No configurations found in the project file \'" << mPathedProjectFilename << "\' using default exec configuration." << std::endl;
+	assert( mBuildConfigurations.size() > 0 );
 
-			ConfigurationPtr config = std::make_shared<Configuration>("release",GetFileName(mPathedProjectFilename,true),mProjectDir,mLoggingMode,true,"2","0");
-			mBuildConfigurations[config->GetName()] = config;
-		}
-
-		assert( mBuildConfigurations.size() > 0 );
-
-		// Add the source files
-		if( ProjectJson.HasMember("source_files") )
-		{
-			mSourceFiles.Read(ProjectJson["source_files"]);
-		}
-		else
-		{
-			std::cout << "No source files, what the should do I compile? Project file \'" << mPathedProjectFilename << std::endl;
-			return;
-		}
-
-		// Add the source files
-		if( ProjectJson.HasMember("resource_files") )
-		{
-			mResourceFiles.Read(ProjectJson["resource_files"]);
-		}
-    }
+	// Add the source files
+	if( pProjectJson.HasMember("source_files") )
+	{
+		mSourceFiles.Read(pProjectJson["source_files"]);
+	}
 	else
 	{
-		std::cout << "The project file \'" << mPathedProjectFilename << "\' could not be loaded" << std::endl;
+		std::cout << "No source files, what the should do I compile? Project \'" << mProjectName << std::endl;
 		return;
+	}
+
+	// Add the source files
+	if( pProjectJson.HasMember("resource_files") )
+	{
+		mResourceFiles.Read(pProjectJson["resource_files"]);
 	}
 
 	// Get here all is ok.
@@ -141,7 +136,7 @@ Project::Project(const std::string& pFilename,size_t pNumThreads,int pLoggingMod
 Project::~Project()
 {
 	// Done with this, can forget it now.
-	sLoadedProjects.erase(mPathedProjectFilename);
+	sLoadedProjects.erase(mProjectName);
 }
 
 bool Project::Build(const std::string& pConfigName)
@@ -160,42 +155,48 @@ bool Project::Build(const std::string& pConfigName)
 		const std::string ProjectFile = proj.first;
 		std::cout << "Checking dependency \'" << ProjectFile << "\'" << std::endl;
 
-		if( !FileExists(ProjectFile) )
+		rapidjson::Document ProjectJson;
+
+		if( ReadJson(ProjectFile,ProjectJson) )
+		{
+			const std::string projectPath = appbuild::GetPath(ProjectFile);
+
+			Project TheProject(ProjectJson,ProjectFile,projectPath,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
+			if( TheProject )
+			{
+				std::string configname = proj.second;
+				if( configname.empty() )
+					configname = activeConfig->GetName();
+
+				if( TheProject.Build(configname) == false )
+				{
+					return false;
+				}
+
+				// That worked, lets add it's output file to our input libs.
+				ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
+				assert( DepConfig != nullptr );// Should not happen, it was built ok...		
+				if( DepConfig->GetTargetType() == TARGET_LIBRARY )
+				{
+					const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
+					mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
+					mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
+
+					if( mLoggingMode >= LOG_VERBOSE )
+						std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
+				}
+			}
+			else
+			{
+				std::cout << "There was an error in the project file \'" << ProjectFile << "\'" << std::endl;
+				return false;
+			}		
+		}
+		else
 		{
 			std::cout << "Error: Project file " << ProjectFile << " is not found." << std::endl << "Current working dir " << GetCurrentWorkingDirectory() << std::endl;
 			return false;
 		}
-
-		Project TheProject(ProjectFile,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
-		if( TheProject )
-		{
-			std::string configname = proj.second;
-			if( configname.empty() )
-				configname = activeConfig->GetName();
-
-			if( TheProject.Build(configname) == false )
-			{
-				return false;
-			}
-
-			// That worked, lets add it's output file to our input libs.
-			ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
-			assert( DepConfig != nullptr );// Should not happen, it was built ok...		
-			if( DepConfig->GetTargetType() == TARGET_LIBRARY )
-			{
-				const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
-				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
-				mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
-
-				if( mLoggingMode >= LOG_VERBOSE )
-					std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
-			}
-		}
-		else
-		{
-			std::cout << "There was an error in the project file \'" << ProjectFile << "\'" << std::endl;
-			return false;
-		}		
 	}
 
 	// We know what config to build with, lets go.
@@ -211,19 +212,18 @@ bool Project::Build(const std::string& pConfigName)
 	if( mResourceFiles.size() > 0 )
 	{
 		// We run this build task now as it's a prebuild step and will need to make new tasks of it's own.
-		BuildTaskResourceFiles* ResourceTask = new BuildTaskResourceFiles("Resource Files",mResourceFiles,activeConfig->GetOutputPath(),mLoggingMode);
+		BuildTaskResourceFiles ResourceTask(mResourceFiles,activeConfig->GetOutputPath(),mLoggingMode);
 
-		ResourceTask->Execute();
-		while( ResourceTask->GetIsCompleted() == false )
+		ResourceTask.Execute();
+		while( ResourceTask.GetIsCompleted() == false )
 		{
 			std::this_thread::yield();
 		}
 
-		if( ResourceTask->GetOk() )
+		if( ResourceTask.GetOk() )
 		{
-			ResourceTask->GetGeneratedResourceFiles(GeneratedResourceFiles);
+			ResourceTask.GetGeneratedResourceFiles(GeneratedResourceFiles);
 		}
-
 	}
 
 	StringVec OutputFiles;
@@ -250,13 +250,13 @@ bool Project::Build(const std::string& pConfigName)
 			return LinkSharedLibrary(activeConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
-			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
 			break;
 		}
 	}
 	else
 	{
-		std::cerr << "Unable to create build tasks for the configuration \'" << activeConfig->GetName() << "\' in project \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cerr << "Unable to create build tasks for the configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
 	}
 
 	return false;
@@ -337,11 +337,6 @@ std::string Project::FindDefaultConfigurationName()const
 	return "";
 }
 
-	/**
-	 * @brief Returns a vector of all the configuration names in the project.
-	 * 
-	 * @return const StringVec 
-	 */
 const StringVec Project::GetConfigurationNames()const
 {
 	StringVec names;
@@ -361,19 +356,20 @@ ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
 		{
 			return FoundConfig->second;
 		}
-		std::cerr << "The configuration \'" << pName << "\' to build was not found in the project file \'" << mPathedProjectFilename << "\'" << std::endl;
+		std::cerr << "The configuration \'" << pName << "\' to build was not found in the project \'" << mProjectName << "\'" << std::endl;
 	}
 
 	return nullptr;
 }
 
-bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
+void Project::AddGenericFileDependency(const std::string& pPathedFileName)
+{
+	mDependencies.AddGenericFileDependency(pPathedFileName);
+}
+
+bool Project::ReadConfigurations(const rapidjson::Value& pConfigs,const std::string& pDefaultOutputName)
 {
 	assert(pConfigs.IsObject());
-
-	// Use the name of the project, without it's extension, as the default out bin name.
-	// This is done as this tool supports minimal project files that just list source files.
-	const std::string defaultOutputName = GetFileName(mPathedProjectFilename,true);
 
 	if( pConfigs.IsObject() )
 	{
@@ -384,35 +380,35 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 
 			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
 			{
-				mBuildConfigurations[name] = std::make_shared<Configuration>(name,val,defaultOutputName,mProjectDir,mLoggingMode);
+				mBuildConfigurations[name] = std::make_shared<Configuration>(name,pDefaultOutputName,mProjectDir,mLoggingMode,val);
 				if( mBuildConfigurations[name]->GetOk() == false )
 				{
-					std::cerr << "Configuration \'"<< name << "\' failed to load, error in project " << mPathedProjectFilename << std::endl;
+					std::cerr << "Configuration \'"<< name << "\' failed to load, error in project " << mProjectName << std::endl;
 					return false;
 				}
 			}
 			else
 			{
-				std::cerr << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mPathedProjectFilename << std::endl;
+				std::cerr << "Configuration \'"<< name << "\' not unique, names must be unique, error in project " << mProjectName << std::endl;
 				return false;
 			}
 		}
 	}
 	else if( pConfigs.IsArray() )
 	{
-		std::cerr << "Configuration is not an object, it is an array, do not use an array, error in project " << mPathedProjectFilename << std::endl;
+		std::cerr << "Configuration is not an object, it is an array, do not use an array, error in project " << mProjectName << std::endl;
 		return false;
 	}
 	else
 	{
-		std::cerr << "Configuration is not an object, error in project " << mPathedProjectFilename << std::endl;
+		std::cerr << "Configuration is not an object, error in project " << mProjectName << std::endl;
 		return false;
 	}
 
 	// If more than one configuration then list the ones read.
 	if( mLoggingMode >= LOG_INFO )
 	{
-		if( mBuildConfigurations.size() > 0 )
+		if( mBuildConfigurations.size() > 1 )
 		{
 			std::string comma = " ";
 			std::cout << "Multiple configurations available: ";
