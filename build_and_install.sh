@@ -18,7 +18,8 @@ SOURCE_FILES=(
 		"./source/project.cpp"
 		"./source/source_files.cpp"
 		"./source/she_bang.cpp"
-        "./source/new_project.cpp")
+        "./source/new_project.cpp"
+        "./source/json.cpp")
 
 # ************************
 # Some colours
@@ -82,8 +83,8 @@ APP_BUILD_VERSION=$(cat ./version)
 
 APP_BUILD_GENERATED_DEFINES="-DAPP_BUILD_DATE=\"$APP_BUILD_DATE\" -DAPP_BUILD_TIME=\"$APP_BUILD_TIME\" -DAPP_BUILD_GIT_BRANCH=\"$APP_BUILD_GIT_BRANCH\" -DAPP_BUILD_VERSION=\"$APP_BUILD_VERSION\""
 
-RELEASE_COMPILE_FLAGS="-DNDEBUG -O3 -Wall"
-DEBUG_COMPILE_FLAGS="-DDEBUG_BUILD -O0 -Wall"
+RELEASE_COMPILE_FLAGS="-DALLOW_INCLUDE_OF_SCHEMA -DNDEBUG -O3 -Wall"
+DEBUG_COMPILE_FLAGS="-DALLOW_INCLUDE_OF_SCHEMA -DDEBUG_BUILD -O0 -Wall"
 
 # Check for build type, if not given assume release.
 COMPILE_FLAGS_C=$RELEASE_COMPILE_FLAGS

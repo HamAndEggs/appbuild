@@ -17,6 +17,7 @@
 #ifndef __JSON_H__
 #define __JSON_H__
 
+#include <iostream>
 #include <fstream>
 #include <sstream>
 
@@ -30,38 +31,14 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 // Some rapid json helpers.
-inline bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson)
-{
-   std::ofstream file(pFilename);
-   if( file.is_open() )
-   {
-      rapidjson::OStreamWrapper osw(file);
-      rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
-      return pJson.Accept(writer);
-   }
-   else
-   {
-      std::cout << "Failed to open json file  " << pFilename << " for writing" << std::endl;
-   }
-   return false;
-}
 
-inline bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
-{
-   std::ifstream jsonFile(pFilename);
-   if( jsonFile.is_open() )
-   {
-      std::stringstream jsonStream;
-      jsonStream << jsonFile.rdbuf();// Read the whole file in...
+const std::string& GetProjectFileSchema();
 
-      pJson.Parse(jsonStream.str().c_str());
+bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
 
-      // Have to invert result as I want tru if it worked, false if it failed.
-      return pJson.HasParseError() == false;
-   }
+bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
 
-   return false;
-}
+bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
 
 // Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
 // Handy for putting key pairs into an array, which is not really ideal. But....

@@ -162,6 +162,12 @@ int main(int argc, char *argv[])
 
 			if( appbuild::ReadJson(file,ProjectJson) )
 			{
+				// Validate the json.
+				if( appbuild::ValidateJsonAgainstSchema(ProjectJson) == false )
+				{
+					return EXIT_FAILURE;
+				}
+
 				rapidjson::Value& projectRoot = ProjectJson;
 				// Is the project settings embedded in another file?
 				if( Args.GetProjectIsEmbedded() )

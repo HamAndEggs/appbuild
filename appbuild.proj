@@ -6,7 +6,8 @@
 		{
 			"define":
 			[
-				"RELEASE_BUILD"
+				"RELEASE_BUILD",
+				"ALLOW_INCLUDE_OF_SCHEMA"
 			],
             "libs": [
                 "m",
@@ -21,7 +22,8 @@
 		{
 			"define":
 			[
-				"DEBUG_BUILD"
+				"DEBUG_BUILD",
+				"ALLOW_INCLUDE_OF_SCHEMA"
 			],
             "libs": [
                 "m",
@@ -51,6 +53,7 @@
 		"./source/project.cpp",
 		"./source/source_files.cpp",
 		"./source/she_bang.cpp",
-		"./source/new_project.cpp"
+		"./source/new_project.cpp",
+		"./source/json.cpp"
 	]
 }

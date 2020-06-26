@@ -1,0 +1,67 @@
+R"(
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "title": "The root schema",
+    "description": "The root schema comprises the entire JSON document.",
+    "default": {},
+    "required": [
+        "source_files"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "configurations": {
+            "description": "A build configuration for the project, such as a release build.",
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "include": {
+                    "description": "The include paths for the compiler to search on.",
+                    "type":"array",
+                    "items":{
+                        "type":"string"
+                    }
+                },
+                "libpaths": {
+                    "description": "The paths for the linker to search on.",
+                    "type":"array",
+                    "items":{
+                        "type":"string"
+                    }
+                },
+                "libs": {
+                    "description": "The libraries to link against.",
+                    "type":"array",
+                    "items":{
+                        "type":"string"
+                    }
+                },
+                "define": {
+                    "description": "The configuration specific defines.",
+                    "type":"array",
+                    "items":{
+                        "type":"string"
+                    }
+                },
+                "output_path": {
+                    "description": "The path to where the output is written.",
+                    "type":"string"
+                },
+                "target": {
+                    "description": "The target type of the configuration, executable or library.",
+                    "type":"string",
+                    "enum":["executable", "library", "sharedlibrary"]
+                }
+            }
+        },
+        "source_files": {
+            "description": "A list of source files that are common to all configurations. This is where the majority of the source will be listed.",
+            "type": "array",
+            "items":{
+                "type":"string"
+            }
+        }
+    }
+}
+)"
