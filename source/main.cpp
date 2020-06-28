@@ -35,7 +35,7 @@ class CommandLineOptions
 public:
 	CommandLineOptions(int argc, char *argv[]);
 
-	bool GetShowInformationOnly()const{return mShowHelp || mShowVersion || mShowTypeSizes;}
+	bool GetShowInformationOnly()const{return mShowHelp || mShowVersion || mShowTypeSizes || mDisplayProjectSchema;}
 	bool GetShowHelp()const{return mShowHelp;}
 	bool GetShowVersion()const{return mShowVersion;}
 	bool GetShowTypeSizes()const{return mShowTypeSizes;}
@@ -46,6 +46,8 @@ public:
 	bool GetCreateNewProject()const{return mNewProjectName.size() > 0;}
 	bool GetInteractiveMode()const{return mInteractiveMode;}
 	bool GetProjectIsEmbedded()const{return GetProjectJsonKey().size() > 0;}
+	bool GetDisplayProjectSchema()const{return mDisplayProjectSchema;}
+	bool GetWriteSchemaToFile()const{return GetSchemaSaveFilename().size() > 0;}
 
 	int GetLoggingMode()const{return mLoggingMode;}
 	int GetNumThreads()const{return mNumThreads;}
@@ -67,11 +69,13 @@ public:
 	const std::string& GetNewProjectName()const{return mNewProjectName;}
 
 	const std::string& GetProjectJsonKey()const{return mProjectJsonKey;}
+	const std::string& GetSchemaSaveFilename()const{return mSchemaSaveFilename;}
 
 	void PrintHelp()const;
 	void PrintVersion()const;
 	void PrintTypeSizes()const;
 	void PrintGetHelp()const;
+	void PrintProjectSchema()const;
 
 	/**
 	 * @brief Handles the menu interactions of the 'limited' interactive mode.
@@ -90,6 +94,7 @@ private:
 	bool mReBuild;
 	bool mTimeBuild;
 	bool mInteractiveMode;
+	bool mDisplayProjectSchema;
 	int mLoggingMode;
     int mNumThreads;
 	int mTruncateOutput;
@@ -98,6 +103,7 @@ private:
 	std::string mUpdatedOutputFileName;
 	std::string mNewProjectName;
 	std::string mProjectJsonKey; //!< If set then the code is looking for a project embedded in other json. This is the key it will look for in the ROOT document.
+	std::string mSchemaSaveFilename;	//!< The name of the file with write the project schema too, can be null, if so schema is written to standard out.
 };
 
 int main(int argc, char *argv[])
@@ -146,6 +152,11 @@ int main(int argc, char *argv[])
 		if( Args.GetShowTypeSizes() )
 		{
 			Args.PrintTypeSizes();
+		}
+
+		if( Args.GetDisplayProjectSchema() )
+		{
+			Args.PrintProjectSchema();
 		}
 	}
 	else if (Args.GetCreateNewProject() )
@@ -263,24 +274,25 @@ int main(int argc, char *argv[])
 }
 
 
-#define ARGUMENTS																																							\
-		DEF_ARG(ARG_HELP,no_argument,					'h',"help","Display this help and exit.")																			\
-		DEF_ARG(ARG_VERSION,no_argument,				'v',"version","Output version information and exit.")																\
-		DEF_ARG(ARG_SHOW_TYPE_SIZES,no_argument,		's',"type-info","Output the byte sizes of a selection of types at the time appbuild was built.")					\
-		DEF_ARG(ARG_VERBOSE,no_argument,				'V',"verbose","Print more information about progress.")																\
-		DEF_ARG(ARG_QUIET,no_argument,				    'q',"quiet","Print no information about progress, just errors will be displayed.")                       			\
-		DEF_ARG(ARG_REBUILD,no_argument,				'r',"rebuild","Clean and rebuild all the source files.")															\
-		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,		'x',"run-after-build","If the build is successful then eXecute the app, but only if one project file submitted.")	\
-		DEF_ARG(ARG_NUM_THREADS,required_argument,		'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
-		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,	'c',"active-config","Builds the given configuration, if found.")													\
-		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,	'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
-		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,	't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
-		DEF_ARG(ARG_TIME_BUILD,no_argument,				'T',"time-build","Shows the total time of the build from start to finish.")												\
-		DEF_ARG(ARG_SHEBANG,no_argument,				'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
-		DEF_ARG(ARG_NEW_PROJECT,required_argument,		'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for source files and adds them to a new project file.\nIf a project file already exists then it will fail.") \
-		DEF_ARG(ARG_INTERACTIVE,no_argument,			'i',"interactive","If the project has multiple configurations then a menu will allow you to select which to build.\nThe default configuration, if marked, will be selected by default.")	\
-		DEF_ARG(ARG_EMBEDDED_PROJECT,required_argument, 'e',"embedded-project","A project can be in the root of other json data, that is embedded in the json file of another application.\nThis allows you to state the key name in the root document where to find the appbuild proecjt.") \
-		
+#define ARGUMENTS																																									\
+		DEF_ARG(ARG_HELP,no_argument,							'h',"help","Display this help and exit.")																			\
+		DEF_ARG(ARG_VERSION,no_argument,						'v',"version","Output version information and exit.")																\
+		DEF_ARG(ARG_SHOW_TYPE_SIZES,no_argument,				's',"type-info","Output the byte sizes of a selection of types at the time appbuild was built.")					\
+		DEF_ARG(ARG_VERBOSE,no_argument,						'V',"verbose","Print more information about progress.")																\
+		DEF_ARG(ARG_QUIET,no_argument,				    		'q',"quiet","Print no information about progress, just errors will be displayed.")                       			\
+		DEF_ARG(ARG_REBUILD,no_argument,						'r',"rebuild","Clean and rebuild all the source files.")															\
+		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,				'x',"run-after-build","If the build is successful then eXecute the app, but only if one project file submitted.")	\
+		DEF_ARG(ARG_NUM_THREADS,required_argument,				'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
+		DEF_ARG(ARG_ACTIVE_CONFIG,required_argument,			'c',"active-config","Builds the given configuration, if found.")													\
+		DEF_ARG(ARG_UPDATE_PROJECT,required_argument,			'u',"update-project","Reads in the project file passed in then writes out an updated version with all the default paramiters\nfilled in that were not in the source.\nProject is not built if this option is specified.")	\
+		DEF_ARG(ARG_TRUNCATE_OUTPUT,required_argument,			't',"truncate-output","Truncates the output to the first N lines, if you're getting too many errors this can help.")	\
+		DEF_ARG(ARG_TIME_BUILD,no_argument,						'T',"time-build","Shows the total time of the build from start to finish.")												\
+		DEF_ARG(ARG_SHEBANG,no_argument,						'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
+		DEF_ARG(ARG_NEW_PROJECT,required_argument,				'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for source files and adds them to a new project file.\nIf a project file already exists then it will fail.") \
+		DEF_ARG(ARG_INTERACTIVE,no_argument,					'i',"interactive","If the project has multiple configurations then a menu will allow you to select which to build.\nThe default configuration, if marked, will be selected by default.")	\
+		DEF_ARG(ARG_DISPLAY_PROJECT_SCHEMA,optional_argument,	'S',"show-schema","Displays the schema of the project json. Arg is an optional filename, if not given then will output to std::cout.\nIf arg is specfied will save the schema to the file.")						\
+		DEF_ARG(ARG_EMBEDDED_PROJECT,required_argument,			'e',"embedded-project","A project can be in the root of other json data, that is embedded in the json file of another application.\nThis allows you to state the key name in the root document where to find the appbuild proect.") \
+
 
 enum eArguments
 {
@@ -297,6 +309,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 	mReBuild(false),
 	mTimeBuild(false),
 	mInteractiveMode(false),
+	mDisplayProjectSchema(false),
     mLoggingMode(appbuild::LOG_INFO),
 	mNumThreads(std::thread::hardware_concurrency()),
 	mTruncateOutput(0)
@@ -360,6 +373,14 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 		case ARG_INTERACTIVE:
 			mInteractiveMode = true;
+			break;
+
+		case ARG_DISPLAY_PROJECT_SCHEMA:
+			mDisplayProjectSchema = true;
+			if( optarg )
+			{
+				mSchemaSaveFilename = optarg;
+			}
 			break;
 
 		case ARG_EMBEDDED_PROJECT:
@@ -471,12 +492,30 @@ void CommandLineOptions::PrintHelp()const
 	std::cout << "Build one or more applications using the supplied project files." << std::endl << std::endl;
 	std::cout << "Mandatory arguments to long options are mandatory for short options too." << std::endl << "Options:" << std::endl;
 
-	// I build three vecs of strings for all options. So I can measure and then line up the text with spaces. Makes life easier when adding new options.
+	// I build three vectors of strings for all options. So I can measure and then line up the text with spaces. Makes life easier when adding new options.
 	appbuild::StringVec ShortArgs;
 	appbuild::StringVec LongArgs;
 	appbuild::StringVec Descriptions;
 
-#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC) if(true){ShortArgs.push_back(#ARG_SHORT_NAME);if(TAKES_ARGUMENT==required_argument){LongArgs.push_back("--" ARG_LONG_NAME "=arg");}else{LongArgs.push_back("--" ARG_LONG_NAME);}Descriptions.push_back(ARG_DESC);};
+#define DEF_ARG(ARG_NAME,TAKES_ARGUMENT,ARG_SHORT_NAME,ARG_LONG_NAME,ARG_DESC)	\
+	if(true)																	\
+	{																			\
+		ShortArgs.push_back(#ARG_SHORT_NAME);									\
+		if(TAKES_ARGUMENT==required_argument)									\
+		{																		\
+			LongArgs.push_back("--" ARG_LONG_NAME "=arg");						\
+		}																		\
+		else if(TAKES_ARGUMENT==optional_argument)								\
+		{																		\
+			LongArgs.push_back("--" ARG_LONG_NAME "[=arg]");					\
+		}																		\
+		else																	\
+		{																		\
+			LongArgs.push_back("--" ARG_LONG_NAME);								\
+		}																		\
+		Descriptions.push_back(ARG_DESC);										\
+	};
+
 	ARGUMENTS
 #undef DEF_ARG
 
@@ -568,6 +607,30 @@ void CommandLineOptions::PrintTypeSizes()const
 void CommandLineOptions::PrintGetHelp()const
 {
 	std::cout << "Try 'appbuild --help' for more information."  << std::endl;
+}
+
+void CommandLineOptions::PrintProjectSchema()const
+{
+	const std::string& schema = appbuild::GetProjectFileSchema();
+
+	if( GetWriteSchemaToFile() )
+	{
+		const std::string& schemaFilename = GetSchemaSaveFilename();
+		std::ofstream file(schemaFilename);
+		if( file.is_open() )
+		{
+			file << schema << std::endl;
+			std::cout << "Schema saved too  " << schemaFilename << std::endl;
+		}
+		else
+		{
+			std::cout << "Failed to open file to write the project schema too,  " << schemaFilename << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << schema << std::endl;
+	}
 }
 
 bool CommandLineOptions::ProcessInteractiveMode(appbuild::Project& pTheProject)
