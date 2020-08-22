@@ -10,7 +10,7 @@ const std::string& GetProjectFileSchema()
 // This odd #define thing is to stop editors thinking there is an error when there is not. ALLOW_INCLUDE_OF_SCHEMA is defined in the build settings.
 #ifdef ALLOW_INCLUDE_OF_SCHEMA
 static const std::string projectSchema =
-#include "project-schema.json"
+#include "project-schema.json.string"
 ;
 #else
     static const std::string projectSchema = "{}";

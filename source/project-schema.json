@@ -1,4 +1,3 @@
-R"(
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "http://example.com/example.json",
@@ -21,7 +20,8 @@ R"(
                     "type":"array",
                     "items":{
                         "type":"string"
-                    }
+                    },
+                    "default":["/usr/include"]
                 },
                 "libpaths": {
                     "description": "The paths for the linker to search on.",
@@ -35,14 +35,16 @@ R"(
                     "type":"array",
                     "items":{
                         "type":"string"
-                    }
+                    },
+                    "default":["m","stdc++","pthread"]
                 },
                 "define": {
                     "description": "The configuration specific defines.",
                     "type":"array",
                     "items":{
                         "type":"string"
-                    }
+                    },
+                    "default":["NDEBUG"]
                 },
                 "output_path": {
                     "description": "The path to where the output is written.",
@@ -51,7 +53,64 @@ R"(
                 "target": {
                     "description": "The target type of the configuration, executable or library.",
                     "type":"string",
-                    "enum":["executable", "library", "sharedlibrary"]
+                    "enum":["executable", "library", "sharedlibrary"],
+                    "default":"executable"
+                },
+                "optimisation":
+                {
+                    "description": "The compiler optimisation to use. Uses the -o option.",
+                    "type":"string",
+                    "default":"0"
+                },
+                "debug_level":
+                {
+                    "description": "The debug level we want, 0 -> 2. 2 is full debug level. Uses the -g option.",
+                    "type":"string",
+                    "default":"2"
+                },
+                "gtk_version":
+                {
+                    "description": "To build with GTK pkg-config needs to be ran to discover all the file paths and lib names. (tut tut) This option will do it for you. E.G pkg-config --libs gtkmm-3,0",
+                    "type":"string"
+                },
+                "standard":
+                {
+                    "description": "This C++ standard to build too, EG c++14",
+                    "type":"string",
+                    "default":"c++14"
+                },
+                "warnings_as_errors":
+                {
+                    "description": "States if the compiler should consider warnings as errors. Uses -Werror",
+                    "type":"boolean",
+                    "default":false
+                },
+                "enable_all_warnings":
+                {
+                    "description": "States if the compiler should use all warning modes. Uses -Wall",
+                    "type":"boolean",
+                    "default":false
+                },
+                "fatal_errors":
+                {
+                    "description": "This is very useful. Causes the compiler to abort compilation on the first error occurred rather than trying to keep going and printing further error messages.",
+                    "type":"boolean",
+                    "default":false
+                },
+                "dependencies":
+                {
+                    "description": "A list of external projects that this configuration is dependant on. They will be build before this one is.",
+                    "type":"array",
+                    "items":{
+                        "type":"string"
+                    }
+                },
+                "source_files": {
+                    "description": "A list of source files that are common JUST this configuration.",
+                    "type": "array",
+                    "items":{
+                        "type":"string"
+                    }
                 }
             }
         },
@@ -64,4 +123,3 @@ R"(
         }
     }
 }
-)"

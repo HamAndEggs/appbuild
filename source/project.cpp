@@ -159,6 +159,11 @@ bool Project::Build(const std::string& pConfigName)
 
 		if( ReadJson(ProjectFile,ProjectJson) )
 		{
+			if( ValidateJsonAgainstSchema(ProjectJson) == false )
+			{
+				return false;
+			}
+
 			const std::string projectPath = appbuild::GetPath(ProjectFile);
 
 			Project TheProject(ProjectJson,ProjectFile,projectPath,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
