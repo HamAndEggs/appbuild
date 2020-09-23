@@ -45,6 +45,8 @@ public:
 
 	bool AddFile(const std::string& pFileName);
 
+    const StringSet& GetFiles()const{return mFiles;}
+
 private:
 	std::string mProjectDir;
 	StringSet mFiles;

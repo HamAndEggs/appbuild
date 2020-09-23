@@ -162,7 +162,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     }
 
     std::cout << "SourceFiles.size() == " << SourceFiles.size() << std::endl;
-
+/*
     ConfigurationsVec configs;
 	std::shared_ptr<Configuration> newConfig = nullptr;
 	// Add a release and debug configuration.
@@ -184,7 +184,14 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
         return EXIT_FAILURE;
     }
 
+
     rapidjson::Document jsonOutput;
+
+
+
+
+
+
     jsonOutput.SetObject(); // Root object is an object not an array.
     newProject.Write(jsonOutput);
     if( appbuild::SaveJson(pathedProjectFilename,jsonOutput) )
@@ -195,7 +202,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     {
         std::cout << "Failed to write to the destination file, [" << pathedProjectFilename << "]" << std::endl;
     }
-
+*/
     return EXIT_SUCCESS;    
 }
 

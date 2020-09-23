@@ -123,8 +123,9 @@ Message "Compiling with $MAX_THREADS threads, output file $EXEC_OUTPUT_FILE"
 Message $YELLOW "  C FLAGS ARE $COMPILE_FLAGS_C"
 echo
 
-Message "Creating schema file"
-echo "R\"($(cat ./source/project-schema.json)\");" >> ./source/project-schema.json.string
+Message "Creating schema file and default project files"
+echo "R\"($(cat ./source/project-schema.json) )\";" > ./source/project-schema.json.string
+echo "R\"($(cat ./source/project-default.json) )\";" > ./source/project-default.json.string
 
 
 # Do the compile

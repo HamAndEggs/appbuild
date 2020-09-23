@@ -49,7 +49,7 @@ public:
 	 * @param pConfigurations The configurations to add to this project.
 	 * @param pLoggingMode Sets the logging mode for when passing the json file.
 	 */
-	Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
+//	Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
 
 	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.

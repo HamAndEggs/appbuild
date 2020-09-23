@@ -32,13 +32,66 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 // Some rapid json helpers.
 
-const std::string& GetProjectFileSchema();
+/**
+ * @brief Get the Project Schema json string.
+ * 
+ * @return const std::string& 
+ */
+extern const std::string& GetProjectSchema();
 
-bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
+/**
+ * @brief Get the Default Project json string.
+ * 
+ * @return const std::string& 
+ */
+extern const std::string& GetProjectDefault();
 
-bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
+/**
+ * @brief Saves the passed in json object to the file name.
+ * 
+ * @param pFilename 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
 
-bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
+/**
+ * @brief Reads the file from disk, checks it, and returns the document to it.
+ * 
+ * @param pFilename 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
+
+/**
+ * @brief Create a Json Project From Source Files passed in, used mainly for she bang. 
+ * Uses the default json project to fill in the blanks.
+ * @param pFiles 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Document& pJson);
+
+/**
+ * @brief Checks the passed in json against the internal application schema.
+ * 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
+
+/**
+ * @brief For every entry in the project schema that is missing in pJson that has a default, that default value will be added.
+ * Uses the internal application schema.
+ * @param pJson 
+ * @param pSchema 
+ */
+extern void UpdateJsonWithDefaults(rapidjson::Document& pJson);
 
 // Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
 // Handy for putting key pairs into an array, which is not really ideal. But....

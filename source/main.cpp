@@ -173,6 +173,9 @@ int main(int argc, char *argv[])
 
 			if( appbuild::ReadJson(file,ProjectJson) )
 			{
+
+				return 0;
+
 				// Validate the json.
 				if( appbuild::ValidateJsonAgainstSchema(ProjectJson) == false )
 				{
@@ -611,7 +614,7 @@ void CommandLineOptions::PrintGetHelp()const
 
 void CommandLineOptions::PrintProjectSchema()const
 {
-	const std::string& schema = appbuild::GetProjectFileSchema();
+	const std::string& schema = appbuild::GetProjectSchema();
 
 	if( GetWriteSchemaToFile() )
 	{

@@ -1,6 +1,13 @@
 {
 	"source_files":
 	[
-		"./main.cpp"		
-	]
+		"./hello.cpp"		
+	],
+	"configurations": {
+		"happy": {
+			"default": true,
+			"target": "executable"
+		}
+	}
+
 }

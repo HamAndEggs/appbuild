@@ -1,0 +1,34 @@
+R"({
+    "configurations": {
+        "default": {
+            "default": true,
+            "target": "executable",
+            "compiler": "gcc",
+            "linker": "gcc",
+            "archiver": "ar",
+            "output_path": "./bin/release/",
+            "output_name": "hello",
+            "standard": "c++14",
+            "optimisation": "2",
+            "debug_level": "0",
+            "warnings_as_errors": false,
+            "enable_all_warnings": false,
+            "fatal_errors": false,
+            "include": [
+                "/usr/include/",
+                "./"
+            ],
+            "libs": [
+                "m",
+                "stdc++",
+                "pthread"
+            ],
+            "define": [
+                "NDEBUG"
+            ]
+        }
+    },
+    "source_files": [
+        "./main.cpp"
+    ]
+} )";

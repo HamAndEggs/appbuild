@@ -208,7 +208,7 @@ int BuildFromShebang(int argc,char *argv[])
     {
         SourceFiles SourceFiles(CWD,LOGGING_MODE);
         SourceFiles.AddFile(GetFileName(sourcePathedFile));
-
+/*
         std::unique_ptr<Configuration> newConfig = std::make_unique<Configuration>(configName,exename,projectTempFolder,LOGGING_MODE,true,"2","0");
         newConfig->AddDefine("NDEBUG");
         newConfig->AddDefine("RELEASE_BUILD");
@@ -222,6 +222,15 @@ int BuildFromShebang(int argc,char *argv[])
         configs.push_back(std::move(newConfig));
 
         Project sheBangProject(usersProjectName,projectTempFolder,SourceFiles,configs,LOGGING_MODE);
+*/
+		rapidjson::Document ProjectJson;
+        if( CreateJsonProjectFromSourceFiles(SourceFiles.GetFiles(),ProjectJson) == false )
+        {
+            std::cout << "Failed to create default project, [" << usersProjectName << "]" << std::endl;        
+            return EXIT_FAILURE;
+        }
+
+        Project sheBangProject(ProjectJson,usersProjectName,projectTempFolder,1,LOGGING_MODE,false,false);
         if( sheBangProject == false )
         {
             std::cout << "Failed to create default project, [" << usersProjectName << "]" << std::endl;        

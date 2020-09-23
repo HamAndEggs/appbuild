@@ -47,7 +47,7 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
     const bool VERBOSE = false;
     if (pCommand.size() == 0 )
     {
-        std::cout << "ExecuteShellCommand Command parameter was zero length" << std::endl;
+        std::cout << "ExecuteShellCommand Command name for was zero length! No command given!" << std::endl;
         return false;
     }
 
