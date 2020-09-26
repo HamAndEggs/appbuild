@@ -86,12 +86,15 @@ extern bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::
 extern bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
 
 /**
- * @brief For every entry in the project schema that is missing in pJson that has a default, that default value will be added.
- * Uses the internal application schema.
+ * @brief For every entry in the project file pJson that is missing the default value will be added.
+ * Uses the internal application project-default.json file. 
+ * This is more than just inserting missing parts. It has to understand the structure so that some parts in the default file
+ * are applied to multiple entries.
+ * This allows a user to create a minimal project files.
  * @param pJson 
  * @param pSchema 
  */
-extern void UpdateJsonWithDefaults(rapidjson::Document& pJson);
+extern void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson);
 
 // Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
 // Handy for putting key pairs into an array, which is not really ideal. But....

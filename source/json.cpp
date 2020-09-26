@@ -1,6 +1,7 @@
 
 #include "json.h"
 #include "rapidjson/schema.h"
+#include "misc.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -63,7 +64,7 @@ bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
         if( pJson.HasParseError() == false )
         {
             // Add out defaults for members that are missing.
-            UpdateJsonWithDefaults(pJson);
+            UpdateJsonProjectWithDefaults(pJson);
             return true;
         }
     }
@@ -92,7 +93,7 @@ bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Documen
         if( pJson.HasParseError() == false )
         {
             // Add out defaults for members that are missing.
-            UpdateJsonWithDefaults(pJson);
+            UpdateJsonProjectWithDefaults(pJson);
             return true;
         }
     }
@@ -168,15 +169,10 @@ static bool AddMissingMembers(rapidjson::Value &dstObject,const rapidjson::Value
         }
         else
         {
-            // They both have the same key, so continue enumeration deaper down.
-            // we do not replace any values or arrays if the match.
+            // They both have the same type, so continue enumeration deaper down.
+            // we do not replace any values or arrays if they match.
             // We're only filling in the blanks here!
-            auto srcT = srcIt->value.GetType() ;
-            auto dstT = dstIt->value.GetType() ;
-            if(srcT != dstT)
-                return false;
-
-            if (srcIt->value.IsObject())
+            if( dstIt->value.IsObject() && srcIt->value.IsObject() )
             {
                 if(!AddMissingMembers(dstIt->value, srcIt->value, allocator))
                     return false;
@@ -186,8 +182,48 @@ static bool AddMissingMembers(rapidjson::Value &dstObject,const rapidjson::Value
     return true;
 }
 
-void UpdateJsonWithDefaults(rapidjson::Document& pJson)
+/**
+ * @brief Finds the first member that has the "default":true entry, if not found returns first entry.
+ * Assumes that there is at least one child object.
+ * @param pConfigurations 
+ * @return const rapidjson::Value& 
+ */
+static const rapidjson::Value& FindDefaultConfiguration(const rapidjson::Value& pConfigurations)
 {
+    for( const auto& conf : pConfigurations.GetObject() )
+    {
+        if( conf.value.HasMember("default") && conf.value["default"].IsBool() && conf.value["default"].GetBool() == true )
+        {
+            return conf.value;
+        }
+    }
+
+    // None listed as default, so return the first one.
+    return pConfigurations.GetObject().begin()->value;
+}
+
+/**
+ * @brief Searches for a configuration to use that matches the name or uses the best default.
+ * 
+ * @param pConfigurations 
+ * @return const rapidjson::Value& 
+ */
+static const rapidjson::Value& FindNamedConfigurationOrDefault(const rapidjson::Value& pConfigurations,const char* pName)
+{
+    for( const auto& conf : pConfigurations.GetObject() )
+    {
+        if( CompareNoCase(conf.name.GetString(),pName) )
+        {
+            return conf.value;
+        }
+    }
+
+    return FindDefaultConfiguration(pConfigurations);
+}
+
+void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson)
+{
+    // Get our defaults file.
     rapidjson::Document defaultJson;
     if( defaultJson.Parse(GetProjectDefault()).HasParseError() )
     {
@@ -195,7 +231,34 @@ void UpdateJsonWithDefaults(rapidjson::Document& pJson)
         return;
     }
 
-    AddMissingMembers(pJson,defaultJson,pJson.GetAllocator());
+    // This function expects the defaultJson to be of a specific format that the project loader expects.
+    // It will apply parts of the defaults to parts of the passed in file.
+    // We can not just do a insertion of missing parts as some parts have different names depending on the target.
+
+    // Get the defaults for the configuration.
+    // here we make the assumption that there is just one in the defaults.
+    const rapidjson::Value& configurationDefaults = defaultJson["configurations"];
+
+    if( pJson.HasMember("configurations") )
+    {
+        // See what needs to be added to the configurations that there are.
+        rapidjson::Value& configs = pJson["configurations"];
+        for( auto& conf : configs.GetObject() )
+        {
+            const rapidjson::Value& defaults = FindNamedConfigurationOrDefault(configurationDefaults,conf.name.GetString());
+
+            // If their configs match one of the configs in the defaults then we'll use that to fill in the gaps.
+            // If no match is made, we'll just use the first one marked as default in the json. If none mound first one used.
+            AddMissingMembers(conf.value,defaults,pJson.GetAllocator());
+        }
+    }
+    else
+    {
+        // No configurations at all, so just add the default one.
+        rapidjson::Value configuration = rapidjson::Value(rapidjson::kObjectType);
+        AddMissingMembers(configuration,configurationDefaults,pJson.GetAllocator());
+        pJson.AddMember(configuration,"configurations",pJson.GetAllocator());
+    }
 
     SaveJson("./test.json",pJson);
 }

@@ -7,7 +7,14 @@
 		"happy": {
 			"default": true,
 			"target": "executable"
+		},
+		"debug": {
+			"target": "executable",
+            "libs": [
+				"m"
+			]
 		}
+	
 	}
 
 }
