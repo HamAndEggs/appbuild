@@ -83,9 +83,6 @@ int BuildFromShebang(int argc,char *argv[])
     // Get the path to the source file, need this as we need to insert the project configuration name so we can find it.
     const std::string sourceFilePath = GetPath(sourcePathedFile);
 
-    // The projects configuration name we'll use.
-    const std::string configName = "shebang";
-
     // This is the temp folder path we use to cache build results.
     const std::string tempFolderPath("/tmp/appbuild/");
 
@@ -98,7 +95,7 @@ int BuildFromShebang(int argc,char *argv[])
     // To ensure no clashes I take the fully pathed source file name
     // and add /tmp to the start for the temp folder. I also add .exe at the end.
     const std::string exename = GetFileName(sourcePathedFile) + ".exe";
-    const std::string pathedExeName = CleanPath(tempFolderPath + sourceFilePath + "/bin/" + configName + "/" + exename);
+    const std::string pathedExeName = CleanPath(tempFolderPath + sourceFilePath + "/bin/" + exename);
 
     // We need the source file without the shebang too.
     const std::string tempSourcefile = CleanPath(tempFolderPath + sourcePathedFile);
@@ -208,27 +205,32 @@ int BuildFromShebang(int argc,char *argv[])
     {
         SourceFiles SourceFiles(CWD,LOGGING_MODE);
         SourceFiles.AddFile(GetFileName(sourcePathedFile));
-/*
-        std::unique_ptr<Configuration> newConfig = std::make_unique<Configuration>(configName,exename,projectTempFolder,LOGGING_MODE,true,"2","0");
-        newConfig->AddDefine("NDEBUG");
-        newConfig->AddDefine("RELEASE_BUILD");
 
-        for( auto lib : libraryFiles )
-        {
-            newConfig->AddLibrary(lib);
-        }
+        rapidjson::Document ProjectJson;
+        ProjectJson.SetObject(); // Root object is an object not an array.
+        rapidjson::Document::AllocatorType& alloc = ProjectJson.GetAllocator();
+        ProjectJson.AddMember("source_files",SourceFiles.Write(alloc),alloc);
 
-        ConfigurationsVec configs;
-        configs.push_back(std::move(newConfig));
+        // Add the minimum release config so we can set the output name.
+        rapidjson::Value configurations = rapidjson::Value(rapidjson::kObjectType);
+            rapidjson::Value release = rapidjson::Value(rapidjson::kObjectType);        
+                release.AddMember("output_name",exename,alloc);
+                release.AddMember("output_path","./bin/",alloc);
 
-        Project sheBangProject(usersProjectName,projectTempFolder,SourceFiles,configs,LOGGING_MODE);
-*/
-		rapidjson::Document ProjectJson;
-        if( CreateJsonProjectFromSourceFiles(SourceFiles.GetFiles(),ProjectJson) == false )
-        {
-            std::cout << "Failed to create default project, [" << usersProjectName << "]" << std::endl;        
-            return EXIT_FAILURE;
-        }
+                if( libraryFiles.size() > 0 )
+                {
+                    libraryFiles.push_back("m");
+                    libraryFiles.push_back("stdc++");
+                    libraryFiles.push_back("pthread");
+
+                    // We have some extra lib files to add. So add my defaults and the extra ones..
+                    release.AddMember("libs",BuildStringArray(libraryFiles,alloc),alloc);
+                }
+                
+            configurations.AddMember("release",release,alloc);
+        ProjectJson.AddMember("configurations",configurations,alloc);
+
+        UpdateJsonProjectWithDefaults(ProjectJson);
 
         Project sheBangProject(ProjectJson,usersProjectName,projectTempFolder,1,LOGGING_MODE,false,false);
         if( sheBangProject == false )

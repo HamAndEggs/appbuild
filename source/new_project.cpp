@@ -161,40 +161,14 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
         }
     }
 
-    std::cout << "SourceFiles.size() == " << SourceFiles.size() << std::endl;
-/*
-    ConfigurationsVec configs;
-	std::shared_ptr<Configuration> newConfig = nullptr;
-	// Add a release and debug configuration.
-	
-	newConfig = std::make_shared<Configuration>("release",pNewProjectName,projectPath,pLoggingMode,true,"2","0");
-	newConfig->AddDefine("NDEBUG");
-	newConfig->AddDefine("RELEASE_BUILD");
-    configs.push_back(newConfig);
+    rapidjson::Document newProject;
+    newProject.SetObject(); // Root object is an object not an array.
+  	rapidjson::Document::AllocatorType& alloc = newProject.GetAllocator();
+	newProject.AddMember("source_files",SourceFiles.Write(alloc),alloc);
 
-	newConfig = std::make_shared<Configuration>("debug",pNewProjectName,projectPath,pLoggingMode,false,"0","2");
-	newConfig->AddDefine("DEBUG_BUILD");
-    configs.push_back(newConfig);
+    UpdateJsonProjectWithDefaults(newProject);
 
-    // Now build the project object.
-    Project newProject(pNewProjectName,projectPath,SourceFiles,configs,pLoggingMode);
-    if( newProject == false )
-    {
-        std::cout << "Failed to create default project file, [" << pathedProjectFilename << "]" << std::endl;        
-        return EXIT_FAILURE;
-    }
-
-
-    rapidjson::Document jsonOutput;
-
-
-
-
-
-
-    jsonOutput.SetObject(); // Root object is an object not an array.
-    newProject.Write(jsonOutput);
-    if( appbuild::SaveJson(pathedProjectFilename,jsonOutput) )
+    if( appbuild::SaveJson(pathedProjectFilename,newProject) )
     {
         std::cout << "New project file saved" << std::endl;
     }
@@ -202,7 +176,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     {
         std::cout << "Failed to write to the destination file, [" << pathedProjectFilename << "]" << std::endl;
     }
-*/
+
     return EXIT_SUCCESS;    
 }
 

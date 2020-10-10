@@ -35,32 +35,6 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-/*
-Project::Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode):
-	mNumThreads(1),
-	mLoggingMode(pLoggingMode),
-	mRebuild(false),
-	mTruncateOutput(0),
-	mProjectName(pProjectName),
-	mProjectDir(pProjectPath),
-	mSourceFiles(pSourceFiles),
-	mResourceFiles(pProjectPath,pLoggingMode),
-	mOk(false)
-{
-	for( auto& c : pConfigurations )
-	{
-		mBuildConfigurations[c->GetName()] = c;
-	}
-	
-	if( pLoggingMode  >= LOG_VERBOSE )
-	{
-		std::cout << "Project name is " << pProjectName << std::endl;
-		std::cout << "Project path is " << mProjectDir << std::endl;
-	}
-
-	mOk = mSourceFiles.size() > 0;
-}
-*/
 Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mLoggingMode(pLoggingMode),

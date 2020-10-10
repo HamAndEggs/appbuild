@@ -133,7 +133,7 @@ inline rapidjson::Value BuildStringArray(const StringVec& pStrings,rapidjson::Do
 
 inline rapidjson::Value BuildStringArray(const StringSet& pStrings,rapidjson::Document::AllocatorType& pAlloc)
 {
-   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
+   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);
    for( const auto& str : pStrings )
    {
       PushBack(array,str,pAlloc);

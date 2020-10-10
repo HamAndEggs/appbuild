@@ -29,43 +29,6 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-/*
-Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation,const std::string& pDebugLevel):// Creates a default configuration suitable for simple c++14 projects.
-	mConfigName("default"),
-	mProjectDir(pProjectDir),
-	mLoggingMode(pLoggingMode),
-	mIsDefaultConfig(pIsDefaultConfig),
-	mOk(true),
-	mTargetType(TARGET_EXEC),
-	mComplier("gcc"),
-	mLinker("gcc"),
-	mArchiver("ar"),
-	mOutputPath(CleanPath("./bin/" + pConfigName + "/")),
-	mOutputName(pOutputName),
-	mCppStandard("c++14"),
-	mOptimisation(pOptimisation),
-	mDebugLevel(pDebugLevel),
-	mWarningsAsErrors(false),
-	mEnableAllWarnings(false),
-	mFatalErrors(false),
-	mSourceFiles(pProjectDir,pLoggingMode)
-{
-	AddIncludeSearchPath("/usr/include");
-	AddIncludeSearchPath(pProjectDir);
-
-	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
-
-	if( pLoggingMode  >= LOG_VERBOSE )
-	{
-		std::cout << "Configuration " << pConfigName << std::endl;
-		std::cout << "    mProjectDir " << mProjectDir << std::endl;
-		std::cout << "    mOutputPath " << mOutputPath << std::endl;
-		std::cout << "    mOutputName " << mOutputName << std::endl;
-		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
-	}
-
-}
-*/
 Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
@@ -114,7 +77,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
     {
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is missing" << std::endl;
+    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " not set." << std::endl;
         }
     }
 

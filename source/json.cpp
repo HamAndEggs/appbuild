@@ -257,10 +257,11 @@ void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson)
         // No configurations at all, so just add the default one.
         rapidjson::Value configuration = rapidjson::Value(rapidjson::kObjectType);
         AddMissingMembers(configuration,configurationDefaults,pJson.GetAllocator());
-        pJson.AddMember(configuration,"configurations",pJson.GetAllocator());
+        pJson.AddMember("configurations",configuration,pJson.GetAllocator());
     }
 
-    SaveJson("./test.json",pJson);
+//for debugging
+// SaveJson("./test.json",pJson);
 }
 
 //////////////////////////////////////////////////////////////////////////

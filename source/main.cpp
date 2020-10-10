@@ -173,9 +173,6 @@ int main(int argc, char *argv[])
 
 			if( appbuild::ReadJson(file,ProjectJson) )
 			{
-
-				return 0;
-
 				// Validate the json.
 				if( appbuild::ValidateJsonAgainstSchema(ProjectJson) == false )
 				{
