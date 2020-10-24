@@ -230,8 +230,11 @@ int BuildFromShebang(int argc,char *argv[])
             configurations.AddMember("release",release,alloc);
         ProjectJson.AddMember("configurations",configurations,alloc);
 
+        // Fill in the defaults.
         UpdateJsonProjectWithDefaults(ProjectJson);
 
+        // Now we build the project from a valid json object with no missing entries.
+        // By doing it like this makes the Project and Configuration classes a lot cleaner.
         Project sheBangProject(ProjectJson,usersProjectName,projectTempFolder,1,LOGGING_MODE,false,false);
         if( sheBangProject == false )
         {
