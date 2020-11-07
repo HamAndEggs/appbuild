@@ -25,6 +25,7 @@ SOURCE_FILES=(
 # Some colours
 # ************************
 RED='\033[0;31m'
+BOLDRED='\033[1;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 BOLDBLUE='\033[1;34m'
@@ -69,6 +70,19 @@ function PrepareBuildFolder()
     # Remove the bin folder then recreate it, this ensures no crap is hanging about that could effect the outcome of the build.
     rm -drf ./bin
     mkdir -p ./bin
+}
+
+VALGRIND_FAIL_CODE=99
+VALGRIND_DID_FAIL="FALSE"
+function CheckValgridReturnCode()
+{
+    RETURN_CODE=$?
+    if [ $RETURN_CODE == $VALGRIND_FAIL_CODE ]; then
+        Message $RED "Failed valgrind check"
+        VALGRIND_DID_FAIL="TRUE"
+    else
+        Message $GREEN "Passed valgrind check"
+    fi
 }
 
 #********************************************************************************************************************
@@ -166,18 +180,22 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
     # It build ok, that if just showed it did.
     Message "Build ok."
     if [ "$DO_UNIT_TESTS" == "TRUE" ]; then
+        VALGRIND_COMMAND="valgrind --tool=memcheck --leak-check=full --error-exitcode=$VALGRIND_FAIL_CODE"
+
         echo
         Message $BOLDBLUE "Doing unit tests, you will require valgrind to have been installed as well as libncurses5-dev and libjpeg-dev for a few of the examples."
         Message $BOLDBLUE "    eg: sudo apt install valgrind libjpeg-dev libncurses5-dev"
         echo
         # First rebuilt it self using valgrind.
         Message $BOLDBLUE "Self build test"
-        valgrind $EXEC_OUTPUT_FILE
+        $VALGRIND_COMMAND $EXEC_OUTPUT_FILE
+        CheckValgridReturnCode
         echo
 
         # Do a help display test
         Message $BOLDBLUE "Display help test"
-        valgrind $EXEC_OUTPUT_FILE --help
+        $VALGRIND_COMMAND $EXEC_OUTPUT_FILE --help
+        CheckValgridReturnCode
         echo
 
         # Now build the examples
@@ -185,14 +203,16 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
 #****************************************************
             Message $BOLDBLUE "Build hello world"
             cd ./hello_world
-            valgrind $EXEC_OUTPUT_FILE -x -V -r
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -x -V -r
+            CheckValgridReturnCode
             $EXEC_OUTPUT_FILE -x
             cd ..
             echo
 #****************************************************
             Message $BOLDBLUE "Build dependency test"
             cd ./dependency
-            valgrind $EXEC_OUTPUT_FILE -V -r
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -V -r
+            CheckValgridReturnCode
             $EXEC_OUTPUT_FILE -x
             cd ..
             echo
@@ -200,13 +220,15 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
             Message $BOLDBLUE "Build resource test"
             cd ./resource
             # We do not run this one as it needs a frame buffer object.
-            valgrind $EXEC_OUTPUT_FILE -V -r
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -V -r
+            CheckValgridReturnCode
             cd ..
             echo
 #****************************************************
             Message $BOLDBLUE "Build failure test"
             cd ./unit-test-1-build-fail
-            valgrind $EXEC_OUTPUT_FILE -V -r
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -V -r
+            CheckValgridReturnCode
             cd ..
             echo
 #****************************************************
@@ -219,7 +241,8 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
 #****************************************************
             Message $BOLDBLUE "Build embedded project test"
             cd ./embedded-project
-            valgrind $EXEC_OUTPUT_FILE -V -e appbuild embedded-project.example
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -V -e appbuild embedded-project.example
+            CheckValgridReturnCode
             $EXEC_OUTPUT_FILE -x -e appbuild embedded-project.example
             cd ..
             echo
@@ -227,6 +250,12 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
 
         cd ..
         Message $BLUE "Unit tests finished"
+        if [ $VALGRIND_DID_FAIL == "TRUE" ]; then
+            Message $BOLDRED "Unit tests failed! Please check output"
+            exit 1
+        else
+            Message $GREEN "All tests passed"
+        fi
     else
         if [ "$1" == "-y" ]; then
             answer="y"
