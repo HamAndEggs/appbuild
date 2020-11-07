@@ -39,26 +39,6 @@ enum eTargetType
 	TARGET_SHARED_LIBRARY,
 };
 
-inline const char* TargetTypeToString(eTargetType pTarget)
-{
-	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
-	switch(pTarget)
-	{
-	case TARGET_NOT_SET:
-		break;
-		
-	case TARGET_EXEC:
-		return "executable";
-
-	case TARGET_LIBRARY:
-		return "library";
-
-	case TARGET_SHARED_LIBRARY:
-		return "sharedlibrary";
-	}
-	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
-}
-
 class Dependencies;
 class BuildTaskStack;
 class JsonWriter;
@@ -109,6 +89,9 @@ private:
 	const std::string PreparePath(const std::string& pPath);// Makes the path relative to the project if it is not absolute. Cleans it up a bit too.
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
 	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
+
+	const std::string TargetTypeToString(eTargetType pTarget)const;
+
 
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.

@@ -45,10 +45,20 @@ inline bool GetIsPathAbsolute(const std::string& pPath)
    return pPath.size() > 0 && pPath.at(0) == '/';
 }
 
-
 // Splits string into list have names to be made into directories, so don't include any filenames as they will be made into a folder.
 // Returns true if all was ok.
 bool MakeDir(const std::string& pPath);
+
+/**
+ * @brief Takes the pathed file name and creates any missing folders that it needs.
+ * 
+ * @param pPathedFilename Can either be absolute or relative to current working directory. 
+ * If folders already exist then nothing will change.
+ * @return true The folders were made ok.
+ * @return false There was an issue.
+ */
+bool MakeDirForFile(const std::string& pPathedFilename);
+
 
 std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension = false);
 std::string GetPath(const std::string& pPathedFileName);
@@ -74,13 +84,23 @@ std::string GuessOutputName(const std::string& pProjectName);
  */
 std::string GetExtension(const std::string& pFileName,bool pToLower = true);
 
+/**
+ * @brief Find the files in path that match the filter. Does not enter child folders.
+ * 
+ * @param pPath 
+ * @param pFilter 
+ * @return StringVec 
+ */
 StringVec FindFiles(const std::string& pPath,const std::string& pFilter = "*");
 
 /**
- * @brief Get the Relative Path based on the passed relitive path.
+ * @brief Get the Relative Path based on the passed absolute paths.
  * In debug the following errors will result in an assertion.
- * @param pCWD The directory that you want the full path to be relitive too. This path should also start with a / if it does not the function will just return the full path unchanged.
- * @param pFullPath The full path, if it does not start with a / it will be assumed to be already relitive and so just returned.
+ * Examples
+ *     GetRelativePath("/home/richard/games/chess","/home/richard/games/chess/game1") == "./game1/"
+ *     GetRelativePath("/home/richard/games","/home/richard/music") == "../music/"
+ * @param pCWD The directory that you want the full path to be relative too. This path should also start with a / if it does not the function will just return the full path unchanged.
+ * @param pFullPath The full path, if it does not start with a / it will be assumed to be already relative and so just returned.
  * @return std::string If either input string is empty './' will be returned.
  */
 std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath);

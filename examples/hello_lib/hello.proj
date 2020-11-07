@@ -5,11 +5,11 @@
 		{
 			"define":
 			[
+				"NDEBUG",
 				"RELEASE_BUILD",
 				"A_NUMBER_DEF=7"
 			],
-			"target":"library",
-			"optimisation":"2"
+			"target":"library"
 		},
 		"debug":
 		{

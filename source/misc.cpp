@@ -71,6 +71,20 @@ bool MakeDir(const std::string& pPath)
     return true;
 }
 
+bool MakeDirForFile(const std::string& pPathedFilename)
+{
+    std::string path = pPathedFilename;
+
+    if( GetIsPathAbsolute(pPathedFilename) )
+    {
+        path = GetRelativePath(GetCurrentWorkingDirectory(),path);
+    }
+
+    path = GetPath(path);
+
+    return MakeDir(path);
+}
+
 std::string GetFileName(const std::string& pPathedFileName,bool RemoveExtension/* = false*/)
 {
     std::string result = pPathedFileName;
@@ -235,7 +249,7 @@ std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath
         return fullPath;
 
     // Now do the real work.
-    // First substitue the parts of CWD that match FULL path. Starting at the start of CWD.
+    // First substitute the parts of CWD that match FULL path. Starting at the start of CWD.
     const StringVec cwdFolders = SplitString(cwd,"/");
     const StringVec fullPathFolders = SplitString(fullPath,"/");
 

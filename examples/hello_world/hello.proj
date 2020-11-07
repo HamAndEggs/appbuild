@@ -2,19 +2,5 @@
 	"source_files":
 	[
 		"./hello.cpp"		
-	],
-	"configurations": {
-		"happy": {
-			"default": true,
-			"target": "executable"
-		},
-		"debug": {
-			"target": "executable",
-            "libs": [
-				"m"
-			]
-		}
-	
-	}
-
+	]
 }

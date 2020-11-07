@@ -655,5 +655,25 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 	return false;
 }
 
+const std::string Configuration::TargetTypeToString(eTargetType pTarget)const
+{
+	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
+	switch(pTarget)
+	{
+	case TARGET_NOT_SET:
+		break;
+		
+	case TARGET_EXEC:
+		return "executable";
+
+	case TARGET_LIBRARY:
+		return "library";
+
+	case TARGET_SHARED_LIBRARY:
+		return "sharedlibrary";
+	}
+	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
+}
+
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{
