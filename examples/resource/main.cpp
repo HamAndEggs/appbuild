@@ -185,7 +185,7 @@ GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,FBIO::FrameBuffer
 	uint8_t* image = new uint8_t[cinfo.output_height * cinfo.output_width * 3];
 
 	uint8_t* dst = image;
-	for( int y = 0 ; y < cinfo.output_height ; y++, dst += (cinfo.output_width * 3) )
+	for( JDIMENSION y = 0 ; y < cinfo.output_height ; y++, dst += (cinfo.output_width * 3) )
 	{
 		(void) jpeg_read_scanlines(&cinfo, buffer, 1);
 		memcpy(dst,buffer[0],cinfo.output_width * 3);

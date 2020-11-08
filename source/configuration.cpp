@@ -29,44 +29,6 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-
-Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation,const std::string& pDebugLevel):// Creates a default configuration suitable for simple c++14 projects.
-	mConfigName("default"),
-	mProjectDir(pProjectDir),
-	mLoggingMode(pLoggingMode),
-	mIsDefaultConfig(pIsDefaultConfig),
-	mOk(true),
-	mTargetType(TARGET_EXEC),
-	mComplier("gcc"),
-	mLinker("gcc"),
-	mArchiver("ar"),
-	mOutputPath(CleanPath("./bin/" + pConfigName + "/")),
-	mOutputName(pOutputName),
-	mCppStandard("c++14"),
-	mOptimisation(pOptimisation),
-	mDebugLevel(pDebugLevel),
-	mWarningsAsErrors(false),
-	mEnableAllWarnings(false),
-	mFatalErrors(false),
-	mSourceFiles(pProjectDir,pLoggingMode)
-{
-	AddIncludeSearchPath("/usr/include");
-	AddIncludeSearchPath(pProjectDir);
-	AddDefaultLibs();
-
-	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
-
-	if( pLoggingMode  >= LOG_VERBOSE )
-	{
-		std::cout << "Configuration " << pConfigName << std::endl;
-		std::cout << "    mProjectDir " << mProjectDir << std::endl;
-		std::cout << "    mOutputPath " << mOutputPath << std::endl;
-		std::cout << "    mOutputName " << mOutputName << std::endl;
-		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
-	}
-
-}
-
 Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig):
 		mConfigName(pConfigName),
 		mProjectDir(pProjectDir),
@@ -74,14 +36,8 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 		mIsDefaultConfig(false),
 		mOk(false),
 		mTargetType(TARGET_NOT_SET),
-		mComplier("gcc"),
-		mLinker("gcc"),
-		mArchiver("ar"),
 		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
 		mOutputName(pOutputName),
-		mCppStandard("c++14"),
-		mOptimisation("0"),
-		mDebugLevel("2"),
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
 		mFatalErrors(false),
@@ -104,11 +60,8 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
     }
     else
     {
-    	AddIncludeSearchPath("/usr/include");
-        if( mLoggingMode >= LOG_VERBOSE )
-        {
-    		std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " is missing, using defaults" << std::endl;
-        }
+   		std::cout << "Internal error: The \'include\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+        return; // We're done, no need to continue.
     }
 
 	// These can be added to the args now as they need to come before libs.
@@ -124,7 +77,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
     {
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is missing, using defaults" << std::endl;
+    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " not set." << std::endl;
         }
     }
 
@@ -138,10 +91,11 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 			return; // We're done, no need to continue.
 		}
 	}
-	else
-	{
-		AddDefaultLibs();
-	}
+    else
+    {
+   		std::cout << "Internal error: The \'libs\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+        return; // We're done, no need to continue.
+    }
 
 	if( pConfig.HasMember("define") )
 	{
@@ -153,14 +107,12 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	}	
 	else
 	{
-		if( mLoggingMode >= LOG_VERBOSE )
-		{
-			std::cout << "The \'define\' object in the \'settings\' " << mConfigName << " is missing, adding NDEBUG for a default." << std::endl;
-		}
-		AddDefine("NDEBUG");
+   		std::cout << "Internal error: The \'define\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+        return; // We're done, no need to continue.
 	}
 
 	// Look for the output folder name. If not found default to bin.
+	// TODO: Add some kind of environment variable system so this can be added to the default project.
 	if( pConfig.HasMember("output_path") )
 	{
 		mOutputPath = pConfig["output_path"].GetString();
@@ -204,9 +156,8 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	}
 	else
 	{
-		mTargetType = TARGET_EXEC;
-		if(mLoggingMode >= LOG_VERBOSE)
-			std::cout << "Target type not set so defaulting to executable." << std::endl;
+   		std::cout << "Internal error: The \'target\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+        return; // We're done, no need to continue.
 	}
 
 	if( pConfig.HasMember("output_name") && pConfig["output_name"].IsString() )
@@ -231,6 +182,8 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	}
 	else if( mTargetType == TARGET_EXEC )
 	{// If the target is an executable then we're safe to use a default name. For other output types, user has to supply an output.
+	// TODO: Add some kind of environment variable system so this can be added to the default project.
+
 		if( mTargetType == TARGET_LIBRARY || mTargetType == TARGET_SHARED_LIBRARY )
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";
@@ -248,6 +201,11 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	mDebugLevel = GetStringLog(pConfig,"debug_level",mDebugLevel,mLoggingMode >= LOG_VERBOSE);
 	mGTKVersion = GetStringLog(pConfig,"gtk_version",mGTKVersion,mLoggingMode >= LOG_VERBOSE);
 	mCppStandard = GetStringLog(pConfig,"standard",mCppStandard,mLoggingMode >= LOG_VERBOSE);
+
+	mComplier = GetStringLog(pConfig,"compiler",mComplier,mLoggingMode >= LOG_VERBOSE);
+	mLinker = GetStringLog(pConfig,"linker",mLinker,mLoggingMode >= LOG_VERBOSE);
+	mArchiver = GetStringLog(pConfig,"archiver",mArchiver,mLoggingMode >= LOG_VERBOSE);
+
 	mWarningsAsErrors = GetBoolLog(pConfig,"warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
 	mEnableAllWarnings = GetBoolLog(pConfig,"enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
 	mFatalErrors = GetBoolLog(pConfig,"fatal_errors",mFatalErrors,mLoggingMode >= LOG_VERBOSE);
@@ -697,30 +655,24 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 	return false;
 }
 
-void Configuration::AddDefaultLibs()
+const std::string Configuration::TargetTypeToString(eTargetType pTarget)const
 {
-	// make_array is still experimental, at the time of writing, so not using. I only use the parts of the language that have most support accross platforms. (its called experience)
-	const std::array<std::string,3> defaultLibs =
+	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
+	switch(pTarget)
 	{
-		"m", // Maths lib. Yes the C guys called a lib m	
-		"stdc++",
-		"pthread"
-	};
+	case TARGET_NOT_SET:
+		break;
+		
+	case TARGET_EXEC:
+		return "executable";
 
-	if( mLoggingMode >= LOG_VERBOSE )
-	{
-		std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is missing, adding ";
-		for( auto lib : defaultLibs )
-		{
-			std::cout << "'" << lib << "' ";
-		}
+	case TARGET_LIBRARY:
+		return "library";
 
-		std::cout << "for the library defaults." << std::endl;
+	case TARGET_SHARED_LIBRARY:
+		return "sharedlibrary";
 	}
-
-	for( auto lib : defaultLibs )
-		AddLibrary(lib);
-
+	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
 }
 
 //////////////////////////////////////////////////////////////////////////

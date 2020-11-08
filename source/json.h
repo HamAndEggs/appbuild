@@ -32,13 +32,69 @@ namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 // Some rapid json helpers.
 
-const std::string& GetProjectFileSchema();
+/**
+ * @brief Get the Project Schema json string.
+ * 
+ * @return const std::string& 
+ */
+extern const std::string& GetProjectSchema();
 
-bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
+/**
+ * @brief Get the Default Project json string.
+ * 
+ * @return const std::string& 
+ */
+extern const std::string& GetProjectDefault();
 
-bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
+/**
+ * @brief Saves the passed in json object to the file name.
+ * 
+ * @param pFilename 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
 
-bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
+/**
+ * @brief Reads the file from disk, checks it, and returns the document to it.
+ * 
+ * @param pFilename 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
+
+/**
+ * @brief Create a Json Project From Source Files passed in, used mainly for she bang. 
+ * Uses the default json project to fill in the blanks.
+ * @param pFiles 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Document& pJson);
+
+/**
+ * @brief Checks the passed in json against the internal application schema.
+ * 
+ * @param pJson 
+ * @return true 
+ * @return false 
+ */
+extern bool ValidateJsonAgainstSchema(rapidjson::Value& pJson);
+
+/**
+ * @brief For every entry in the project file pJson that is missing the default value will be added.
+ * Uses the internal application project-default.json file. 
+ * This is more than just inserting missing parts. It has to understand the structure so that some parts in the default file
+ * are applied to multiple entries.
+ * This allows a user to create a minimal project files.
+ * @param pJson 
+ * @param pSchema 
+ */
+extern void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson);
 
 // Will add the json pKey:pValue to pContainer. So if pContainer is an object and you call this once, you get {"key":"value"}....
 // Handy for putting key pairs into an array, which is not really ideal. But....
@@ -77,7 +133,7 @@ inline rapidjson::Value BuildStringArray(const StringVec& pStrings,rapidjson::Do
 
 inline rapidjson::Value BuildStringArray(const StringSet& pStrings,rapidjson::Document::AllocatorType& pAlloc)
 {
-   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
+   rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);
    for( const auto& str : pStrings )
    {
       PushBack(array,str,pAlloc);

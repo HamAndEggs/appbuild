@@ -1,0 +1,77 @@
+{
+    "configurations": {
+        "release": {
+            "define": [
+                "RELEASE_BUILD",
+                "ALLOW_INCLUDE_OF_SCHEMA"
+            ],
+            "libs": [
+                "m",
+                "stdc++",
+                "pthread"
+            ],
+            "default": false,
+            "optimisation": "2",
+            "debug_level": "0",
+            "target": "executable",
+            "compiler": "gcc",
+            "linker": "gcc",
+            "archiver": "ar",
+            "output_path": "./bin/release/",
+            "output_name": "hello",
+            "standard": "c++14",
+            "warnings_as_errors": true,
+            "enable_all_warnings": true,
+            "fatal_errors": true,
+            "include": [
+                "/usr/include/",
+                "./"
+            ]
+        },
+        "debug": {
+            "define": [
+                "DEBUG_BUILD",
+                "ALLOW_INCLUDE_OF_SCHEMA"
+            ],
+            "libs": [
+                "m",
+                "stdc++",
+                "pthread"
+            ],
+            "default": true,
+            "optimisation": "0",
+            "debug_level": "2",
+            "warnings_as_errors": true,
+            "enable_all_warnings": true,
+            "target": "executable",
+            "compiler": "gcc",
+            "linker": "gcc",
+            "archiver": "ar",
+            "output_path": "./bin/release/",
+            "output_name": "hello",
+            "standard": "c++14",
+            "fatal_errors": false,
+            "include": [
+                "/usr/include/",
+                "./"
+            ]
+        }
+    },
+    "source_files": [
+        "./source/shell.cpp",
+        "./source/arg_list.cpp",
+        "./source/build_task.cpp",
+        "./source/build_task_compile.cpp",
+        "./source/build_task_resource_files.cpp",
+        "./source/configuration.cpp",
+        "./source/dependencies.cpp",
+        "./source/lz4/lz4.c",
+        "./source/main.cpp",
+        "./source/misc.cpp",
+        "./source/project.cpp",
+        "./source/source_files.cpp",
+        "./source/she_bang.cpp",
+        "./source/new_project.cpp",
+        "./source/json.cpp"
+    ]
+}

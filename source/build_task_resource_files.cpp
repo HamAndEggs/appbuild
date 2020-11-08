@@ -369,6 +369,9 @@ void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFi
 	{
 		if(mLoggingMode >= LOG_VERBOSE)
 			std::cout << "Writing Resource file " << fname << std::endl;
+
+		// Make sure the path is there. Maybe a fresh build.
+		MakeDirForFile(fname);
 		
 		// Not found, write it.
 		std::ofstream lz4(fname,std::ofstream::trunc);

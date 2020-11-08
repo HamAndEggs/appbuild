@@ -1,3 +1,19 @@
+/*
+   Copyright (C) 2017, Richard e Collins.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+
 #include <sys/stat.h>
 #include <limits.h>
 #include <string>
@@ -161,33 +177,14 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
         }
     }
 
-    std::cout << "SourceFiles.size() == " << SourceFiles.size() << std::endl;
+    rapidjson::Document newProject;
+    newProject.SetObject(); // Root object is an object not an array.
+  	rapidjson::Document::AllocatorType& alloc = newProject.GetAllocator();
+	newProject.AddMember("source_files",SourceFiles.Write(alloc),alloc);
 
-    ConfigurationsVec configs;
-	std::shared_ptr<Configuration> newConfig = nullptr;
-	// Add a release and debug configuration.
-	
-	newConfig = std::make_shared<Configuration>("release",pNewProjectName,projectPath,pLoggingMode,true,"2","0");
-	newConfig->AddDefine("NDEBUG");
-	newConfig->AddDefine("RELEASE_BUILD");
-    configs.push_back(newConfig);
+    UpdateJsonProjectWithDefaults(newProject);
 
-	newConfig = std::make_shared<Configuration>("debug",pNewProjectName,projectPath,pLoggingMode,false,"0","2");
-	newConfig->AddDefine("DEBUG_BUILD");
-    configs.push_back(newConfig);
-
-    // Now build the project object.
-    Project newProject(pNewProjectName,projectPath,SourceFiles,configs,pLoggingMode);
-    if( newProject == false )
-    {
-        std::cout << "Failed to create default project file, [" << pathedProjectFilename << "]" << std::endl;        
-        return EXIT_FAILURE;
-    }
-
-    rapidjson::Document jsonOutput;
-    jsonOutput.SetObject(); // Root object is an object not an array.
-    newProject.Write(jsonOutput);
-    if( appbuild::SaveJson(pathedProjectFilename,jsonOutput) )
+    if( appbuild::SaveJson(pathedProjectFilename,newProject) )
     {
         std::cout << "New project file saved" << std::endl;
     }

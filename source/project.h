@@ -41,17 +41,6 @@ class Project
 {
 public:
 	/**
-	 * @brief Construct a new basic project object that can build the passed in source file.
-	 *  This constructure is mainly used for the shebang code and auto generation of projects when creating a new applications / libraries.
-	 * @param pProjectName The name of the project that will uniquely identify it within a group of loaded projects.
-	 * @param pProjectPath The root path that all paths in the project are relative too.
-	 * @param pSourceFiles The source files to add to the new project.
-	 * @param pConfigurations The configurations to add to this project.
-	 * @param pLoggingMode Sets the logging mode for when passing the json file.
-	 */
-	Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode);
-
-	/**
 	 * @brief Construct a new Project object from the filename passed in, the file has to be JSON formatted and contain the correct tokens.
 	 * 
 	 * @param pProjectJson The root json for the project definition.

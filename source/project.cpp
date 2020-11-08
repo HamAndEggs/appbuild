@@ -35,31 +35,6 @@ namespace appbuild{
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const std::string& pProjectName,const std::string& pProjectPath,const SourceFiles& pSourceFiles,ConfigurationsVec& pConfigurations,int pLoggingMode):
-	mNumThreads(1),
-	mLoggingMode(pLoggingMode),
-	mRebuild(false),
-	mTruncateOutput(0),
-	mProjectName(pProjectName),
-	mProjectDir(pProjectPath),
-	mSourceFiles(pSourceFiles),
-	mResourceFiles(pProjectPath,pLoggingMode),
-	mOk(false)
-{
-	for( auto& c : pConfigurations )
-	{
-		mBuildConfigurations[c->GetName()] = c;
-	}
-	
-	if( pLoggingMode  >= LOG_VERBOSE )
-	{
-		std::cout << "Project name is " << pProjectName << std::endl;
-		std::cout << "Project path is " << mProjectDir << std::endl;
-	}
-
-	mOk = mSourceFiles.size() > 0;
-}
-
 Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mLoggingMode(pLoggingMode),
@@ -100,16 +75,12 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 		if( !ReadConfigurations(pProjectJson["configurations"],defaultOutputName) )
 			return;
 	}
-
-	if( mBuildConfigurations.size() == 0 )
+	else
 	{
-		if( mLoggingMode >= LOG_VERBOSE )
-			std::cout << "No configurations found in the project \'" << mProjectName << "\' using default exec configuration." << std::endl;
-
-		ConfigurationPtr config = std::make_shared<Configuration>("release",defaultOutputName,mProjectDir,mLoggingMode,true,"2","0");
-		mBuildConfigurations[config->GetName()] = config;
+		std::cout << "No configurations found in the project \'" << mProjectName << "\' What happened to our defaults?" << std::endl;
+		return;
 	}
-
+	
 	assert( mBuildConfigurations.size() > 0 );
 
 	// Add the source files
@@ -159,6 +130,11 @@ bool Project::Build(const std::string& pConfigName)
 
 		if( ReadJson(ProjectFile,ProjectJson) )
 		{
+			if( ValidateJsonAgainstSchema(ProjectJson) == false )
+			{
+				return false;
+			}
+
 			const std::string projectPath = appbuild::GetPath(ProjectFile);
 
 			Project TheProject(ProjectJson,ProjectFile,projectPath,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);

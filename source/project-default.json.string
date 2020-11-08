@@ -1,0 +1,60 @@
+R"({
+    "configurations": {
+        "release": {
+            "default": true,
+            "target": "executable",
+            "compiler": "gcc",
+            "linker": "gcc",
+            "archiver": "ar",
+            "output_path": "./bin/release/",
+            "standard": "c++14",
+            "optimisation": "2",
+            "debug_level": "0",
+            "warnings_as_errors": true,
+            "enable_all_warnings": true,
+            "fatal_errors": true,
+            "include": [
+                "/usr/include/",
+                "./"
+            ],
+            "libs": [
+                "m",
+                "stdc++",
+                "pthread"
+            ],
+            "define": [
+                "NDEBUG",
+                "RELEASE_BUILD"
+            ]
+        },
+        "debug": {
+            "default": false,
+            "target": "executable",
+            "compiler": "gcc",
+            "linker": "gcc",
+            "archiver": "ar",
+            "output_path": "./bin/debug/",
+            "standard": "c++14",
+            "optimisation": "0",
+            "debug_level": "2",
+            "warnings_as_errors": false,
+            "enable_all_warnings": false,
+            "fatal_errors": false,
+            "include": [
+                "/usr/include/",
+                "./"
+            ],
+            "libs": [
+                "m",
+                "stdc++",
+                "pthread"
+            ],
+            "define": [
+                "DEBUG_BUILD"
+            ]
+        }
+    },
+    "source_files": [
+        "./main.cpp"
+    ]
+} )";

@@ -39,26 +39,6 @@ enum eTargetType
 	TARGET_SHARED_LIBRARY,
 };
 
-inline const char* TargetTypeToString(eTargetType pTarget)
-{
-	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
-	switch(pTarget)
-	{
-	case TARGET_NOT_SET:
-		break;
-		
-	case TARGET_EXEC:
-		return "executable";
-
-	case TARGET_LIBRARY:
-		return "library";
-
-	case TARGET_SHARED_LIBRARY:
-		return "sharedlibrary";
-	}
-	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
-}
-
 class Dependencies;
 class BuildTaskStack;
 class JsonWriter;
@@ -67,7 +47,6 @@ class SourceFiles;
 class Configuration
 {
 public:
-	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,bool pIsDefaultConfig,const std::string& pOptimisation = "0",const std::string& pDebugLevel = "2");// Creates a default configuration suitable for simple c++14 projects.
 	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig);
 	~Configuration();
 
@@ -107,18 +86,12 @@ private:
 
 	bool AddDependantProjects(const rapidjson::Value& pLibs);
 
-	const std::string PreparePath(const std::string& pPath);// Makes the path relitive to the project if it is not absolute. Cleans it up a bit too.
+	const std::string PreparePath(const std::string& pPath);// Makes the path relative to the project if it is not absolute. Cleans it up a bit too.
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;
 	bool AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const;
 
-	/**
-	 * @brief Adds the default libs to get most basic apps linking and running.
-	 * This is only used when the project file does not have the libs section or we're creating a project file as a start.
-	 * Also used for she bang.
-	 * These are not added 'as well as' but if there is nothing else set.
-	 * That is if we did not then it would not build from a minimal project file.
-	 */
-	void AddDefaultLibs();
+	const std::string TargetTypeToString(eTargetType pTarget)const;
+
 
 	const std::string mConfigName;
 	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
