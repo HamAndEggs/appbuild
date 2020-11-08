@@ -19,7 +19,8 @@ SOURCE_FILES=(
 		"./source/source_files.cpp"
 		"./source/she_bang.cpp"
         "./source/new_project.cpp"
-        "./source/json.cpp")
+        "./source/json.cpp"
+        "./source/command_line_options.cpp")
 
 # ************************
 # Some colours

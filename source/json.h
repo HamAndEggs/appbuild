@@ -83,7 +83,7 @@ extern bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::
  * @return true 
  * @return false 
  */
-extern bool ValidateJsonAgainstSchema(rapidjson::Document& pJson);
+extern bool ValidateJsonAgainstSchema(rapidjson::Value& pJson);
 
 /**
  * @brief For every entry in the project file pJson that is missing the default value will be added.

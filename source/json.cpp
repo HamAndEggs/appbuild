@@ -116,7 +116,7 @@ bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Documen
     return false;
 }
 
-bool ValidateJsonAgainstSchema(rapidjson::Document& pJson)
+bool ValidateJsonAgainstSchema(rapidjson::Value& pJson)
 {
     rapidjson::Document sd;
     if (sd.Parse(GetProjectSchema()).HasParseError())
