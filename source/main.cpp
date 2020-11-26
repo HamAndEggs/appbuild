@@ -66,13 +66,13 @@ static int BuildProjectFile(const std::string& a_ProjectFilename,appbuild::Comma
 	}
 
 	// Validate the json.
-	if( appbuild::ValidateJsonAgainstSchema(projectRoot) == false )
+	if( appbuild::ValidateJsonAgainstSchema(projectRoot,a_Args.GetLoggingMode() == appbuild::LOG_VERBOSE ) == false )
 	{
 		// The validation failed, I wonder if they are using an embedded project?
 		// If they are they should have added the option.
 		// What I will do, to make life easier, see if they have a key called `appbuid`.
 		// If they do then try again, if it still fails time to give up.
-		if( projectRoot.HasMember("appbuild") && appbuild::ValidateJsonAgainstSchema(projectRoot["appbuild"]) )
+		if( projectRoot.HasMember("appbuild") && appbuild::ValidateJsonAgainstSchema(projectRoot["appbuild"],a_Args.GetLoggingMode() == appbuild::LOG_VERBOSE) )
 		{
 			std::cout << "Embedded project found on key 'appbuild' in the json file, using that. The root json file had filed the schema." << std::endl;
 			std::cout << "Please consider using the --e or embedded-project option to silence this message." << std::endl;
