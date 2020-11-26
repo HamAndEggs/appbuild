@@ -116,7 +116,7 @@ bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Documen
     return false;
 }
 
-bool ValidateJsonAgainstSchema(rapidjson::Value& pJson)
+bool ValidateJsonAgainstSchema(rapidjson::Value& pJson,bool pVerbose)
 {
     rapidjson::Document sd;
     if (sd.Parse(GetProjectSchema()).HasParseError())
@@ -132,20 +132,30 @@ bool ValidateJsonAgainstSchema(rapidjson::Value& pJson)
     rapidjson::SchemaValidator validator(schema);
     if( pJson.Accept(validator) )
     {
-        std::cout << "Json passed schema test" << std::endl;
+        if( pVerbose )
+        {
+            std::cout << "Json passed schema test" << std::endl;
+        }
         // all ok.
         return true;
     }
 
     // Input JSON is invalid according to the schema
-    // Output diagnostic information
-    rapidjson::StringBuffer sb;
-    validator.GetInvalidSchemaPointer().StringifyUriFragment(sb);
-    std::cout << "Invalid schema: " << sb.GetString() << std::endl;
-    std::cout << "Invalid keyword: " << validator.GetInvalidSchemaKeyword() << std::endl;
-    sb.Clear();
-    validator.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-    std::cout << "Invalid document: " << sb.GetString() << std::endl;
+    if( pVerbose )
+    {
+        // Output diagnostic information
+        rapidjson::StringBuffer sb;
+        validator.GetInvalidSchemaPointer().StringifyUriFragment(sb);
+        std::cout << "Invalid schema: " << sb.GetString() << std::endl;
+        std::cout << "Invalid keyword: " << validator.GetInvalidSchemaKeyword() << std::endl;
+        sb.Clear();
+        validator.GetInvalidDocumentPointer().StringifyUriFragment(sb);
+        std::cout << "Invalid document: " << sb.GetString() << std::endl;
+    }
+    else
+    {
+        std::cout << "Json failed the schema checks" << std::endl;
+    }
     return false;
 
 }

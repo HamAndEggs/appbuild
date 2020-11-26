@@ -130,7 +130,7 @@ bool Project::Build(const std::string& pConfigName)
 
 		if( ReadJson(ProjectFile,ProjectJson) )
 		{
-			if( ValidateJsonAgainstSchema(ProjectJson) == false )
+			if( ValidateJsonAgainstSchema(ProjectJson,mLoggingMode == appbuild::LOG_VERBOSE) == false )
 			{
 				return false;
 			}

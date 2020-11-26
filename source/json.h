@@ -80,10 +80,11 @@ extern bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::
  * @brief Checks the passed in json against the internal application schema.
  * 
  * @param pJson 
+ * @param pVerbose If true will output information on the validation process.
  * @return true 
  * @return false 
  */
-extern bool ValidateJsonAgainstSchema(rapidjson::Value& pJson);
+extern bool ValidateJsonAgainstSchema(rapidjson::Value& pJson,bool pVerbose);
 
 /**
  * @brief For every entry in the project file pJson that is missing the default value will be added.
