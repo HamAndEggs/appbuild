@@ -90,7 +90,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	}
 	else
 	{
-		std::cout << "No source files, what the should do I compile? Project \'" << mProjectName << std::endl;
+		std::cout << "No source files, what the should do I compile? \'" << mProjectName << "\'\n";
 		return;
 	}
 
@@ -99,6 +99,24 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	{
 		mResourceFiles.Read(pProjectJson["resource_files"]);
 	}
+
+	if( pProjectJson.HasMember("version") )
+	{
+		if( pProjectJson["mProjectVersion"].IsString() )
+		{
+		}
+		else
+		{
+			std::cout << "Version is not a string for the \'" << mProjectName << "\'\n";
+			return;
+		}
+	}
+	else
+	{
+		std::cout << "No version string set for the \'" << mProjectName << "\'\n";
+		return;
+	}
+	
 
 	// Get here all is ok.
 	mOk = true;

@@ -38,6 +38,7 @@
 		}
 
 	},
+	"version":"0.0.0",
 	"source_files":
 	[
 		"./source/shell.cpp",

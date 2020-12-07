@@ -107,6 +107,7 @@ private:
 	// This project file, fully pathed.
 	const std::string mProjectName; //!< The name of the project that will uniquely identify it within a group of loaded projects.
 	const std::string mProjectDir; //!< The root path that all paths in the project are relative too.
+	const std::string mProjectVersion; //<! The version number of the project.
 
 	Dependencies mDependencies;
 	SourceFiles mSourceFiles;

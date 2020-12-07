@@ -5,7 +5,8 @@
     "title": "The root schema",
     "description": "The root schema comprises the entire JSON document.",
     "required": [
-        "source_files"
+        "source_files",
+        "version"
     ],
     "additionalProperties": true,
     "properties": {
@@ -109,6 +110,10 @@
             "items":{
                 "type":"string"
             }
+        },
+        "version":{
+            "description": "Version of the application or the library. Format is the standard Major.Minor.BugFix 8.8.16 format. Three numbers only. Will generate a define APP_BUILD_VERSION as a string. Only valid for the project that it is built with.",
+            "type": "string"
         }
     }
 }
