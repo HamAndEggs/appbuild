@@ -26,27 +26,26 @@
 #include "source_files.h"
 #include "logging.h"
 #include "shell.h"
+#include "project.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-Configuration::Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig):
+Configuration::Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const rapidjson::Value& pConfig):
 		mConfigName(pConfigName),
-		mProjectDir(pProjectDir),
+		mProjectDir(pParentProject->GetProjectDir()),
 		mLoggingMode(pLoggingMode),
 		mIsDefaultConfig(false),
 		mOk(false),
 		mTargetType(TARGET_NOT_SET),
-		mOutputPath(CleanPath(pProjectDir + "bin/" + pConfigName + "/")),
-		mOutputName(pOutputName),
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
 		mFatalErrors(false),
-		mSourceFiles(pProjectDir,pLoggingMode)		
+		mSourceFiles(pParentProject->GetProjectDir(),pLoggingMode)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
-		std::cout << "Project Directory: " << pProjectDir << std::endl;
+		std::cout << "Project Directory: " << mProjectDir << std::endl;
 	
-	AddIncludeSearchPath(pProjectDir);
+	AddIncludeSearchPath(mProjectDir);
 
 	mIsDefaultConfig = GetBool(pConfig,"default",false);
 	
@@ -133,6 +132,7 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 	}
 	else if(mLoggingMode >= LOG_VERBOSE)
 	{
+		mOutputPath = CleanPath(mProjectDir + "bin/" + pConfigName + "/");
 		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
 	}
 
@@ -180,10 +180,14 @@ Configuration::Configuration(const std::string& pConfigName,const std::string& p
 		}
 		mOutputName = filename;
 	}
-	else if( mTargetType == TARGET_EXEC )
-	{// If the target is an executable then we're safe to use a default name. For other output types, user has to supply an output.
-	// TODO: Add some kind of environment variable system so this can be added to the default project.
+	else
+	{
+		// Lets make up a reasonble name for the exe.
+		// Use the passed in project name, but we do need to ensure that there is not characters to do with paths as they will cause problems.
+		// The passed in project name could be anything, so may include path info. It's used to uniquely identify the project in a build. So could be verbose.
+		mOutputName = GuessOutputName(pParentProject->GetProjectName());
 
+		// If the target is an executable then we're safe to use a default name. For other output types, user has to supply an output.
 		if( mTargetType == TARGET_LIBRARY || mTargetType == TARGET_SHARED_LIBRARY )
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";

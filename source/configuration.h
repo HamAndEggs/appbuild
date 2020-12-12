@@ -42,12 +42,13 @@ enum eTargetType
 class Dependencies;
 class BuildTaskStack;
 class JsonWriter;
+class Project;
 class SourceFiles;
 
 class Configuration
 {
 public:
-	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig);
+	Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const rapidjson::Value& pConfig);
 	~Configuration();
 
 	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;

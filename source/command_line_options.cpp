@@ -33,7 +33,7 @@ namespace appbuild{
 		DEF_ARG(ARG_VERSION,no_argument,						'v',"version","Output version information and exit.")																\
 		DEF_ARG(ARG_SHOW_TYPE_SIZES,no_argument,				's',"type-info","Output the byte sizes of a selection of types at the time appbuild was built.")					\
 		DEF_ARG(ARG_VERBOSE,no_argument,						'V',"verbose","Print more information about progress.")																\
-		DEF_ARG(ARG_QUIET,no_argument,				    		'q',"quiet","Print no information about progress, just errors will be displayed.")                       			\
+		DEF_ARG(ARG_QUIET,no_argument,				    		'q',"quiet","Print no information about progress, just critical errors will be displayed.")                       			\
 		DEF_ARG(ARG_REBUILD,no_argument,						'r',"rebuild","Clean and rebuild all the source files.")															\
 		DEF_ARG(ARG_RUN_AFTER_BUILD,no_argument,				'x',"run-after-build","If the build is successful then eXecute the app, but only if one project file submitted.")	\
 		DEF_ARG(ARG_NUM_THREADS,required_argument,				'n',"num-threads","Sets the number of threads to use when tasks can be done in parallel.")							\
