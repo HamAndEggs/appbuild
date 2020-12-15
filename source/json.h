@@ -105,13 +105,13 @@ template <typename __TYPE__>void AddMember(rapidjson::Value& pContainer,const st
    pContainer.AddMember(rapidjson::Value(pKey,pAlloc).Move(),pValue,pAlloc);
 }
 
-// Template specialisation, for when value is a string, needs to be wrapped in a value like the key is.
+// Template specialization, for when value is a string, needs to be wrapped in a value like the key is.
 inline void AddMember(rapidjson::Value& pContainer,const std::string& pKey,const std::string& pValue,rapidjson::Document::AllocatorType& pAlloc)
 {
    pContainer.AddMember(rapidjson::Value(pKey,pAlloc),rapidjson::Value(pValue,pAlloc),pAlloc);
 }
 
-// Template specialisation, for when value is a rapidjson::Value
+// Template specialization, for when value is a rapidjson::Value
 inline void AddMember(rapidjson::Value& pContainer,const std::string& pKey,rapidjson::Value pValue,rapidjson::Document::AllocatorType& pAlloc)
 {
    pContainer.AddMember(rapidjson::Value(pKey,pAlloc),rapidjson::Value(pValue,pAlloc),pAlloc);

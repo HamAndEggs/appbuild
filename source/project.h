@@ -94,13 +94,6 @@ public:
 	const std::string& GetProjectDir()const{return mProjectDir;}
 
 	/**
-	 * @brief Get the Major Version of the project.
-	 * 
-	 * @return int 
-	 */
-	int GetMajorVersion()const{return mProjectMajorVersion;}
-
-	/**
 	 * @brief Adds a generic file to the list of file dates to be tested against.
 	 * This is used for the project file, if there is one, and maybe some embedded resource files.
 	 * 
@@ -117,7 +110,7 @@ private:
 	bool CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 	bool ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
-	bool LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
+	bool LinkSharedObject(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 
 	/**
 	 * @brief Returns a 32bit value that represents the version string passed in.

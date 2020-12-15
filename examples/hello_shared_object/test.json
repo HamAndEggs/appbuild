@@ -1,8 +1,13 @@
-R"({
+{
     "configurations": {
         "release": {
+            "define": [
+                "NDEBUG",
+                "RELEASE_BUILD",
+                "A_NUMBER_DEF=7"
+            ],
+            "target": "sharedobject",
             "default": true,
-            "target": "executable",
             "compiler": "gcc",
             "linker": "gcc",
             "archiver": "ar",
@@ -21,15 +26,15 @@ R"({
                 "m",
                 "stdc++",
                 "pthread"
-            ],
-            "define": [
-                "NDEBUG",
-                "RELEASE_BUILD"
             ]
         },
         "debug": {
+            "define": [
+                "DEBUG_BUILD",
+                "A_NUMBER_DEF=2"
+            ],
+            "target": "sharedobject",
             "default": false,
-            "target": "executable",
             "compiler": "gcc",
             "linker": "gcc",
             "archiver": "ar",
@@ -48,14 +53,11 @@ R"({
                 "m",
                 "stdc++",
                 "pthread"
-            ],
-            "define": [
-                "DEBUG_BUILD"
             ]
         }
     },
     "source_files": [
-        "./main.cpp"
+        "./hello.cpp"
     ],
-    "version":"0.0.1"
-} )";
+    "version": "0.0.1"
+}

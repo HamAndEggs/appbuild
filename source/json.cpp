@@ -182,7 +182,6 @@ static bool AddMissingMembers(rapidjson::Value &dstObject,const rapidjson::Value
             dstName.CopyFrom(srcIt->name, allocator);
             rapidjson::Value dstVal ;
             dstVal.CopyFrom(srcIt->value, allocator) ;
-
             dstObject.AddMember(dstName, dstVal, allocator);
 
             dstName.CopyFrom(srcIt->name, allocator);
@@ -283,6 +282,14 @@ void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson)
         rapidjson::Value configuration = rapidjson::Value(rapidjson::kObjectType);
         AddMissingMembers(configuration,configurationDefaults,pJson.GetAllocator());
         pJson.AddMember("configurations",configuration,pJson.GetAllocator());
+    }
+
+    // Need to do the version string on it's own as it's not part of the configurations.
+    if( pJson.HasMember("version") == false )
+    {
+        // The default.
+        const std::string version = defaultJson["version"].GetString();
+        AddMember(pJson,"version",version,pJson.GetAllocator());
     }
 
 //for debugging

@@ -29,6 +29,7 @@
 #include "arg_list.h"
 #include "build_task_resource_files.h"
 #include "logging.h"
+#include "version_tools.h"
 
 namespace appbuild{
 
@@ -100,7 +101,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	{
 		if( pProjectJson["version"].IsString() )
 		{		
-			mProjectVersion = ParseVersion(pProjectJson["mProjectVersion"].GetString());
+			mProjectVersion = ParseVersion(pProjectJson["version"].GetString());
 			if( mProjectVersion == 0 )
 			{
 				std::cout << "Version is zero, this is not valid, check formatting. For project \'" << mProjectName << "\'\n";
@@ -222,8 +223,15 @@ bool Project::Build(const std::string& pConfigName)
 		}
 	}
 
+	ArgList additionalArgs;
+	// If we're creating a shared object then we need to build source files with -fpic option.
+	if( activeConfig->GetTargetType() == TARGET_SHARED_OBJECT )
+	{
+		additionalArgs.AddArg("-fpic"); // Enable position independent code
+	}
+
 	StringVec OutputFiles;
-	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
+	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,additionalArgs,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
@@ -242,8 +250,8 @@ bool Project::Build(const std::string& pConfigName)
 		case TARGET_LIBRARY:
 			return ArchiveLibrary(activeConfig,OutputFiles);
 
-		case TARGET_SHARED_LIBRARY:
-			return LinkSharedLibrary(activeConfig,OutputFiles);
+		case TARGET_SHARED_OBJECT:
+			return LinkSharedObject(activeConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
 			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
@@ -619,19 +627,45 @@ bool Project::ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFi
 	return ok;
 }
 
-bool Project::LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
+bool Project::LinkSharedObject(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 {
-	ArgList Arguments("-shared");
+	assert(pConfig);
+	if( !pConfig )
+		return false;
 
-	// And add the output.
-	Arguments.AddArg(pConfig->GetPathedTargetName());
+	ArgList Arguments;
+
+	Arguments.AddArg("-shared"); // Enable shared object output
+
+	Arguments.AddLibrarySearchPaths(pConfig->GetLibrarySearchPaths());
+	Arguments.AddLibrarySearchPaths(mDependencyLibrarySearchPaths);
 
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
 
-	std::string Results;
-	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);
+	// Add the libs, must come after the object files.
+	Arguments.AddLibraryFiles(mDependencyLibraryFiles);
+	Arguments.AddLibraryFiles(pConfig->GetLibraryFiles());
 
+	// And add the output.
+	Arguments.AddArg("-o");
+	Arguments.AddArg(pConfig->GetPathedTargetName());
+
+    if( mLoggingMode >= LOG_INFO )
+	    std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
+
+	if( mLoggingMode >= LOG_VERBOSE )
+	{
+		const StringVec& args = Arguments;
+		std::cout << pConfig->GetLinker() << " ";
+		for( const auto& arg : args )
+			std::cout << arg << " ";
+
+		std::cout << std::endl;
+	}
+
+	std::string Results;
+	bool ok = ExecuteShellCommand(pConfig->GetLinker(),Arguments,Results);
     if( Results.size() < 1 )
     {
         if( mLoggingMode >= LOG_INFO )
@@ -641,7 +675,8 @@ bool Project::LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutpu
     {
         std::cerr << Results << std::endl;
     }
-	
+    
+
 	return ok;
 
 }

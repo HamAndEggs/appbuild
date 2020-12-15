@@ -36,7 +36,7 @@ enum eTargetType
 	TARGET_NOT_SET,
 	TARGET_EXEC,
 	TARGET_LIBRARY,
-	TARGET_SHARED_LIBRARY,
+	TARGET_SHARED_OBJECT,
 };
 
 class Dependencies;
@@ -67,13 +67,13 @@ public:
 	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 	void AddDefine(const std::string& pDefine);
 	void AddLibrary(const std::string& pLib);
 
 private:
-	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
+	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddIncludeSearchPaths(const rapidjson::Value& pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);

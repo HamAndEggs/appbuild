@@ -14,8 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef _VERSION_H_
-#define _VERSION_H_
+#ifndef _VERSION_TOOLS_H_
+#define _VERSION_TOOLS_H_
 
 #include <string>
 

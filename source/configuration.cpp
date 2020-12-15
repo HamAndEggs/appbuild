@@ -144,8 +144,8 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 			mTargetType = TARGET_EXEC;
 		else if( CompareNoCase("library",TargetName.c_str()) )
 			mTargetType = TARGET_LIBRARY;
-		else if( CompareNoCase("sharedlibrary",TargetName.c_str()) )
-			mTargetType = TARGET_SHARED_LIBRARY;
+		else if( CompareNoCase("sharedobject",TargetName.c_str()) )
+			mTargetType = TARGET_SHARED_OBJECT;
 
 		// Was it set?
 		if( mTargetType == TARGET_NOT_SET )
@@ -172,12 +172,28 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 			{
 				filename = std::string("lib") + filename;
 			}
+
 			// This could be a function called mPathedTargetName.ends_with(".a") .......
 			if( CompareNoCase(mPathedTargetName.c_str() + filename.size() - 2,".a") == false )
 			{
 				filename += ".a";
 			}
 		}
+		else if( mTargetType == TARGET_SHARED_OBJECT )
+		{
+			// Shared object files, by convention, should be libSOMETHING.so format.
+			if( CompareNoCase(mPathedTargetName.c_str(),"lib",3) == false )
+			{
+				filename = std::string("lib") + filename;
+			}
+			
+			// This could be a function called mPathedTargetName.ends_with(".so") .......
+			if( CompareNoCase(mPathedTargetName.c_str() + filename.size() - 3,".so") == false )
+			{
+				filename += ".so";
+			}
+		}
+
 		mOutputName = filename;
 	}
 	else
@@ -188,9 +204,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		mOutputName = GuessOutputName(pParentProject->GetProjectName());
 
 		// If the target is an executable then we're safe to use a default name. For other output types, user has to supply an output.
-		if( mTargetType == TARGET_LIBRARY || mTargetType == TARGET_SHARED_LIBRARY )
+		if( mTargetType == TARGET_LIBRARY )
 		{
 			mOutputName = std::string("lib") + mOutputName + ".a";
+		}
+		else if( mTargetType == TARGET_SHARED_OBJECT  )
+		{
+			mOutputName = std::string("lib") + mOutputName + ".so";
 		}
 
         if( mLoggingMode >= LOG_VERBOSE )
@@ -314,26 +334,26 @@ const StringVec Configuration::GetLibraryFiles()const
 	return allLibraryFiles;
 }
 
-bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
+bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
 
 	// add the generated resource files.
-	if( !GetBuildTasks(pGeneratedResourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !GetBuildTasks(pGeneratedResourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the project files.
-	if( !GetBuildTasks(pProjectSourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !GetBuildTasks(pProjectSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the configuration files.
-	if( !GetBuildTasks(mSourceFiles,pRebuildAll,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !GetBuildTasks(mSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	return true;
 }
 
-bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
+bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
 	// A little earlyout for small projects as this function can be called multiple times!
 	if( pSourceFiles.IsEmpty() )
@@ -360,8 +380,8 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 	for( const auto& filename : pSourceFiles )
 	{
-		// Later on in the code we deal with duplicate file names with a nice little sneeky trick.
-		// Only posible because we use one process many threads for the whole build process and not many proccess, like make does.
+		// Later on in the code we deal with duplicate file names with a nice little sneaky trick.
+		// Only possible because we use one process many threads for the whole build process and not many proccess, like make does.
 		
 		// Make sure output path is there.
 		MakeDir(mOutputPath); 
@@ -406,7 +426,8 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 				// If we do not do this then it can effect the dependency system.
 				std::remove(OutputFilename.c_str());
 
-				ArgList args;
+				ArgList args(pAdditionalArgs);
+
 				args.AddArg("-o" + mOptimisation);
 				args.AddArg("-g" + mDebugLevel);
 
@@ -661,7 +682,7 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 
 const std::string Configuration::TargetTypeToString(eTargetType pTarget)const
 {
-	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_LIBRARY );
+	assert( pTarget == TARGET_EXEC || pTarget == TARGET_LIBRARY || pTarget == TARGET_SHARED_OBJECT );
 	switch(pTarget)
 	{
 	case TARGET_NOT_SET:
@@ -673,8 +694,8 @@ const std::string Configuration::TargetTypeToString(eTargetType pTarget)const
 	case TARGET_LIBRARY:
 		return "library";
 
-	case TARGET_SHARED_LIBRARY:
-		return "sharedlibrary";
+	case TARGET_SHARED_OBJECT:
+		return "sharedobject";
 	}
 	return "TARGET_NOT_SET ERROR REPORT THIS BUG!";
 }
