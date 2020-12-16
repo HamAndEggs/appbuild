@@ -173,7 +173,7 @@ bool Project::Build(const std::string& pConfigName)
 				// That worked, lets add it's output file to our input libs.
 				ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
 				assert( DepConfig != nullptr );// Should not happen, it was built ok...		
-				if( DepConfig->GetTargetType() == TARGET_LIBRARY )
+				if( DepConfig->GetTargetType() == TARGET_LIBRARY || DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
 				{
 					const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
 					mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());

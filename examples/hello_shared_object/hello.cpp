@@ -1,7 +1,7 @@
 #include <iostream>
 #include "hello.h"
 
-void HelloClass::SayHello()
+void HelloClassSharedObject::SayHello()
 {
 	std::cout << "Build date and time " << APP_BUILD_DATE_TIME << std::endl;
 	std::cout << "Build date " << APP_BUILD_DATE << std::endl;

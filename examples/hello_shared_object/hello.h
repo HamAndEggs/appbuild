@@ -1,7 +1,7 @@
 #ifndef __HELLO_H__
 #define __HELLO_H__
 
-class HelloClass
+class HelloClassSharedObject
 {
 public:
     
