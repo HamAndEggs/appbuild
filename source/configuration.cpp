@@ -43,7 +43,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		mSourceFiles(pParentProject->GetProjectDir(),pLoggingMode)		
 {
 	if( mLoggingMode >= LOG_VERBOSE )
-		std::cout << "Project Directory: " << mProjectDir << std::endl;
+		std::clog << "Project Directory: " << mProjectDir << '\n';
 	
 	AddIncludeSearchPath(mProjectDir);
 
@@ -53,13 +53,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	{
         if( AddIncludeSearchPaths(pConfig["include"]) == false )
         {
-            std::cout << "The \'include\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
+            std::cerr << "The \'include\' object in the \'settings\' " << mConfigName << " is not an array\n";
             return; // We're done, no need to continue.
         }
     }
     else
     {
-   		std::cout << "Internal error: The \'include\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+   		std::cerr << "Internal error: The \'include\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
         return; // We're done, no need to continue.
     }
 
@@ -68,7 +68,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
     {
         if( AddLibrarySearchPaths(pConfig["libpaths"]) == false )
         {
-            std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
+            std::cerr << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is not an array\n";
             return; // We're done, no need to continue.
         }
     }
@@ -76,7 +76,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
     {
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'libpaths\' object in the \'settings\' " << mConfigName << " not set." << std::endl;
+    		std::clog << "The \'libpaths\' object in the \'settings\' " << mConfigName << " not set.\n";
         }
     }
 
@@ -86,13 +86,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	{
 		if( AddLibraries(pConfig["libs"]) == false  )
 		{
-			std::cout << "The \'libraries\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
+			std::cerr << "The \'libraries\' object in the \'settings\' " << mConfigName << " is not an array\n";
 			return; // We're done, no need to continue.
 		}
 	}
     else
     {
-   		std::cout << "Internal error: The \'libs\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+   		std::cerr << "Internal error: The \'libs\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
         return; // We're done, no need to continue.
     }
 
@@ -100,13 +100,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	{
 		if( AddDefines(pConfig["define"]) == false  )
 		{
-			std::cout << "The \'defines\' object in the \'settings\' " << mConfigName << " is not an array" << std::endl;
+			std::cerr << "The \'defines\' object in the \'settings\' " << mConfigName << " is not an array\n";
 			return; // We're done, no need to continue.
 		}
 	}	
 	else
 	{
-   		std::cout << "Internal error: The \'define\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+   		std::cerr << "Internal error: The \'define\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
         return; // We're done, no need to continue.
 	}
 
@@ -118,6 +118,9 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		if(mOutputPath.back() != '/')
 			mOutputPath += "/";
 
+		// Add the projects dir to the start so when build from a sub project will work.
+		mOutputPath = CleanPath(mProjectDir + mOutputPath);
+
 		// If path is absolute make it relative.
 		// In this app all paths except includes are relative to the project files location.
 		if( GetIsPathAbsolute(mOutputPath) )
@@ -126,14 +129,14 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
 			if( mLoggingMode >= LOG_VERBOSE )
 			{
-				std::cout << "The \'output_path\' object in the \'settings\' " << mConfigName << " is an absolute path, changing to " << mOutputPath << std::endl;
+				std::clog << "The \'output_path\' object in the \'settings\' " << mConfigName << " is an absolute path, changing to " << mOutputPath << '\n';
 			}
 		}
 	}
 	else if(mLoggingMode >= LOG_VERBOSE)
 	{
 		mOutputPath = CleanPath(mProjectDir + "bin/" + pConfigName + "/");
-		std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'" << std::endl;
+		std::clog << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'\n";
 	}
 
 	// Find out what they wish to build.
@@ -150,13 +153,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		// Was it set?
 		if( mTargetType == TARGET_NOT_SET )
 		{
-			std::cout << "The \'target\' object \"" << TargetName << "\" in the configuration:" << mConfigName << " is not a valid type." << std::endl;
+			std::cerr << "The \'target\' object \"" << TargetName << "\" in the configuration:" << mConfigName << " is not a valid type.\n";
 			return; // We're done, no need to continue.
 		}
 	}
 	else
 	{
-   		std::cout << "Internal error: The \'target\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?" << std::endl;
+   		std::cerr << "Internal error: The \'target\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
         return; // We're done, no need to continue.
 	}
 
@@ -215,7 +218,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::cout << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'" << std::endl;		
+    		std::clog << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'\n";
         }
 	}
 
@@ -250,11 +253,11 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
 	if( pLoggingMode  >= LOG_VERBOSE )
 	{
-		std::cout << "Configuration " << pConfigName << std::endl;
-		std::cout << "    mProjectDir " << mProjectDir << std::endl;
-		std::cout << "    mOutputPath " << mProjectDir << std::endl;
-		std::cout << "    mOutputName " << mOutputName << std::endl;
-		std::cout << "    mPathedTargetName " << mPathedTargetName << std::endl;
+		std::clog << "Configuration " << pConfigName << '\n';
+		std::clog << "    mProjectDir " << mProjectDir << '\n';
+		std::clog << "    mOutputPath " << mOutputPath << '\n';
+		std::clog << "    mOutputName " << mOutputName << '\n';
+		std::clog << "    mPathedTargetName " << mPathedTargetName << '\n';
 	}
 
 	// If we get here, then all is ok.
@@ -392,12 +395,17 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 		// See if the file has already been seen, if not continue.
 		if( rInputFilesSeen.find(InputFilename) != rInputFilesSeen.end() )
 		{
-			std::cout << "Source file \'" << InputFilename << "\' is in the project twice." << std::endl;
+			std::cerr << "Source file \'" << InputFilename << "\' is in the project twice.\n";
 			return false;
 		}
 		else if( FileExists(InputFilename) )			// If the source file exists then we'll continue, else show an error.
 		{
 			rInputFilesSeen.insert(InputFilename);
+
+			if(mLoggingMode >= LOG_VERBOSE)
+			{
+				std::clog << mOutputPath << "\n";
+			}
 
 			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
 			// pFolder can be null. This is normally the group name.
@@ -420,6 +428,12 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 			if( pRebuildAll || rDependencies.RequiresRebuild(InputFilename,OutputFilename,includeSearchPaths) )
 			{
+				if(mLoggingMode >= LOG_VERBOSE)
+				{
+					std::clog << "Creating " << OutputFilename << " from file " << InputFilename << "\n";
+				}
+
+
 				bool isCfile = GetExtension(InputFilename) == "c";
 
 				// Going to build the file, so delete the obj that is there.
@@ -428,8 +442,16 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 
 				ArgList args(pAdditionalArgs);
 
-				args.AddArg("-o" + mOptimisation);
-				args.AddArg("-g" + mDebugLevel);
+				// This string has to have a value, else param will be -o that sets output. Would case big issues is this string was empty
+				if( mOptimisation.size() > 0 )
+				{
+					args.AddArg("-o" + mOptimisation);
+				}
+
+				if( mDebugLevel.size() > 0 )
+				{// Again, only build if string is not empty.
+					args.AddArg("-g" + mDebugLevel);
+				}
 
 				args.AddArg(DEF_APP_BUILD_DATE_TIME);
 				args.AddArg(DEF_APP_BUILD_DATE);
@@ -461,7 +483,7 @@ bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildA
 		}
 		else
 		{
-			std::cout << "Input filename not found " << InputFilename << std::endl;
+			std::cerr << "Input filename not found " << InputFilename << '\n';
 		}
 	}
 	return true;
@@ -559,14 +581,15 @@ bool Configuration::AddDependantProjects(const rapidjson::Value& pLibs)
 			}
 			else
 			{
-				std::cout << "Dependency list has a none string entry, please correct. Item being ignored." << std::endl;
+				std::cerr << "Dependency list has a none string entry, please correct.\n";
+				return false;
 			}
 		}
 		return true;
 	}
 	else
 	{
-		std::cout << "Dependency list for projects is not an array type, please correct." << std::endl;
+		std::cerr << "Dependency list for projects is not an array type, please correct.\n";
 	}
 	return false;	
 }
@@ -595,7 +618,7 @@ const std::string Configuration::PreparePath(const std::string& pPath)
 bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const
 {
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search " << std::endl;
+		std::clog << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search \n";
 
 	StringVec args;
 	args.push_back("--cflags");
@@ -617,11 +640,13 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 					pIncludeSearchPaths.push_back(theFolder);
 					FoundIncludes = true;
 					if(mLoggingMode >= LOG_VERBOSE)
-						std::cout << "pkg-config adding folder to include search " << theFolder << std::endl;
+					{
+						std::clog << "pkg-config adding folder to include search " << theFolder << '\n';
+					}
 				}
 				else if(mLoggingMode >= LOG_VERBOSE)
 				{
-					std::cout << "pkg-config proposed folder not found, NOT added to include search " << theFolder << std::endl;
+					std::clog << "pkg-config proposed folder not found, NOT added to include search " << theFolder << '\n';
 				}
 			}
 		}
@@ -632,7 +657,7 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 		}
 		else
 		{// Something went wrong, so return false for an error and show output from pkg-config
-			std::cout << results << std::endl;
+			std::cerr << results << '\n';
 		}
 	}
 
@@ -642,7 +667,7 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const
 {
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "Calling \"pkg-config --libs " << pVersion << "\" to add library dependancies to the linker " << std::endl;
+		std::clog << "Calling \"pkg-config --libs " << pVersion << "\" to add library dependencies to the linker \n";
 
 	StringVec args;
 	args.push_back("--libs");
@@ -661,7 +686,7 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 				pLibraryFiles.push_back(theFolder);
 				FoundLibraries = true;
 				if(mLoggingMode >= LOG_VERBOSE)
-					std::cout << "pkg-config adding library " << theFolder << std::endl;
+					std::clog << "pkg-config adding library " << theFolder << '\n';
 
 			}
 		}
@@ -673,7 +698,7 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 		}
 		else
 		{// Something went wrong, so return false for an error and show output from pkg-config
-			std::cout << results << std::endl;
+			std::cerr << results << '\n';
 		}
 	}
 

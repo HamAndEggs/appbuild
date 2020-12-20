@@ -43,7 +43,7 @@ void BuildTask::Execute()
 {
     if( mLoggingMode >= LOG_INFO )
     {
-    	std::cout << "Building: " << mTaskName << std::endl;
+    	std::clog << "Building: " << mTaskName << '\n';
     }
 
 	thread = std::thread(CallMain,this);
