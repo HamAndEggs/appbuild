@@ -29,7 +29,7 @@ namespace appbuild{
 #define VERSION_GET_MINOR(__VERSION__) ((uint32_t)(((__VERSION__)&0x00ff0000)>>16))
 #define VERSION_GET_PATCH(__VERSION__) ((uint32_t)(((__VERSION__)&0x0000ffff)>>0))
 
-#define VERSION_TO_STRING(__VERSION__) (std::string(std::to_string(GK_VERSION_GET_MAJOR(__VERSION__)) + std::string(".") + std::to_string(GK_VERSION_GET_MINOR(__VERSION__)) + std::string(".") + std::to_string(GK_VERSION_GET_PATCH(__VERSION__))))
+#define VERSION_TO_STRING(__VERSION__) (std::string(std::to_string(VERSION_GET_MAJOR(__VERSION__)) + std::string(".") + std::to_string(VERSION_GET_MINOR(__VERSION__)) + std::string(".") + std::to_string(VERSION_GET_PATCH(__VERSION__))))
 
 #endif
 
