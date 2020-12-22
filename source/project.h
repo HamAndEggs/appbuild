@@ -62,7 +62,7 @@ public:
 	operator bool ()const{return mOk;}
 
 	bool Build(const std::string& pConfigName);
-	bool RunOutputFile(const std::string& pConfigName);
+	bool RunOutputFile(const std::string& pConfigName)const;
 	void Write(rapidjson::Document& pDocument)const;
 
 	/**
@@ -136,6 +136,7 @@ private:
 
 	StringVec mDependencyLibrarySearchPaths;
 	StringVec mDependencyLibraryFiles;
+	std::string mSharedObjectPaths;		//!< Used to set the search paths to the putput of any shared object files that dependant projects create.
 
 	/**
 	 * @brief This is the version of the project, this is required for generation of the correct .so file contents. 

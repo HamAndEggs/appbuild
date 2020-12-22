@@ -52,7 +52,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	
 	if( pLoggingMode >= LOG_VERBOSE )
 	{
-		std::cout << "Project name is " << pProjectName << std::endl;
+		std::cout << "Project name is " << mProjectName << std::endl;
 		std::cout << "Project path is " << mProjectDir << std::endl;
 	}
 
@@ -179,6 +179,15 @@ bool Project::Build(const std::string& pConfigName)
 					mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
 					mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
 
+					if( DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
+					{
+						if( mSharedObjectPaths.size() > 0 )
+						{
+							mSharedObjectPaths += ":";
+						}
+						mSharedObjectPaths += RelativeOutputpath;
+					}
+
 					if( mLoggingMode >= LOG_VERBOSE )
 						std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
 				}
@@ -199,7 +208,7 @@ bool Project::Build(const std::string& pConfigName)
 	// We know what config to build with, lets go.
     if( mLoggingMode >= LOG_INFO )
     {
-    	std::cout << "Compiling configuration \'" << activeConfig->GetName() << "\'" << std::endl;
+    	std::clog << "Compiling configuration \'" << activeConfig->GetName() << "\'\n";
     }
 
 	BuildTaskStack BuildTasks;
@@ -266,7 +275,7 @@ bool Project::Build(const std::string& pConfigName)
 	return false;
 }
 
-bool Project::RunOutputFile(const std::string& pConfigName)
+bool Project::RunOutputFile(const std::string& pConfigName)const
 {
 	ConfigurationPtr activeConfig = GetConfiguration(pConfigName);
 	if(activeConfig == nullptr)
@@ -274,19 +283,7 @@ bool Project::RunOutputFile(const std::string& pConfigName)
 		return false;
 	}
 
-	std::string PathedTargetName;
-	if( activeConfig->GetTargetType() == TARGET_EXEC )
-	{
-		char command[256];
-		command[0] = 0;
-
-		strcat(command,activeConfig->GetPathedTargetName().c_str());
-
-		char* TheArgs[]={command,NULL};
-		return execvp(TheArgs[0],TheArgs) == 0;
-	}
-
-	return false;
+	return activeConfig->RunOutputFile(mSharedObjectPaths);
 }
 
 void Project::Write(rapidjson::Document& pDocument)const

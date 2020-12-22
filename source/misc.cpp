@@ -21,7 +21,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <algorithm>
-#include <cctype>
+#include <limits.h>
 
 #include "misc.h"
 
@@ -134,6 +134,13 @@ std::string GetCurrentWorkingDirectory()
 
 std::string CleanPath(const std::string& pPath)
 {
+    // Early out for daft calls... but valid.
+    if( pPath == "./" || pPath == "." || pPath == "../" )
+    {
+        return pPath;
+    }
+
+    // First get rid of the easy stuff.
     return ReplaceString(ReplaceString(pPath,"/./","/"),"//","/");
 }
 
@@ -286,6 +293,42 @@ std::string GetRelativePath(const std::string& pCWD,const std::string& pFullPath
 #endif
 
     return relativePath;
+}
+
+bool CompareNoCase(const char* pA,const char* pB,int pLength)
+{
+    assert( pA != nullptr || pB != nullptr );// Note only goes pop if both are null.
+// If either or both NULL, then say no. A bit like a divide by zero as null strings are not strings.
+    if( pA == nullptr || pB == nullptr )
+        return false;
+
+// If same memory then yes they match, doh!
+    if( pA == pB )
+        return true;
+
+    if( pLength <= 0 )
+        pLength = INT_MAX;
+
+    while( (*pA != 0 || *pB != 0) && pLength > 0 )
+    {
+        // Get here are one of the strings has hit a null then not the same.
+        // The while loop condition would not allow us to get here if both are null.
+        if( *pA == 0 || *pB == 0 )
+        {// Check my assertion above that should not get here if both are null. Note only goes pop if both are null.
+            assert( pA != NULL || pB != NULL );
+            return false;
+        }
+
+        if( tolower(*pA) != tolower(*pB) )
+            return false;
+
+        pA++;
+        pB++;
+        pLength--;
+    };
+
+    // Get here, they are the same.
+    return true;
 }
 
 char* CopyString(const char* pString, size_t pMaxLength)

@@ -42,9 +42,6 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		mFatalErrors(false),
 		mSourceFiles(pParentProject->GetProjectDir(),pLoggingMode)		
 {
-	if( mLoggingMode >= LOG_VERBOSE )
-		std::clog << "Project Directory: " << mProjectDir << '\n';
-	
 	AddIncludeSearchPath(mProjectDir);
 
 	mIsDefaultConfig = GetBool(pConfig,"default",false);
@@ -171,13 +168,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		{
 			// Archive libs, by convention, should be libSOMETHING.a format.
 			// I think I should write a class that adds handy functions to std::string. Been trying to avoid doing that.
-			if( CompareNoCase(mPathedTargetName.c_str(),"lib",3) == false )
+			if( CompareNoCase(filename.c_str(),"lib",3) == false )
 			{
 				filename = std::string("lib") + filename;
 			}
 
-			// This could be a function called mPathedTargetName.ends_with(".a") .......
-			if( CompareNoCase(mPathedTargetName.c_str() + filename.size() - 2,".a") == false )
+			// This could be a function called filename.ends_with(".a") .......
+			if( CompareNoCase(filename.c_str() + filename.size() - 2,".a") == false )
 			{
 				filename += ".a";
 			}
@@ -185,13 +182,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		else if( mTargetType == TARGET_SHARED_OBJECT )
 		{
 			// Shared object files, by convention, should be libSOMETHING.so format.
-			if( CompareNoCase(mPathedTargetName.c_str(),"lib",3) == false )
+			if( CompareNoCase(filename.c_str(),"lib",3) == false )
 			{
 				filename = std::string("lib") + filename;
 			}
 			
-			// This could be a function called mPathedTargetName.ends_with(".so") .......
-			if( CompareNoCase(mPathedTargetName.c_str() + filename.size() - 3,".so") == false )
+			// This could be a function called filename.ends_with(".so") .......
+			if( CompareNoCase(filename.c_str() + filename.size() - 3,".so") == false )
 			{
 				filename += ".so";
 			}
@@ -222,8 +219,6 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
         }
 	}
 
-	mPathedTargetName = CleanPath(mProjectDir + mOutputPath + mOutputName);
-	
 	mOptimisation = GetStringLog(pConfig,"optimisation",mOptimisation,mLoggingMode >= LOG_VERBOSE);
 	mDebugLevel = GetStringLog(pConfig,"debug_level",mDebugLevel,mLoggingMode >= LOG_VERBOSE);
 	mGTKVersion = GetStringLog(pConfig,"gtk_version",mGTKVersion,mLoggingMode >= LOG_VERBOSE);
@@ -257,7 +252,6 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		std::clog << "    mProjectDir " << mProjectDir << '\n';
 		std::clog << "    mOutputPath " << mOutputPath << '\n';
 		std::clog << "    mOutputName " << mOutputName << '\n';
-		std::clog << "    mPathedTargetName " << mPathedTargetName << '\n';
 	}
 
 	// If we get here, then all is ok.
@@ -354,6 +348,33 @@ bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const S
 		return false;
 
 	return true;
+}
+
+bool Configuration::RunOutputFile(const std::string& pSharedObjectPaths)const
+{
+	if( mTargetType == TARGET_EXEC )
+	{
+		const std::string pathedTargetName = GetPathedTargetName();
+		if( mLoggingMode >= LOG_INFO )
+		{
+			std::clog << "Running command " << pathedTargetName << " ";
+			if( pSharedObjectPaths.size() > 0 )
+			{
+				std::clog << "LD_LIBRARY_PATH = " << pSharedObjectPaths;
+			}
+			std::clog << '\n';
+		}
+
+		StringMap Env;
+		if( pSharedObjectPaths.size() > 0 )
+		{
+			Env["LD_LIBRARY_PATH"] = pSharedObjectPaths;
+		}
+
+		ExecuteCommand(pathedTargetName,mExecuteParams,Env);
+	}
+
+	return false;
 }
 
 bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
