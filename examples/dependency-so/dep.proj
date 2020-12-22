@@ -1,0 +1,37 @@
+{
+	"configurations":
+	{
+		"release":
+		{
+			"default":true,
+			"dependencies":
+			[
+				"../hello_shared_object/hello.proj"
+			],
+			"include":
+			[
+				"../hello_shared_object"
+            ],
+			"target":"executable",
+			"optimisation":"2"
+		},
+		"debug":
+		{
+			"dependencies":
+			[
+				"../hello_shared_object/hello.proj"
+			],
+			"include":
+			[
+				"../hello_shared_object"
+            ],
+			"target":"executable",
+			"optimisation":"0"
+		}
+	},
+    "source_files":
+	[
+		"./main.cpp"
+		
+	]
+}

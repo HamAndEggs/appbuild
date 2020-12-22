@@ -87,10 +87,27 @@ void ArgList::AddLibraryFiles(const StringVec& pLibs)
 {
 	for(auto lib : pLibs)
 	{
-		if( lib.size() > 6 && lib.find("lib") == 0 && lib.rfind(".a") == lib.size()-2 )
-			AddArg("-l:" + lib);
+		// Here we force the file name and it's say use the location passed in with -L for the lib.
+		// This is because the user could name the lib to anything if they overide the output setting.
+		// We have to allow that as they maybe generating an output with a custom name for a custom usecase.
+		// https://sourceware.org/binutils/docs-2.18/ld/Options.html
+		// This instructs the linker to find and link a library with the exact name libevent.a,
+		// in the specified (-Ldir) or default linker search directories,
+		// as opposed to the usual convention whereby -lfoo instructs the linker to find and link
+		// either libfoo.so (shared library) or libfoo.a (static library),
+		// preferring libfoo.so if both are found in the same search directory.
+		if( lib.size() > 6 && lib.find("lib") == 0 )
+		{
+			if( lib.rfind(".a") == lib.size()-2 ||
+				lib.rfind(".so") == lib.size()-3 )
+			{
+				AddArg("-l:" + lib);
+			}
+		}
 		else
+		{
 			AddArg("-l" + lib);
+		}
 	}
 }
 

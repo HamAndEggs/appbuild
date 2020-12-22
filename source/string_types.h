@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <stack>
 
 // This is here to allow to_string to be used in macros where the input type could be a basic type or a more complex one, such as a string.
 namespace std
@@ -33,6 +34,7 @@ namespace appbuild{
 typedef std::vector<std::string> StringVec;
 typedef std::map<std::string,std::string> StringMap;
 typedef std::set<std::string> StringSet;
+typedef std::stack<std::string> StringStack;
 typedef std::map<std::string,StringVec> StringVecMap;
 typedef std::map<std::string,StringSet> StringSetMap;
 typedef std::map<std::string,int> StringIntMap;

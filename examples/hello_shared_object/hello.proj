@@ -1,0 +1,28 @@
+{
+	"configurations":
+	{
+		"release":
+		{
+			"define":
+			[
+				"NDEBUG",
+				"RELEASE_BUILD",
+				"A_NUMBER_DEF=7"
+			],
+			"target":"sharedobject"
+		},
+		"debug":
+		{
+			"define":
+			[
+				"DEBUG_BUILD",
+				"A_NUMBER_DEF=2"
+			],
+			"target":"sharedobject"
+		}
+	},
+	"source_files":
+	[
+		"./hello.cpp"			
+	]
+}

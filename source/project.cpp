@@ -29,6 +29,7 @@
 #include "arg_list.h"
 #include "build_task_resource_files.h"
 #include "logging.h"
+#include "version_tools.h"
 
 namespace appbuild{
 
@@ -44,13 +45,14 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 		mProjectDir(pProjectPath),
 		mSourceFiles(pProjectPath,pLoggingMode),
 		mResourceFiles(pProjectPath,pLoggingMode),
+		mProjectVersion(0),
 		mOk(false)
 {
 	assert( pNumThreads > 0 );
 	
 	if( pLoggingMode >= LOG_VERBOSE )
 	{
-		std::cout << "Project name is " << pProjectName << std::endl;
+		std::cout << "Project name is " << mProjectName << std::endl;
 		std::cout << "Project path is " << mProjectDir << std::endl;
 	}
 
@@ -64,15 +66,10 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	// Record this file that we have loaded so we know it has been is loaded. Detects circular dependencies.
 	sLoadedProjects.insert(mProjectName);
 
-	// Lets make up a reasonble name for the exe.
-	// Use the passed in project name, but we do need to ensure that there is not characters to do with paths as they will cause problems.
-	// The passed in project name could be anything, so may include path info. It's used to uniquely identify the project in a build. So could be verbose.
-	const std::string defaultOutputName = GuessOutputName(mProjectName);
-
 	// Read the configs.
 	if( pProjectJson.HasMember("configurations") )
 	{
-		if( !ReadConfigurations(pProjectJson["configurations"],defaultOutputName) )
+		if( !ReadConfigurations(pProjectJson["configurations"]) )
 			return;
 	}
 	else
@@ -90,7 +87,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	}
 	else
 	{
-		std::cout << "No source files, what the should do I compile? Project \'" << mProjectName << std::endl;
+		std::cout << "No source files, what the should do I compile? \'" << mProjectName << "\'\n";
 		return;
 	}
 
@@ -99,6 +96,30 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	{
 		mResourceFiles.Read(pProjectJson["resource_files"]);
 	}
+
+	if( pProjectJson.HasMember("version") )
+	{
+		if( pProjectJson["version"].IsString() )
+		{		
+			mProjectVersion = ParseVersion(pProjectJson["version"].GetString());
+			if( mProjectVersion == 0 )
+			{
+				std::cout << "Version is zero, this is not valid, check formatting. For project \'" << mProjectName << "\'\n";
+				return;
+			}
+		}
+		else
+		{
+			std::cout << "Version is not a string for the \'" << mProjectName << "\'\n";
+			return;
+		}
+	}
+	else
+	{
+		std::cout << "No version string set for the \'" << mProjectName << "\'\n";
+		return;
+	}
+	
 
 	// Get here all is ok.
 	mOk = true;
@@ -152,11 +173,20 @@ bool Project::Build(const std::string& pConfigName)
 				// That worked, lets add it's output file to our input libs.
 				ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
 				assert( DepConfig != nullptr );// Should not happen, it was built ok...		
-				if( DepConfig->GetTargetType() == TARGET_LIBRARY )
+				if( DepConfig->GetTargetType() == TARGET_LIBRARY || DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
 				{
 					const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
 					mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
 					mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
+
+					if( DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
+					{
+						if( mSharedObjectPaths.size() > 0 )
+						{
+							mSharedObjectPaths += ":";
+						}
+						mSharedObjectPaths += RelativeOutputpath;
+					}
 
 					if( mLoggingMode >= LOG_VERBOSE )
 						std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
@@ -178,7 +208,7 @@ bool Project::Build(const std::string& pConfigName)
 	// We know what config to build with, lets go.
     if( mLoggingMode >= LOG_INFO )
     {
-    	std::cout << "Compiling configuration \'" << activeConfig->GetName() << "\'" << std::endl;
+    	std::clog << "Compiling configuration \'" << activeConfig->GetName() << "\'\n";
     }
 
 	BuildTaskStack BuildTasks;
@@ -202,8 +232,15 @@ bool Project::Build(const std::string& pConfigName)
 		}
 	}
 
+	ArgList additionalArgs;
+	// If we're creating a shared object then we need to build source files with -fpic option.
+	if( activeConfig->GetTargetType() == TARGET_SHARED_OBJECT )
+	{
+		additionalArgs.AddArg("-fpic"); // Enable position independent code
+	}
+
 	StringVec OutputFiles;
-	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,BuildTasks,mDependencies,OutputFiles) )
+	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,additionalArgs,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
@@ -222,8 +259,8 @@ bool Project::Build(const std::string& pConfigName)
 		case TARGET_LIBRARY:
 			return ArchiveLibrary(activeConfig,OutputFiles);
 
-		case TARGET_SHARED_LIBRARY:
-			return LinkSharedLibrary(activeConfig,OutputFiles);
+		case TARGET_SHARED_OBJECT:
+			return LinkSharedObject(activeConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
 			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
@@ -238,7 +275,7 @@ bool Project::Build(const std::string& pConfigName)
 	return false;
 }
 
-bool Project::RunOutputFile(const std::string& pConfigName)
+bool Project::RunOutputFile(const std::string& pConfigName)const
 {
 	ConfigurationPtr activeConfig = GetConfiguration(pConfigName);
 	if(activeConfig == nullptr)
@@ -246,19 +283,7 @@ bool Project::RunOutputFile(const std::string& pConfigName)
 		return false;
 	}
 
-	std::string PathedTargetName;
-	if( activeConfig->GetTargetType() == TARGET_EXEC )
-	{
-		char command[256];
-		command[0] = 0;
-
-		strcat(command,activeConfig->GetPathedTargetName().c_str());
-
-		char* TheArgs[]={command,NULL};
-		return execvp(TheArgs[0],TheArgs) == 0;
-	}
-
-	return false;
+	return activeConfig->RunOutputFile(mSharedObjectPaths);
 }
 
 void Project::Write(rapidjson::Document& pDocument)const
@@ -323,6 +348,11 @@ const StringVec Project::GetConfigurationNames()const
 	return names;
 }
 
+void Project::AddGenericFileDependency(const std::string& pPathedFileName)
+{
+	mDependencies.AddGenericFileDependency(pPathedFileName);
+}
+
 ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
 {
 	if( pName.size() > 0 )
@@ -338,12 +368,7 @@ ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
 	return nullptr;
 }
 
-void Project::AddGenericFileDependency(const std::string& pPathedFileName)
-{
-	mDependencies.AddGenericFileDependency(pPathedFileName);
-}
-
-bool Project::ReadConfigurations(const rapidjson::Value& pConfigs,const std::string& pDefaultOutputName)
+bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 {
 	assert(pConfigs.IsObject());
 
@@ -356,7 +381,7 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs,const std::str
 
 			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
 			{
-				mBuildConfigurations[name] = std::make_shared<Configuration>(name,pDefaultOutputName,mProjectDir,mLoggingMode,val);
+				mBuildConfigurations[name] = std::make_shared<Configuration>(name,this,mLoggingMode,val);
 				if( mBuildConfigurations[name]->GetOk() == false )
 				{
 					std::cerr << "Configuration \'"<< name << "\' failed to load, error in project " << mProjectName << std::endl;
@@ -599,25 +624,76 @@ bool Project::ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFi
 	return ok;
 }
 
-bool Project::LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
-{/*
-	ArgList Arguments("-shared");
+bool Project::LinkSharedObject(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
+{
+	assert(pConfig);
+	if( !pConfig )
+		return false;
 
-	// And add the output.
-	Arguments.AddArg(pConfig->GetPathedTargetName());
+	ArgList Arguments;
+
+	Arguments.AddArg("-shared"); // Enable shared object output
+
+	Arguments.AddLibrarySearchPaths(pConfig->GetLibrarySearchPaths());
+	Arguments.AddLibrarySearchPaths(mDependencyLibrarySearchPaths);
 
 	// Add the object files.
 	Arguments.AddArg(pOutputFiles);
 
+	// Add the libs, must come after the object files.
+	Arguments.AddLibraryFiles(mDependencyLibraryFiles);
+	Arguments.AddLibraryFiles(pConfig->GetLibraryFiles());
+
+	// And add the output.
+	Arguments.AddArg("-o");
+	Arguments.AddArg(pConfig->GetPathedTargetName());
+
+    if( mLoggingMode >= LOG_INFO )
+	    std::cout << "Linking: " << pConfig->GetPathedTargetName() << std::endl;
+
+	if( mLoggingMode >= LOG_VERBOSE )
+	{
+		const StringVec& args = Arguments;
+		std::cout << pConfig->GetLinker() << " ";
+		for( const auto& arg : args )
+			std::cout << arg << " ";
+
+		std::cout << std::endl;
+	}
+
 	std::string Results;
-	bool ok = ExecuteShellCommand(pConfig->GetArchiver(),Arguments,Results);
-	if( Results.size() < 1 )
-		Results = "Linked ok";
-	std::cout << Results << std::endl;
-	return ok;*/
-	return false;
+	bool ok = ExecuteShellCommand(pConfig->GetLinker(),Arguments,Results);
+    if( Results.size() < 1 )
+    {
+        if( mLoggingMode >= LOG_INFO )
+            std::cout << "Linked ok" << std::endl;
+    }
+    else
+    {
+        std::cerr << Results << std::endl;
+    }
+    
+
+	return ok;
+
 }
 
+uint32_t Project::ParseVersion(const std::string& pString)
+{
+    // Must be at least 5 chars long. N.N.N
+    if( pString.length() >= 5 )
+    {
+        int major,minor,patch;
+        if( sscanf(pString.c_str(),"%d.%d.%d",&major,&minor,&patch) == 3 )
+        {
+            if( major >= 0 && minor >= 0 && patch >= 0 )
+            {
+                return VERSION_MAKE(major,minor,patch);
+            }
+        }
+    }
+    return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////
 };//namespace appbuild{

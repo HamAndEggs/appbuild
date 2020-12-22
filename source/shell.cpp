@@ -14,16 +14,14 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#include <string>
-#include <vector>
-#include <assert.h>
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <limits.h>
 #include <poll.h>
 #include <string.h>
+
+#include "shell.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -42,12 +40,33 @@ static char* CopyArg(const std::string& pString)
     return newString;
 }
 
-bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::string>& pArgs, std::string& rOutput)
+static void BuildArgArray(char** pTheArgs, const std::vector<std::string>& pArgs)
+{    
+    for (const std::string& Arg : pArgs)
+    {
+        char* str = CopyArg(Arg);
+        if(str)
+        {
+            //Trim leading white space.
+            while(isspace(str[0]) && str[0])
+                str++;
+
+            if(str[0])
+            {
+                *pTheArgs = str;
+                pTheArgs++;
+            }
+        }
+    }
+    *pTheArgs = nullptr;
+}
+
+bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::string>& pArgs,const std::map<std::string,std::string>& pEnv, std::string& rOutput)
 {
     const bool VERBOSE = false;
     if (pCommand.size() == 0 )
     {
-        std::cout << "ExecuteShellCommand Command name for was zero length! No command given!" << std::endl;
+        std::cerr << "ExecuteShellCommand Command name for was zero length! No command given!\n";
         return false;
     }
 
@@ -86,31 +105,7 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
         close(pipeSTDERR[0]);
         close(pipeSTDERR[1]);
 
-        char** TheArgs = new char*[pArgs.size() + 2];// +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
-        int c = 0;
-        TheArgs[c++] = CopyArg(pCommand);
-        for (const std::string& Arg : pArgs)
-        {
-            char* str = CopyArg(Arg);
-            if(str)
-            {
-                //Trim leading white space.
-                while(isspace(str[0]) && str[0])
-                    str++;
-                if(str[0])
-                    TheArgs[c++] = str;
-            }
-        }
-        TheArgs[c++] = nullptr;
-
-        // This replaces the current process so no need to clean up the memory leaks before here. ;)
-        execvp(TheArgs[0], TheArgs);
-
-        const char* errorString = strerror(errno);
-
-        std::cout << "ExecuteShellCommand execl() failure!" << std::endl << "Error: " << errorString << std::endl << "This print is after execl() and should not have been executed if execl were successful!" << std::endl;        
-
-        _exit(1);
+        ExecuteCommand(pCommand,pArgs,pEnv);
     }
 
     /*
@@ -188,44 +183,33 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
         }
     }
 
-
     return Worked;
 }
 
-bool CompareNoCase(const char* pA,const char* pB,int pLength)
+void ExecuteCommand(const std::string& pCommand,const std::vector<std::string>& pArgs,const std::map<std::string,std::string>& pEnv)
 {
-    assert( pA != nullptr || pB != nullptr );// Note only goes pop if both are null.
-// If either or both NULL, then say no. A bit like a divide by zero as null strings are not strings.
-    if( pA == nullptr || pB == nullptr )
-        return false;
+    // +1 for the NULL and +1 for the file name as per convention, see https://linux.die.net/man/3/execlp.
+    char** TheArgs = new char*[pArgs.size() + 2];
+    TheArgs[0] = CopyArg(pCommand);
+    BuildArgArray(TheArgs+1,pArgs);
 
-// If same memory then yes they match, doh!
-    if( pA == pB )
-        return true;
-
-    if( pLength <= 0 )
-        pLength = INT_MAX;
-
-    while( (*pA != 0 || *pB != 0) && pLength > 0 )
+    // Build the environment variables.
+    for( const auto& var : pEnv )
     {
-        // Get here are one of the strings has hit a null then not the same.
-        // The while loop condition would not allow us to get here if both are null.
-        if( *pA == 0 || *pB == 0 )
-        {// Check my assertion above that should not get here if both are null. Note only goes pop if both are null.
-            assert( pA != NULL || pB != NULL );
-            return false;
-        }
+        setenv(var.first.c_str(),var.second.c_str(),1);
+    }
 
-        if( tolower(*pA) != tolower(*pB) )
-            return false;
+    // This replaces the current process so no need to clean up the memory leaks before here. ;)
+    execvp(TheArgs[0], TheArgs);
 
-        pA++;
-        pB++;
-        pLength--;
-    };
+    const char* errorString = strerror(errno);
 
-    // Get here, they are the same.
-    return true;
+    std::cerr << "ExecuteCommand execvp() failure!\n" << "    Error: " << errorString << "\n    This print is after execvp() and should not have been executed if execvp were successful!\n";
+
+    // Should never get here!
+    throw std::runtime_error("Command execution failed! Should not have returned! " + pCommand + " Error: " + errorString);
+    // Really make sure the process is gone...
+    _exit(1);
 }
 
 //////////////////////////////////////////////////////////////////////////

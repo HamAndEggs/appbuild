@@ -56,5 +56,6 @@ R"({
     },
     "source_files": [
         "./main.cpp"
-    ]
+    ],
+    "version":"0.0.1"
 } )";

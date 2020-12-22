@@ -62,7 +62,7 @@ public:
 	operator bool ()const{return mOk;}
 
 	bool Build(const std::string& pConfigName);
-	bool RunOutputFile(const std::string& pConfigName);
+	bool RunOutputFile(const std::string& pConfigName)const;
 	void Write(rapidjson::Document& pDocument)const;
 
 	/**
@@ -78,6 +78,20 @@ public:
 	 * @return const StringVec 
 	 */
 	const StringVec GetConfigurationNames()const;
+	
+	/**
+	 * @brief Ghe name of the project that will uniquely identify it within a group of loaded projects.
+	 * 
+	 * @return const std::string& 
+	 */
+	const std::string& GetProjectName()const{return mProjectName;}
+
+	/**
+	 * @brief Get the root path that all paths in the project are relative too.
+	 * 
+	 * @return const std::string& 
+	 */
+	const std::string& GetProjectDir()const{return mProjectDir;}
 
 	/**
 	 * @brief Adds a generic file to the list of file dates to be tested against.
@@ -91,12 +105,19 @@ private:
 
 	ConfigurationPtr GetConfiguration(const std::string& pName)const;
 
-	bool ReadConfigurations(const rapidjson::Value& pConfigs,const std::string& pDefaultOutputName);
+	bool ReadConfigurations(const rapidjson::Value& pConfigs);
 
 	bool CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
 	bool ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
-	bool LinkSharedLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
+	bool LinkSharedObject(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
+
+	/**
+	 * @brief Returns a 32bit value that represents the version string passed in.
+	 * @param pString The version string, must be in the format of NUMBER.NUMBER.NUMBER where the first two numbers are 0 -> 255 and the last 0 -> 65384
+	 * @return uint32_t The version number.
+	 */
+	uint32_t ParseVersion(const std::string& pString);
 
 	// Some options that are passed into the constructor.
 	const size_t mNumThreads;
@@ -107,7 +128,7 @@ private:
 	// This project file, fully pathed.
 	const std::string mProjectName; //!< The name of the project that will uniquely identify it within a group of loaded projects.
 	const std::string mProjectDir; //!< The root path that all paths in the project are relative too.
-
+	
 	Dependencies mDependencies;
 	SourceFiles mSourceFiles;
 	SourceFiles mResourceFiles;
@@ -115,7 +136,17 @@ private:
 
 	StringVec mDependencyLibrarySearchPaths;
 	StringVec mDependencyLibraryFiles;
+	std::string mSharedObjectPaths;		//!< Used to set the search paths to the putput of any shared object files that dependant projects create.
 
+	/**
+	 * @brief This is the version of the project, this is required for generation of the correct .so file contents. 
+	 * See https://docs.oracle.com/cd/E19683-01/817-3677/chapter4-2-rason/index.html
+	 * This is calculated at load time so that we can emit the correct errors if the version string is invalid.
+	 * We also add a define into the compile stream so that all files can test it.
+	 * It is added as a string, APP_VERSION.
+	 * Not allowed to be zero, zero is treated as an error.
+	 */
+	int mProjectVersion;
 
 	bool mOk;	// Project loaded ok.
 

@@ -218,6 +218,14 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
             cd ..
             echo
 #****************************************************
+            Message $BOLDBLUE "Build shared object dependency test"
+            cd ./dependency-so
+            $VALGRIND_COMMAND $EXEC_OUTPUT_FILE -V -r
+            CheckValgridReturnCode
+            $EXEC_OUTPUT_FILE -x
+            cd ..
+            echo
+#****************************************************
             Message $BOLDBLUE "Build resource test"
             cd ./resource
             # We do not run this one as it needs a frame buffer object.

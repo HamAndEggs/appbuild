@@ -36,18 +36,19 @@ enum eTargetType
 	TARGET_NOT_SET,
 	TARGET_EXEC,
 	TARGET_LIBRARY,
-	TARGET_SHARED_LIBRARY,
+	TARGET_SHARED_OBJECT,
 };
 
 class Dependencies;
 class BuildTaskStack;
 class JsonWriter;
+class Project;
 class SourceFiles;
 
 class Configuration
 {
 public:
-	Configuration(const std::string& pConfigName,const std::string& pOutputName,const std::string& pProjectDir,int pLoggingMode,const rapidjson::Value& pConfig);
+	Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const rapidjson::Value& pConfig);
 	~Configuration();
 
 	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
@@ -56,7 +57,7 @@ public:
 	bool GetOk()const{return mOk;}
 	eTargetType GetTargetType()const{return mTargetType;}
 
-	const std::string& GetPathedTargetName()const{return mPathedTargetName;}
+	const std::string GetPathedTargetName()const{return mOutputPath + mOutputName;}
 	const std::string& GetName()const{return mConfigName;}
 	const std::string& GetLinker()const{return mLinker;}
 	const std::string& GetArchiver()const{return mArchiver;}
@@ -66,13 +67,23 @@ public:
 	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 	void AddDefine(const std::string& pDefine);
 	void AddLibrary(const std::string& pLib);
 
+	/**
+	 * @brief Replaces the current process image with the command and arguments arguments defined in the project.
+	 * Used to run the build result if the build worked.
+	 * 
+	 * @param pSharedObjectPaths - If any dependency creates a shared object then this will include their output paths to set LD_LIBRARY_PATH with.
+	 * @return true - This will never happen as it it works current process will be replace with the command.
+	 * @return false - Something was wrong.
+	 */
+	bool RunOutputFile(const std::string& pSharedObjectPaths)const;
+
 private:
-	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
+	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddIncludeSearchPaths(const rapidjson::Value& pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);
@@ -94,35 +105,36 @@ private:
 
 
 	const std::string mConfigName;
-	const std::string mProjectDir;		// The path to where the project file was loaded. All relative paths start in this folder.
+	const std::string mProjectDir;	//!< The path to where the project file was loaded. All relative paths start in this folder.
 	const int mLoggingMode;
-	bool mIsDefaultConfig;	// If true then this configuration is selected to be built when there are multiple configurations and none have been specified on the commandline.
+	bool mIsDefaultConfig;			//!< If true then this configuration is selected to be built when there are multiple configurations and none have been specified on the commandline.
 	bool mOk;
 	eTargetType mTargetType;
 
 	std::string mComplier;
 	std::string mLinker;
 	std::string mArchiver;
-	std::string mPathedTargetName;	// This is the final output fully pathed filename.
+
 	std::string mOutputPath;
-	std::string mOutputName; //The string read from output_name
-	std::string mCppStandard;	// The c++ used standard.
-	std::string mOptimisation; // The level of optimisation used, for gcc will be 0,1 or 2.
-	std::string mDebugLevel; // Request debugging information and also use level to specify how much information.
-	std::string mGTKVersion;	// The version of GTK, currently 2.0 or 3.0. Is used in a call to "pkg-config --cflags gtk+-[VERSION]". If empty not called and not added.
-	bool mWarningsAsErrors;		// If true then any warnings will become errors using the compiler option -Werror
-	bool mEnableAllWarnings;	// If true then the option -Wall is used.
-	bool mFatalErrors;			// If true, -Wfatal-errors, is added to the build args.
+	std::string mOutputName; 		//!< The string read from output_name
+	std::string mCppStandard;		//!< The c++ used standard.
+	std::string mOptimisation; 		//!< The level of optimisation used, for gcc will be 0,1 or 2.
+	std::string mDebugLevel; 		//!< Request debugging information and also use level to specify how much information.
+	std::string mGTKVersion;		//!< The version of GTK, currently 2.0 or 3.0. Is used in a call to "pkg-config --cflags gtk+-[VERSION]". If empty not called and not added.
+	bool mWarningsAsErrors;			//!< If true then any warnings will become errors using the compiler option -Werror
+	bool mEnableAllWarnings;		//!< If true then the option -Wall is used.
+	bool mFatalErrors;				//!< If true, -Wfatal-errors, is added to the build args.
 	StringVec mIncludeSearchPaths;
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;
 	StringVec mDefines;
-	SourceFiles mSourceFiles; // Source files that are build just for a specific configuration. Allows targeting of different platforms.
+	StringVec mExecuteParams;		//!< If the build exec is to be ran then these are the commandlines for that process.
+	SourceFiles mSourceFiles; 		//!< Source files that are build just for a specific configuration. Allows targeting of different platforms.
 
-	// The projects that this project needs.
-	// Will check and build them if they need to be also will add their output filenames to the this projects.
-	// Not sure about adding source folders into the include folders.
-	// The key is the path to the project file, the value is the configuration in that project we're dependant on.'
+	//!< The projects that this project needs.
+	//!< Will check and build them if they need to be also will add their output filenames to the this projects.
+	//!< Not sure about adding source folders into the include folders.
+	//!< The key is the path to the project file, the value is the configuration in that project we're dependant on.'
 	StringMap mDependantProjects;
 };
 

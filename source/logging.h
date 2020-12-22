@@ -20,7 +20,7 @@
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 
-enum LogType
+enum LogMode
 {
     LOG_ERROR,      // Error is always on, hence zero. We use LOG_ERROR for when in shebang mode.
     LOG_INFO,       // Some information about the progress of the build.
