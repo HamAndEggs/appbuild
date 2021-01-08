@@ -143,7 +143,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
         {
             // Now write a hello world....
             static const std::string mainCPP =
-R"({
+R"(
 #include <iostream>
 
 int main(int argc, char *argv[])
@@ -159,9 +159,7 @@ int main(int argc, char *argv[])
 
 // And quit\n";
     return EXIT_SUCCESS;
-}
-
-} )";
+})";
 
             sourceFile << mainCPP << '\n';
 
