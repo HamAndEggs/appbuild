@@ -239,6 +239,10 @@ bool Project::Build(const std::string& pConfigName)
 		additionalArgs.AddArg("-fpic"); // Enable position independent code
 	}
 
+	// Also add the define for the app version.
+	const std::string DEF_APP_VERSION = "-DAPP_VERSION=\"" + VERSION_TO_STRING(mProjectVersion) + "\"";
+	additionalArgs.AddArg(DEF_APP_VERSION);
+
 	StringVec OutputFiles;
 	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,additionalArgs,BuildTasks,mDependencies,OutputFiles) )
 	{

@@ -83,7 +83,20 @@ public:
 	bool RunOutputFile(const std::string& pSharedObjectPaths)const;
 
 private:
-	bool GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
+	/**
+	 * @brief Adds an BuildTaskCompile object for every source file that needs to be built.
+	 * 
+	 * @param pSourceFiles The source files that 'may' need to be built.
+	 * @param pRebuildAll If true forces a rebuild of all source files.
+	 * @param pAdditionalArgs Some extra build arguments that the calling function may need to add. Other args are added in this function.
+	 * @param rBuildTasks The location that the new BuildTaskCompile is added too.
+	 * @param rDependencies A dependency cache, when pRebuildAll is false this is used to test if a file needs building.
+	 * @param rOutputFiles The list of files that will be written.
+	 * @param rInputFilesSeen A list to ensure the same file is not compiled more than once.
+	 * @return true 
+	 * @return false 
+	 */
+	bool AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddIncludeSearchPaths(const rapidjson::Value& pPaths);
 	void AddIncludeSearchPath(const std::string& pPath);

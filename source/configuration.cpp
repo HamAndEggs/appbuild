@@ -336,15 +336,15 @@ bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const S
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
 
 	// add the generated resource files.
-	if( !GetBuildTasks(pGeneratedResourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(pGeneratedResourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the project files.
-	if( !GetBuildTasks(pProjectSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(pProjectSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the configuration files.
-	if( !GetBuildTasks(mSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(mSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	return true;
@@ -377,7 +377,7 @@ bool Configuration::RunOutputFile(const std::string& pSharedObjectPaths)const
 	return false;
 }
 
-bool Configuration::GetBuildTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
+bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
 	// A little earlyout for small projects as this function can be called multiple times!
 	if( pSourceFiles.IsEmpty() )
