@@ -130,10 +130,13 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 			}
 		}
 	}
-	else if(mLoggingMode >= LOG_VERBOSE)
+	else
 	{
 		mOutputPath = CleanPath(mProjectDir + "bin/" + pConfigName + "/");
-		std::clog << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'\n";
+		if(mLoggingMode >= LOG_VERBOSE)
+		{
+			std::clog << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'\n";
+		}
 	}
 
 	// Find out what they wish to build.
