@@ -2,7 +2,7 @@
 #include "jpeglib.h" //  sudo apt install libjpeg-dev
 #include <setjmp.h> 
 #include <string.h> 
-#include <chrono>
+
 #include <thread>
 #include <unistd.h>
 
@@ -104,7 +104,7 @@ METHODDEF(void) my_error_exit (j_common_ptr cinfo)
 * Sample routine for JPEG decompression.  We assume that the source file name
 * is passed in.  We want to return 1 on success, 0 on error.
 */
-GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,FBIO::FrameBuffer* FB)
+GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,tiny2d::FrameBuffer* FB)
 {	
 	/* This struct contains the JPEG decompression parameters and pointers to
 	* working space (which is allocated as needed by the JPEG library).
@@ -217,7 +217,7 @@ GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,FBIO::FrameBuffer
 
 int main(int argc, char *argv[])
 {
-	FBIO::FrameBuffer* FB = FBIO::FrameBuffer::Open(true);
+	tiny2d::FrameBuffer* FB = tiny2d::FrameBuffer::Open(true);
 	if( FB )
 	{
 		int buffersize;
