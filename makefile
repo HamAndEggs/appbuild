@@ -15,7 +15,7 @@ appbuild:	./source/shell.cpp.o						\
 			./source/json.cpp.o							\
 			./source/command_line_options.cpp.o
 
-	gcc 	./source/shell.cpp.o						\
+	$(CC) 	./source/shell.cpp.o						\
 			./source/arg_list.cpp.o						\
 			./source/build_task.cpp.o					\
 			./source/build_task_compile.cpp.o			\
@@ -34,7 +34,7 @@ appbuild:	./source/shell.cpp.o						\
 			-lstdc++ -lpthread -lrt -lm -o appbuild
 
 %.o: %
-	gcc -c -o $@ $< $(CFLAGS) -I/usr/include -I./ -DALLOW_INCLUDE_OF_SCHEMA -DNDEBUG -O3 -Wall -std=c++14
+	$(CC) -c -o $@ $< $(CFLAGS) -I/usr/include -I./ -DALLOW_INCLUDE_OF_SCHEMA -DNDEBUG -O3 -Wall -std=c++14
 
 clean:
 	rm -f ./source/*.cpp.o
