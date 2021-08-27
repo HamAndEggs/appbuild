@@ -141,6 +141,7 @@ private:
 	StringVec mLibrarySearchPaths;
 	StringVec mLibraryFiles;
 	StringVec mDefines;
+	StringVec mExtraCompilerArgs;	//!< Allows the user to add extra compiler options that I may not have included.
 	StringVec mExecuteParams;		//!< If the build exec is to be ran then these are the commandlines for that process.
 	SourceFiles mSourceFiles; 		//!< Source files that are build just for a specific configuration. Allows targeting of different platforms.
 

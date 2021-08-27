@@ -106,6 +106,23 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
    		std::cerr << "Internal error: The \'define\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
         return; // We're done, no need to continue.
 	}
+	
+	if( pConfig.HasMember("extra_compiler_args") )
+	{
+		const rapidjson::Value &extraArgs = pConfig["extra_compiler_args"];
+		if( extraArgs.IsArray() )
+		{
+			for( const auto& val : extraArgs.GetArray() )
+			{
+				mExtraCompilerArgs.push_back(val.GetString());
+			}
+		}
+		else
+		{
+			std::cerr << "The \'extra_compiler_args\' object in the \'settings\' " << mConfigName << " is not an array!";
+			return; // We're done, no need to continue.
+		}
+	}
 
 	// Look for the output folder name. If not found default to bin.
 	// TODO: Add some kind of environment variable system so this can be added to the default project.
@@ -234,7 +251,6 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	mWarningsAsErrors = GetBoolLog(pConfig,"warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
 	mEnableAllWarnings = GetBoolLog(pConfig,"enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
 	mFatalErrors = GetBoolLog(pConfig,"fatal_errors",mFatalErrors,mLoggingMode >= LOG_VERBOSE);
-	
 
 	// See if there are any projects we are not dependent on.
 	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
@@ -309,6 +325,11 @@ rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAlloc
 	if( mDefines.size() > 0 )
 	{
 		jsonConfig.AddMember("define",BuildStringArray(mDefines,pAllocator),pAllocator);
+	}
+
+	if( mExtraCompilerArgs.size() > 0 )
+	{
+		jsonConfig.AddMember("extra_compiler_args",BuildStringArray(mExtraCompilerArgs,pAllocator),pAllocator);
 	}
 
 	if( mDependantProjects.size() > 0 )
@@ -496,6 +517,8 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 
 				if( mFatalErrors )
 					args.AddArg("-Wfatal-errors");
+
+				args.AddArg(mExtraCompilerArgs);
 
 				args.AddArg("-o");
 				args.AddArg(OutputFilename);
