@@ -34,7 +34,7 @@ appbuild:	./source/shell.cpp.o						\
 			-lstdc++ -lpthread -lrt -lm -o appbuild
 
 %.o: %
-	gcc -c -o $@ $< $(CFLAGS) -I/usr/include -DALLOW_INCLUDE_OF_SCHEMA -DNDEBUG -O3 -Wall -std=c++14
+	gcc -c -o $@ $< $(CFLAGS) -I/usr/include -I./ -DALLOW_INCLUDE_OF_SCHEMA -DNDEBUG -O3 -Wall -std=c++14
 
 clean:
 	rm -f ./source/*.cpp.o
