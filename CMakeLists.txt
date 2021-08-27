@@ -3,7 +3,7 @@ project(appbuild)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories(./rapidjson)
+include_directories(./)
 
 set( SOURCE_FILES 
     "source/shell.cpp"
