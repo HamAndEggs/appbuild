@@ -28,3 +28,4 @@ add_executable(appbuild ${SOURCE_FILES} )
 target_link_libraries(appbuild stdc++ pthread rt m)
 
 
+install(TARGETS appbuild DESTINATION bin)
