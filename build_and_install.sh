@@ -22,6 +22,8 @@ SOURCE_FILES=(
         "./source/json.cpp"
         "./source/command_line_options.cpp")
 
+INSTALL_LOCATION="/usr/bin/"
+
 # ************************
 # Some colours
 # ************************
@@ -276,9 +278,9 @@ if [ -f $EXEC_OUTPUT_FILE ]; then
 
         if [ $answer == "y" ] || [ $answer == "Y" ] ;then
             # Have to remove old install as it's now been moved out of the users local folder...
-            sudo rm -f /usr/local/bin/appbuild
-            Message "copying to /usr/bin"
-            sudo cp ./bin/appbuild /usr/bin
+            sudo rm -f $INSTALL_LOCATION/appbuild
+            Message "copying to $INSTALL_LOCATION"
+            sudo cp ./bin/appbuild $INSTALL_LOCATION
             Message $BLUE "Finished"
         else
             Message $YELLOW "Application not installed"

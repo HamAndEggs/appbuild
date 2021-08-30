@@ -4,6 +4,7 @@ project(appbuild)
 set(CMAKE_CXX_STANDARD 14)
 
 include_directories(./)
+add_compile_definitions( ALLOW_INCLUDE_OF_SCHEMA NDEBUG )
 
 set( SOURCE_FILES 
     "source/shell.cpp"
