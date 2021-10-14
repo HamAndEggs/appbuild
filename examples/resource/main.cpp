@@ -217,7 +217,7 @@ GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,tiny2d::FrameBuff
 
 int main(int argc, char *argv[])
 {
-	tiny2d::FrameBuffer* FB = tiny2d::FrameBuffer::Open(true);
+	tiny2d::FrameBuffer* FB = tiny2d::FrameBuffer::Open(tiny2d::FrameBuffer::VERBOSE_MESSAGES);
 	if( FB )
 	{
 		int buffersize;
