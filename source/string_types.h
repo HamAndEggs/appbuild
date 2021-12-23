@@ -24,6 +24,7 @@
 #include <stack>
 
 // This is here to allow to_string to be used in macros where the input type could be a basic type or a more complex one, such as a string.
+// I can call std::to_string and not worry about the type by doing this.
 namespace std
 {
    inline const std::string& to_string(const std::string& pString){return pString;}

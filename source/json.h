@@ -145,7 +145,7 @@ inline rapidjson::Value BuildStringArray(const StringSet& pStrings,rapidjson::Do
 inline rapidjson::Value BuildStringArray(const StringMap& pStrings,rapidjson::Document::AllocatorType& pAlloc)
 {
    rapidjson::Value array = rapidjson::Value(rapidjson::kArrayType);   
-   for( const auto str : pStrings )
+   for( const auto& str : pStrings )
    {
       rapidjson::Value entry = rapidjson::Value(rapidjson::kObjectType);
       AddMember(entry,str.first,str.second,pAlloc);

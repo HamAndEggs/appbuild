@@ -19,6 +19,7 @@
 
 #include <map>
 #include <string>
+#include <memory>
 
 #include "string_types.h"
 #include "json.h"
