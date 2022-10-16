@@ -43,7 +43,7 @@ static int BuildProjectFile(const std::string& a_ProjectFilename,appbuild::Comma
 	// Read the project file.
 	rapidjson::Document ProjectJson;
 
-	if( appbuild::ReadJson(a_ProjectFilename,ProjectJson) == false )
+	if( appbuild::ReadJson(a_ProjectFilename,ProjectJson,a_Args.GetLoggingMode()>=appbuild::LOG_VERBOSE) == false )
 	{
 		std::cout << "The project file \'" << a_ProjectFilename << "\' could not be loaded" << std::endl;
 		return EXIT_FAILURE;

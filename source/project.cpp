@@ -149,7 +149,7 @@ bool Project::Build(const std::string& pConfigName)
 
 		rapidjson::Document ProjectJson;
 
-		if( ReadJson(ProjectFile,ProjectJson) )
+		if( ReadJson(ProjectFile,ProjectJson,mLoggingMode >= LOG_VERBOSE) )
 		{
 			if( ValidateJsonAgainstSchema(ProjectJson,mLoggingMode == appbuild::LOG_VERBOSE) == false )
 			{

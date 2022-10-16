@@ -64,7 +64,7 @@ extern bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson);
  * @return true 
  * @return false 
  */
-extern bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson);
+extern bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson,bool pVerbose);
 
 /**
  * @brief Create a Json Project From Source Files passed in, used mainly for she bang. 

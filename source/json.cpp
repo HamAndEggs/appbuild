@@ -65,7 +65,7 @@ bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson)
    return false;
 }
 
-bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
+bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson,bool pVerbose)
 {
     std::ifstream jsonFile(pFilename);
     if( jsonFile.is_open() )
@@ -76,7 +76,36 @@ bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson)
         pJson.Parse(jsonStream.str().c_str());
 
         // Have to invert result as I want true if it worked, false if it failed.
-        if( pJson.HasParseError() == false )
+        if( pJson.HasParseError() )
+        {
+            if( pVerbose )
+            {
+                switch( pJson.GetParseError() )
+                {
+                case rapidjson::kPointerParseErrorTokenMustBeginWithSolidus:
+                    std::clog << "A token must begin with a '/'\n";
+                    break;
+
+                case rapidjson::kPointerParseErrorInvalidEscape:
+                    std::clog << "Invalid escape\n";
+                    break;
+                    
+                case rapidjson::kPointerParseErrorInvalidPercentEncoding:
+                    std::clog << "Invalid percent encoding in URI fragment\n";
+                    break;
+
+                case rapidjson::kPointerParseErrorCharacterMustPercentEncode:
+                    std::clog << "A character must percent encoded in URI fragment\n";
+                    break;
+
+                default:
+                    std::clog << "Unknown error\n";
+                    break;
+                }
+            }
+            return false;
+        }
+        else
         {
             // Add out defaults for members that are missing.
             UpdateJsonProjectWithDefaults(pJson);
