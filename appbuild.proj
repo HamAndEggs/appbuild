@@ -9,14 +9,10 @@
 				"RELEASE_BUILD",
 				"ALLOW_INCLUDE_OF_SCHEMA"
 			],
-            "libs": [
-                "m",
-                "stdc++",
-                "pthread"
-            ],
 			"default":false,
 			"optimisation":"2",
-			"debug_level":"0"
+			"debug_level":"0",
+			"standard":"c++14"
 		},
 		"debug":
 		{
@@ -25,19 +21,20 @@
 				"DEBUG_BUILD",
 				"ALLOW_INCLUDE_OF_SCHEMA"
 			],
-            "libs": [
-                "m",
-                "stdc++",
-                "pthread"
-            ],
 			"default":true,
 			"optimisation":"0",
 			"debug_level":"2",
 			"warnings_as_errors":true,
-			"enable_all_warnings":true
+			"enable_all_warnings":true,
+			"standard":"c++14"
 		}
 
 	},
+	"libs": [
+		"m",
+		"stdc++",
+		"pthread"
+	],
 	"source_files":
 	[
 		"./source/shell.cpp",

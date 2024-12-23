@@ -45,6 +45,9 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 		mProjectDir(pProjectPath),
 		mSourceFiles(pProjectPath,pLoggingMode),
 		mResourceFiles(pProjectPath,pLoggingMode),
+		mIncludeSearchPaths(pProjectPath),
+		mLibrarySearchPaths(pProjectPath),
+		mLibraryFiles(pProjectPath),
 		mProjectVersion(0),
 		mOk(false)
 {
@@ -95,6 +98,34 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	if( pProjectJson.HasMember("resource_files") )
 	{
 		mResourceFiles.Read(pProjectJson["resource_files"]);
+	}
+
+	// Add the global include folders, these are the folders used for all configurations.
+	if( pProjectJson.HasMember("include") )
+	{
+        if( mIncludeSearchPaths.AddPaths(pProjectJson["include"]) == false )
+        {
+            std::cerr << "The \'include\' object in the \'root project\' is not an array\n";
+            return; // We're done, no need to continue.
+        }
+    }
+
+	if( pProjectJson.HasMember("libpaths") )
+    {
+        if( mLibrarySearchPaths.AddPaths(pProjectJson["libpaths"]) == false )
+        {
+            std::cerr << "The \'libpaths\' object in the \'root project\' is not an array\n";
+            return; // We're done, no need to continue.
+        }
+    }
+
+	if( pProjectJson.HasMember("libs") )
+	{
+		if( mLibraryFiles.Add(pProjectJson["libs"]) == false  )
+		{
+			std::cerr << "The \'libraries\' object in the \'root project\' is not an array\n";
+			return; // We're done, no need to continue.
+		}
 	}
 
 	if( pProjectJson.HasMember("version") )
@@ -244,7 +275,7 @@ bool Project::Build(const std::string& pConfigName)
 	additionalArgs.AddArg(DEF_APP_VERSION);
 
 	StringVec OutputFiles;
-	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,additionalArgs,BuildTasks,mDependencies,OutputFiles) )
+	if( activeConfig->GetBuildTasks(mSourceFiles,GeneratedResourceFiles,mRebuild,additionalArgs,mIncludeSearchPaths,BuildTasks,mDependencies,OutputFiles) )
 	{
 		if( BuildTasks.size() > 0 )
 		{
@@ -302,6 +333,9 @@ void Project::Write(rapidjson::Document& pDocument)const
 	}
 	pDocument.AddMember("configurations",configurations,alloc);
 	pDocument.AddMember("source_files",mSourceFiles.Write(alloc),alloc);
+	pDocument.AddMember("include",mIncludeSearchPaths.Write(alloc),alloc);
+	pDocument.AddMember("libpaths",mLibrarySearchPaths.Write(alloc),alloc);
+	pDocument.AddMember("libs",mLibraryFiles.Write(alloc),alloc);
 
 	if( mResourceFiles.size() > 0 )
 		pDocument.AddMember("resource_files",mResourceFiles.Write(alloc),alloc);
@@ -540,6 +574,7 @@ bool Project::LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 
 	ArgList Arguments;
 	Arguments.AddLibrarySearchPaths(pConfig->GetLibrarySearchPaths());
+	Arguments.AddLibrarySearchPaths(mLibrarySearchPaths);
 	Arguments.AddLibrarySearchPaths(mDependencyLibrarySearchPaths);
 
 	// Add the object files.
@@ -547,6 +582,7 @@ bool Project::LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
 
 	// Add the libs, must come after the object files.
 	Arguments.AddLibraryFiles(mDependencyLibraryFiles);
+	Arguments.AddLibraryFiles(mLibraryFiles);
 	Arguments.AddLibraryFiles(pConfig->GetLibraryFiles());
 
 	// And add the output.

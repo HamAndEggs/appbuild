@@ -25,6 +25,7 @@
 #include "json.h"
 #include "arg_list.h"
 #include "source_files.h"
+#include "search_paths.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -68,7 +69,7 @@ public:
 	const StringVec& GetLibrarySearchPaths()const{return mLibrarySearchPaths;}
 	const StringMap& GetDependantProjects()const{return mDependantProjects;}
 
-	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
+	bool GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,StringVec& pProjectIncludes,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const;
 
 	void AddDefine(const std::string& pDefine);
 	void AddLibrary(const std::string& pLib);
@@ -97,15 +98,7 @@ private:
 	 * @return true 
 	 * @return false 
 	 */
-	bool AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
-
-	bool AddIncludeSearchPaths(const rapidjson::Value& pPaths);
-	void AddIncludeSearchPath(const std::string& pPath);
-
-	bool AddLibrarySearchPaths(const rapidjson::Value& pPaths);
-	void AddLibrarySearchPath(const std::string& pPath);
-
-	bool AddLibraries(const rapidjson::Value& pLibs);
+	bool AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,StringVec& pProjectIncludes,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
 	bool AddDefines(const rapidjson::Value& pDefines);
 
@@ -138,9 +131,9 @@ private:
 	bool mWarningsAsErrors;			//!< If true then any warnings will become errors using the compiler option -Werror
 	bool mEnableAllWarnings;		//!< If true then the option -Wall is used.
 	bool mFatalErrors;				//!< If true, -Wfatal-errors, is added to the build args.
-	StringVec mIncludeSearchPaths;
-	StringVec mLibrarySearchPaths;
-	StringVec mLibraryFiles;
+	SearchPaths mIncludeSearchPaths;
+	SearchPaths mLibrarySearchPaths;
+	SearchPaths mLibraryFiles;
 	StringVec mDefines;
 	StringVec mExtraCompilerArgs;	//!< Allows the user to add extra compiler options that I may not have included.
 	StringVec mExecuteParams;		//!< If the build exec is to be ran then these are the commandlines for that process.

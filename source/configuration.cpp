@@ -40,15 +40,18 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		mWarningsAsErrors(false),
 		mEnableAllWarnings(false),
 		mFatalErrors(false),
-		mSourceFiles(pParentProject->GetProjectDir(),pLoggingMode)		
+		mIncludeSearchPaths(pParentProject->GetProjectDir()),
+		mLibrarySearchPaths(pParentProject->GetProjectDir()),
+		mLibraryFiles(pParentProject->GetProjectDir()),
+		mSourceFiles(pParentProject->GetProjectDir(),pLoggingMode)
 {
-	AddIncludeSearchPath(mProjectDir);
+	mIncludeSearchPaths.AddPath(mProjectDir);
 
 	mIsDefaultConfig = GetBool(pConfig,"default",false);
 	
 	if( pConfig.HasMember("include") )
 	{
-        if( AddIncludeSearchPaths(pConfig["include"]) == false )
+        if( mIncludeSearchPaths.AddPaths(pConfig["include"]) == false )
         {
             std::cerr << "The \'include\' object in the \'settings\' " << mConfigName << " is not an array\n";
             return; // We're done, no need to continue.
@@ -63,7 +66,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	// These can be added to the args now as they need to come before libs.
 	if( pConfig.HasMember("libpaths") )
     {
-        if( AddLibrarySearchPaths(pConfig["libpaths"]) == false )
+        if( mLibrarySearchPaths.AddPaths(pConfig["libpaths"]) == false )
         {
             std::cerr << "The \'libpaths\' object in the \'settings\' " << mConfigName << " is not an array\n";
             return; // We're done, no need to continue.
@@ -81,7 +84,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 	// This is because of the way linkers work.
 	if( pConfig.HasMember("libs") )
 	{
-		if( AddLibraries(pConfig["libs"]) == false  )
+		if( mLibraryFiles.Add(pConfig["libs"]) == false  )
 		{
 			std::cerr << "The \'libraries\' object in the \'settings\' " << mConfigName << " is not an array\n";
 			return; // We're done, no need to continue.
@@ -354,21 +357,20 @@ const StringVec Configuration::GetLibraryFiles()const
 	}
 	return allLibraryFiles;
 }
-
-bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
+bool Configuration::GetBuildTasks(const SourceFiles& pProjectSourceFiles,const SourceFiles& pGeneratedResourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,StringVec& pProjectIncludes,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles)const
 {
 	StringSet InputFilesSeen;	// Used to make sure a source file is not included twice. At the moment I show an error.
 
 	// add the generated resource files.
-	if( !AddCompileTasks(pGeneratedResourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(pGeneratedResourceFiles,pRebuildAll,pAdditionalArgs,pProjectIncludes,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the project files.
-	if( !AddCompileTasks(pProjectSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(pProjectSourceFiles,pRebuildAll,pAdditionalArgs,pProjectIncludes,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	// Add the configuration files.
-	if( !AddCompileTasks(mSourceFiles,pRebuildAll,pAdditionalArgs,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
+	if( !AddCompileTasks(mSourceFiles,pRebuildAll,pAdditionalArgs,pProjectIncludes,rBuildTasks,rDependencies,rOutputFiles,InputFilesSeen) )
 		return false;
 
 	return true;
@@ -401,7 +403,7 @@ bool Configuration::RunOutputFile(const std::string& pSharedObjectPaths)const
 	return false;
 }
 
-bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
+bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,StringVec& pProjectIncludes,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const
 {
 	// A little earlyout for small projects as this function can be called multiple times!
 	if( pSourceFiles.IsEmpty() )
@@ -425,6 +427,9 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 	{
 		AddIncludesFromPKGConfig(includeSearchPaths,mGTKVersion);
 	}
+
+	// Add search files from gobal project file settings.
+	includeSearchPaths.insert(includeSearchPaths.end(), pProjectIncludes.begin(), pProjectIncludes.end());	
 
 	for( const auto& filename : pSourceFiles )
 	{
@@ -534,65 +539,6 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 		}
 	}
 	return true;
-}
-
-bool Configuration::AddIncludeSearchPaths(const rapidjson::Value& pPaths)
-{
-	if( pPaths.IsArray() )
-	{
-		for( const auto& val : pPaths.GetArray() )
-		{
-			AddIncludeSearchPath(val.GetString());
-		}
-		return true;
-	}
-	return false;
-}
-
-void Configuration::AddIncludeSearchPath(const std::string& pPath)
-{
-	const std::string path = PreparePath(pPath);
-	if( path.size() > 0 )
-	{
-		mIncludeSearchPaths.push_back(path);
-	}
-}
-
-bool Configuration::AddLibrarySearchPaths(const rapidjson::Value& pPaths)
-{
-	if( pPaths.IsArray() )
-	{
-		for( const auto& val : pPaths.GetArray() )
-		{
-			AddLibrarySearchPath(val.GetString());
-		}
-		return true;
-	}
-	return false;
-}
-
-void Configuration::AddLibrarySearchPath(const std::string& pPath)
-{
-	const std::string path = PreparePath(pPath);
-	mLibrarySearchPaths.push_back(path);
-}
-
-bool Configuration::AddLibraries(const rapidjson::Value& pLibs)
-{
-	if( pLibs.IsArray() )
-	{
-		for( const auto& val : pLibs.GetArray() )
-		{
-			AddLibrary(val.GetString());
-		}
-		return true;
-	}
-	return false;
-}
-
-void Configuration::AddLibrary(const std::string& pLib)
-{
-	mLibraryFiles.push_back(pLib);
 }
 
 bool Configuration::AddDefines(const rapidjson::Value& pDefines)

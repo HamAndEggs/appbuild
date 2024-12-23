@@ -25,7 +25,7 @@
 #include "dependencies.h"
 #include "configuration.h"
 #include "source_files.h"
-
+#include "search_paths.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds all the information about the project file.
@@ -137,6 +137,10 @@ private:
 	StringVec mDependencyLibrarySearchPaths;
 	StringVec mDependencyLibraryFiles;
 	std::string mSharedObjectPaths;		//!< Used to set the search paths to the putput of any shared object files that dependant projects create.
+
+	SearchPaths mIncludeSearchPaths; //!< Global include search paths for the project, used in all configurations.
+	SearchPaths mLibrarySearchPaths; //!< Global lib search paths for the project, used in all configurations.
+	SearchPaths mLibraryFiles;
 
 	/**
 	 * @brief This is the version of the project, this is required for generation of the correct .so file contents. 
