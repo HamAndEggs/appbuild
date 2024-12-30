@@ -15,7 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "json.h"
-#include "rapidjson/schema.h"
 #include "misc.h"
 
 namespace appbuild{
@@ -35,7 +34,7 @@ static const std::string projectSchema =
     return projectSchema;
 }
 
-const std::string& GetProjectDefault()
+static const std::string& GetProjectDefault()
 {
 // This odd #define thing is to stop editors thinking there is an error when there is not. ALLOW_INCLUDE_OF_SCHEMA is defined in the build settings.
 #ifdef ALLOW_INCLUDE_OF_SCHEMA
@@ -49,187 +48,68 @@ static const std::string projectDefault =
     return projectDefault;
 }
 
-bool SaveJson(const std::string& pFilename,rapidjson::Document& pJson)
+bool ValidateJsonAgainstSchema(const tinyjson::JsonValue& pJson,bool pVerbose)
 {
-   std::ofstream file(pFilename);
-   if( file.is_open() )
-   {
-      rapidjson::OStreamWrapper osw(file);
-      rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
-      return pJson.Accept(writer);
-   }
-   else
-   {
-      std::cout << "Failed to open json file  " << pFilename << " for writing" << std::endl;
-   }
-   return false;
-}
-
-bool ReadJson(const std::string& pFilename,rapidjson::Document& pJson,bool pVerbose)
-{
-    std::ifstream jsonFile(pFilename);
-    if( jsonFile.is_open() )
+    try
     {
-        std::stringstream jsonStream;
-        jsonStream << jsonFile.rdbuf();// Read the whole file in...
-
-        pJson.Parse(jsonStream.str().c_str());
-
-        // Have to invert result as I want true if it worked, false if it failed.
-        if( pJson.HasParseError() )
+        // First make sure all values have a type set.
+        if( pJson.GetType() != tinyjson::JsonValueType::OBJECT )
         {
-            if( pVerbose )
+            THROW_APPBUILD_EXCEPTION("JsonValue passed to ValidateJsonAgainstSchema is not an object");
+        }
+
+        for( const auto& o : pJson )
+        {
+            if( o.second.GetType() == tinyjson::JsonValueType::OBJECT )
             {
-                switch( pJson.GetParseError() )
+                if( ValidateJsonAgainstSchema(o.second,pVerbose) == false )
                 {
-                case rapidjson::kPointerParseErrorTokenMustBeginWithSolidus:
-                    std::clog << "A token must begin with a '/'\n";
-                    break;
-
-                case rapidjson::kPointerParseErrorInvalidEscape:
-                    std::clog << "Invalid escape\n";
-                    break;
-                    
-                case rapidjson::kPointerParseErrorInvalidPercentEncoding:
-                    std::clog << "Invalid percent encoding in URI fragment\n";
-                    break;
-
-                case rapidjson::kPointerParseErrorCharacterMustPercentEncode:
-                    std::clog << "A character must percent encoded in URI fragment\n";
-                    break;
-
-                default:
-                    std::clog << "Unknown error\n";
-                    break;
+                    return false;
                 }
             }
-            return false;
-        }
-        else
-        {
-            // Add out defaults for members that are missing.
-            UpdateJsonProjectWithDefaults(pJson);
-            return true;
+            else if( pJson.GetType() == tinyjson::JsonValueType::INVALID )
+            {
+                THROW_APPBUILD_EXCEPTION("A value in the object " + o.first + " has not type set.");
+            }
         }
     }
-
-    return false;
-}
-
-bool CreateJsonProjectFromSourceFiles(const StringSet& pFiles,rapidjson::Document& pJson)
-{
-    if( pFiles.size() > 0 )
-    {
-        std::stringstream jsonStream;
-        jsonStream << "{\"source_files\":[";
-        char comma = ' ';
-        for( auto f : pFiles )
-        {
-            jsonStream << comma << f;
-            comma = ',';
-        }
-        jsonStream << "]}";
-
-        // Now make it a rapidjson object.
-        pJson.Parse(jsonStream.str().c_str());
-
-        // Have to invert result as I want true if it worked, false if it failed.
-        if( pJson.HasParseError() == false )
-        {
-            // Add out defaults for members that are missing.
-            UpdateJsonProjectWithDefaults(pJson);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool ValidateJsonAgainstSchema(rapidjson::Value& pJson,bool pVerbose)
-{
-    rapidjson::Document sd;
-    if (sd.Parse(GetProjectSchema()).HasParseError())
-    {
-        std::cout << "Schema Json failed to read..." << std::endl;
-        // Whoops, that failed!
-        return false;
-    }
-    rapidjson::SchemaDocument schema(sd); // Compile a Document to SchemaDocument
-    // sd is no longer needed here.
-    
-    
-    rapidjson::SchemaValidator validator(schema);
-    if( pJson.Accept(validator) )
+    catch(const std::exception& e)
     {
         if( pVerbose )
         {
-            std::cout << "Json passed schema test" << std::endl;
+            std::cerr << "Project file failed validation: " << e.what() << "\n";
         }
-        // all ok.
-        return true;
+        return false;
     }
-
-    // Input JSON is invalid according to the schema
-    if( pVerbose )
-    {
-        // Output diagnostic information
-        rapidjson::StringBuffer sb;
-        validator.GetInvalidSchemaPointer().StringifyUriFragment(sb);
-        std::cout << "Invalid schema: " << sb.GetString() << std::endl;
-        std::cout << "Invalid keyword: " << validator.GetInvalidSchemaKeyword() << std::endl;
-        sb.Clear();
-        validator.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-        std::cout << "Invalid document: " << sb.GetString() << std::endl;
-    }
-    else
-    {
-        std::cout << "Json failed the schema checks" << std::endl;
-    }
-    return false;
-
+    
+    return true;
 }
 
-/**
- * @brief Adds the members, and their values that are in srcObject, into dstObject.
- * 
- * @param dstObject Object to be altered.
- * @param srcObject The const object that contains the values to be added to dstObject.
- * @param allocator For the memory allocation. Normally dstObject.GetAllocator()
- * @return true 
- * @return false 
- */
-static bool AddMissingMembers(rapidjson::Value &dstObject,const rapidjson::Value &srcObject, rapidjson::Document::AllocatorType &allocator)
+static bool AddMissingMembers(tinyjson::JsonValue& pDst,const tinyjson::JsonValue& pSrc,bool pVerbose)
 {
-    for (auto srcIt = srcObject.MemberBegin(); srcIt != srcObject.MemberEnd(); ++srcIt)
+    if( pSrc.GetType() != tinyjson::JsonValueType::OBJECT )
     {
-        auto dstIt = dstObject.FindMember(srcIt->name);
+        THROW_APPBUILD_EXCEPTION("The json value is not an object.");
+    }
 
-        // The source object was not found in dest, so copy it over.
-        if (dstIt == dstObject.MemberEnd())
+    // Now merge the two json trees together.
+    for( const auto& obj : pSrc )
+    {
+        if(pVerbose){std::cout << "Adding for: " << obj.first << "\n";}
+        if( pDst.HasValue(obj.first) )
         {
-            rapidjson::Value dstName ;
-            dstName.CopyFrom(srcIt->name, allocator);
-            rapidjson::Value dstVal ;
-            dstVal.CopyFrom(srcIt->value, allocator) ;
-            dstObject.AddMember(dstName, dstVal, allocator);
-
-            dstName.CopyFrom(srcIt->name, allocator);
-            dstIt = dstObject.FindMember(dstName);
-            if (dstIt == dstObject.MemberEnd())
+            // If they both have the same type, so continue enumeration deaper down.
+            // we do not replace any values or arrays if they match.
+            // We're only filling in the blanks here!
+            if( obj.second.IsObject() && pDst.IsObject() )
             {
-                return false;
+                if(!AddMissingMembers(pDst[obj.first], obj.second,pVerbose))
+                    return false;
             }
         }
         else
-        {
-            // They both have the same type, so continue enumeration deaper down.
-            // we do not replace any values or arrays if they match.
-            // We're only filling in the blanks here!
-            if( dstIt->value.IsObject() && srcIt->value.IsObject() )
-            {
-                if(!AddMissingMembers(dstIt->value, srcIt->value, allocator))
-                    return false;
-            }
+        {// The source object was not found in dest, so copy it over.
+            pDst[obj.first] = obj.second;
         }
     }
     return true;
@@ -241,18 +121,18 @@ static bool AddMissingMembers(rapidjson::Value &dstObject,const rapidjson::Value
  * @param pConfigurations 
  * @return const rapidjson::Value& 
  */
-static const rapidjson::Value& FindDefaultConfiguration(const rapidjson::Value& pConfigurations)
+static const tinyjson::JsonValue& FindDefaultConfiguration(const tinyjson::JsonValue& pConfigurations)
 {
     for( const auto& conf : pConfigurations.GetObject() )
     {
-        if( conf.value.HasMember("default") && conf.value["default"].IsBool() && conf.value["default"].GetBool() == true )
+        if( conf.second.HasValue("default") && conf.second["default"].IsBool() && conf.second["default"].GetBoolean() == true )
         {
-            return conf.value;
+            return conf.second;
         }
     }
 
     // None listed as default, so return the first one.
-    return pConfigurations.GetObject().begin()->value;
+    return pConfigurations.GetObject().begin()->second;
 }
 
 /**
@@ -261,27 +141,27 @@ static const rapidjson::Value& FindDefaultConfiguration(const rapidjson::Value& 
  * @param pConfigurations 
  * @return const rapidjson::Value& 
  */
-static const rapidjson::Value& FindNamedConfigurationOrDefault(const rapidjson::Value& pConfigurations,const char* pName)
+static const tinyjson::JsonValue& FindNamedConfigurationOrDefault(const tinyjson::JsonValue& pConfigurations,const std::string& pName)
 {
     for( const auto& conf : pConfigurations.GetObject() )
     {
-        if( CompareNoCase(conf.name.GetString(),pName) )
+        if( CompareNoCase(conf.first.c_str(),pName.c_str()) )
         {
-            return conf.value;
+            return conf.second;
         }
     }
 
     return FindDefaultConfiguration(pConfigurations);
 }
 
-void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson)
+void UpdateJsonProjectWithDefaults(tinyjson::JsonValue& pJson,bool pVerbose)
 {
-    // Get our defaults file.
-    rapidjson::Document defaultJson;
-    if( defaultJson.Parse(GetProjectDefault()).HasParseError() )
+    if(pVerbose){std::cout << "Adding missing defaults to project.\n";}
+    tinyjson::JsonProcessor defaultJson(GetProjectDefault());
+
+    if( defaultJson.GetRoot().GetType() != tinyjson::JsonValueType::OBJECT )
     {
-        std::cout << "Schema Json failed to read..." << std::endl;
-        return;
+        THROW_APPBUILD_EXCEPTION("The root for the defaults for a project is not an object.");
     }
 
     // This function expects the defaultJson to be of a specific format that the project loader expects.
@@ -290,39 +170,37 @@ void UpdateJsonProjectWithDefaults(rapidjson::Document& pJson)
 
     // Get the defaults for the configuration.
     // here we make the assumption that there is just one in the defaults.
-    const rapidjson::Value& configurationDefaults = defaultJson["configurations"];
-
-    if( pJson.HasMember("configurations") )
+    for( const auto& o : defaultJson.GetRoot() )
     {
-        // See what needs to be added to the configurations that there are.
-        rapidjson::Value& configs = pJson["configurations"];
-        for( auto& conf : configs.GetObject() )
+        if(pVerbose){std::cout << "Checking for: " << o.first << "\n";}
+        if( pJson.HasValue(o.first) == false )
         {
-            const rapidjson::Value& defaults = FindNamedConfigurationOrDefault(configurationDefaults,conf.name.GetString());
+            if(pVerbose){std::cout << "No \"" << o.first << "\", adding default\n";}
+            pJson[o.first] = o.second;
+        }
+        else if( CompareNoCase(o.first.c_str(),"configurations") )
+        {
+            if(pVerbose){std::cout << "Merging configurations\n";}
+            // See what needs to be added to the configurations that there are.
+            tinyjson::JsonValue& configs = pJson["configurations"];
+            for( auto& conf : configs )
+            {
+                const tinyjson::JsonValue& defaults = FindNamedConfigurationOrDefault(defaultJson["configurations"],conf.first);
 
-            // If their configs match one of the configs in the defaults then we'll use that to fill in the gaps.
-            // If no match is made, we'll just use the first one marked as default in the json. If none mound first one used.
-            AddMissingMembers(conf.value,defaults,pJson.GetAllocator());
+                // If their configs match one of the configs in the defaults then we'll use that to fill in the gaps.
+                // If no match is made, we'll just use the first one marked as default in the json. If none mound first one used.
+                AddMissingMembers(conf.second,defaults,pVerbose);
+            }
         }
     }
-    else
+/*
+//debug testing
+    std::ofstream file("test.json");
+    if( file.is_open() )
     {
-        // No configurations at all, so just add the default one.
-        rapidjson::Value configuration = rapidjson::Value(rapidjson::kObjectType);
-        AddMissingMembers(configuration,configurationDefaults,pJson.GetAllocator());
-        pJson.AddMember("configurations",configuration,pJson.GetAllocator());
+        tinyjson::JsonWriter(file,pJson,true);
     }
-
-    // Need to do the version string on it's own as it's not part of the configurations.
-    if( pJson.HasMember("version") == false )
-    {
-        // The default.
-        const std::string version = defaultJson["version"].GetString();
-        AddMember(pJson,"version",version,pJson.GetAllocator());
-    }
-
-//for debugging
-// SaveJson("./test.json",pJson);
+*/
 }
 
 //////////////////////////////////////////////////////////////////////////

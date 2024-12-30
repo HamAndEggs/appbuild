@@ -30,7 +30,7 @@
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
-Configuration::Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const rapidjson::Value& pConfig):
+Configuration::Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const tinyjson::JsonValue& pConfig):
 		mConfigName(pConfigName),
 		mProjectDir(pParentProject->GetProjectDir()),
 		mLoggingMode(pLoggingMode),
@@ -47,9 +47,9 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 {
 	mIncludeSearchPaths.AddPath(mProjectDir);
 
-	mIsDefaultConfig = GetBool(pConfig,"default",false);
+	mIsDefaultConfig = pConfig.GetBoolean("default",false);
 	
-	if( pConfig.HasMember("include") )
+	if( pConfig.HasValue("include") )
 	{
         if( mIncludeSearchPaths.AddPaths(pConfig["include"]) == false )
         {
@@ -57,14 +57,9 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
             return; // We're done, no need to continue.
         }
     }
-    else
-    {
-   		std::cerr << "Internal error: The \'include\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
-        return; // We're done, no need to continue.
-    }
 
 	// These can be added to the args now as they need to come before libs.
-	if( pConfig.HasMember("libpaths") )
+	if( pConfig.HasValue("libpaths") )
     {
         if( mLibrarySearchPaths.AddPaths(pConfig["libpaths"]) == false )
         {
@@ -72,17 +67,10 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
             return; // We're done, no need to continue.
         }
     }
-    else
-    {
-        if( mLoggingMode >= LOG_VERBOSE )
-        {
-    		std::clog << "The \'libpaths\' object in the \'settings\' " << mConfigName << " not set.\n";
-        }
-    }
 
 	// These go into a different place for now as they have to be added to the args after the object files have been.
 	// This is because of the way linkers work.
-	if( pConfig.HasMember("libs") )
+	if( pConfig.HasValue("libs") )
 	{
 		if( mLibraryFiles.Add(pConfig["libs"]) == false  )
 		{
@@ -90,13 +78,8 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 			return; // We're done, no need to continue.
 		}
 	}
-    else
-    {
-   		std::cerr << "Internal error: The \'libs\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
-        return; // We're done, no need to continue.
-    }
 
-	if( pConfig.HasMember("define") )
+	if( pConfig.HasValue("define") )
 	{
 		if( AddDefines(pConfig["define"]) == false  )
 		{
@@ -110,9 +93,9 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
         return; // We're done, no need to continue.
 	}
 	
-	if( pConfig.HasMember("extra_compiler_args") )
+	if( pConfig.HasValue("extra_compiler_args") )
 	{
-		const rapidjson::Value &extraArgs = pConfig["extra_compiler_args"];
+		const tinyjson::JsonValue &extraArgs = pConfig["extra_compiler_args"];
 		if( extraArgs.IsArray() )
 		{
 			for( const auto& val : extraArgs.GetArray() )
@@ -129,7 +112,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
 	// Look for the output folder name. If not found default to bin.
 	// TODO: Add some kind of environment variable system so this can be added to the default project.
-	if( pConfig.HasMember("output_path") )
+	if( pConfig.HasValue("output_path") )
 	{
 		mOutputPath = pConfig["output_path"].GetString();
 		if(mOutputPath.back() != '/')
@@ -146,7 +129,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
 			if( mLoggingMode >= LOG_VERBOSE )
 			{
-				std::clog << "The \'output_path\' object in the \'settings\' " << mConfigName << " is an absolute path, changing to " << mOutputPath << '\n';
+				std::cout << "The \'output_path\' object in the \'settings\' " << mConfigName << " is an absolute path, changing to " << mOutputPath << '\n';
 			}
 		}
 	}
@@ -155,12 +138,12 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 		mOutputPath = CleanPath(mProjectDir + "bin/" + pConfigName + "/");
 		if(mLoggingMode >= LOG_VERBOSE)
 		{
-			std::clog << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'\n";
+			std::cout << "The \'output_path\' object in the configuration \'" << mConfigName << "\' was not set, defaulting too \'" << mOutputPath << "\'\n";
 		}
 	}
 
 	// Find out what they wish to build.
-	if( pConfig.HasMember("target") )
+	if( pConfig.HasValue("target") )
 	{
 		const std::string TargetName = pConfig["target"].GetString();
 		if( CompareNoCase("executable",TargetName.c_str()) )
@@ -183,7 +166,7 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
         return; // We're done, no need to continue.
 	}
 
-	if( pConfig.HasMember("output_name") && pConfig["output_name"].IsString() )
+	if( pConfig.HasValue("output_name") && pConfig["output_name"].IsString() )
 	{
 		std::string filename = pConfig["output_name"].GetString();		
 		// Depending on the target type, we need to make sure the format is right.
@@ -238,42 +221,42 @@ Configuration::Configuration(const std::string& pConfigName,const Project* pPare
 
         if( mLoggingMode >= LOG_VERBOSE )
         {
-    		std::clog << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'\n";
+    		std::cout << "The \'output_name\' object in the \'settings\' is missing, defaulting too \'" << mOutputName << "\'\n";
         }
 	}
 
-	mOptimisation = GetStringLog(pConfig,"optimisation",mOptimisation,mLoggingMode >= LOG_VERBOSE);
-	mDebugLevel = GetStringLog(pConfig,"debug_level",mDebugLevel,mLoggingMode >= LOG_VERBOSE);
-	mGTKVersion = GetStringLog(pConfig,"gtk_version",mGTKVersion,mLoggingMode >= LOG_VERBOSE);
-	mCppStandard = GetStringLog(pConfig,"standard",mCppStandard,mLoggingMode >= LOG_VERBOSE);
+	mOptimisation = pConfig.GetString("optimisation",mOptimisation,mLoggingMode >= LOG_VERBOSE);
+	mDebugLevel = pConfig.GetString("debug_level",mDebugLevel,mLoggingMode >= LOG_VERBOSE);
+	mGTKVersion = pConfig.GetString("gtk_version",mGTKVersion,mLoggingMode >= LOG_VERBOSE);
+	mCppStandard = pConfig.GetString("standard",mCppStandard,mLoggingMode >= LOG_VERBOSE);
 
-	mComplier = GetStringLog(pConfig,"compiler",mComplier,mLoggingMode >= LOG_VERBOSE);
-	mLinker = GetStringLog(pConfig,"linker",mLinker,mLoggingMode >= LOG_VERBOSE);
-	mArchiver = GetStringLog(pConfig,"archiver",mArchiver,mLoggingMode >= LOG_VERBOSE);
+	mComplier = pConfig.GetString("compiler",mComplier,mLoggingMode >= LOG_VERBOSE);
+	mLinker = pConfig.GetString("linker",mLinker,mLoggingMode >= LOG_VERBOSE);
+	mArchiver = pConfig.GetString("archiver",mArchiver,mLoggingMode >= LOG_VERBOSE);
 
-	mWarningsAsErrors = GetBoolLog(pConfig,"warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
-	mEnableAllWarnings = GetBoolLog(pConfig,"enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
-	mFatalErrors = GetBoolLog(pConfig,"fatal_errors",mFatalErrors,mLoggingMode >= LOG_VERBOSE);
+	mWarningsAsErrors = pConfig.GetBoolean("warnings_as_errors",mWarningsAsErrors,mLoggingMode >= LOG_VERBOSE);
+	mEnableAllWarnings = pConfig.GetBoolean("enable_all_warnings",mEnableAllWarnings,mLoggingMode >= LOG_VERBOSE);
+	mFatalErrors = pConfig.GetBoolean("fatal_errors",mFatalErrors,mLoggingMode >= LOG_VERBOSE);
 
 	// See if there are any projects we are not dependent on.
-	if( pConfig.HasMember("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
+	if( pConfig.HasValue("dependencies") && AddDependantProjects(pConfig["dependencies"]) == false )
 	{
-		std::cout << "The \'dependencies\' object in the \'settings\' is not an array" << std::endl;
+		std::cout << "The \'dependencies\' object in the \'settings\' is not an array\n";
 		return; // We're done, no need to continue.
 	}
 
 	// Add configuration specific source files
-	if( pConfig.HasMember("source_files") )
+	if( pConfig.HasValue("source_files") )
 	{
 		mSourceFiles.Read(pConfig["source_files"]);
 	}
 
 	if( pLoggingMode  >= LOG_VERBOSE )
 	{
-		std::clog << "Configuration " << pConfigName << '\n';
-		std::clog << "    mProjectDir " << mProjectDir << '\n';
-		std::clog << "    mOutputPath " << mOutputPath << '\n';
-		std::clog << "    mOutputName " << mOutputName << '\n';
+		std::cout << "Configuration " << pConfigName << '\n';
+		std::cout << "    mProjectDir " << mProjectDir << '\n';
+		std::cout << "    mOutputPath " << mOutputPath << '\n';
+		std::cout << "    mOutputName " << mOutputName << '\n';
 	}
 
 	// If we get here, then all is ok.
@@ -285,64 +268,64 @@ Configuration::~Configuration()
 	mOk = false;
 }
 
-rapidjson::Value Configuration::Write(rapidjson::Document::AllocatorType& pAllocator)const
+tinyjson::JsonValue Configuration::Write()const
 {
-	rapidjson::Value jsonConfig = rapidjson::Value(rapidjson::kObjectType);
+	tinyjson::JsonValue jsonConfig = tinyjson::JsonValue(tinyjson::JsonValueType::OBJECT);
 
-	jsonConfig.AddMember("default",mIsDefaultConfig,pAllocator);
-	jsonConfig.AddMember("target",std::string(TargetTypeToString(mTargetType)),pAllocator);
-	jsonConfig.AddMember("compiler",mComplier,pAllocator);
-	jsonConfig.AddMember("linker",mLinker,pAllocator);
-	jsonConfig.AddMember("archiver",mArchiver,pAllocator);
-	jsonConfig.AddMember("output_path",mOutputPath,pAllocator);
-	jsonConfig.AddMember("output_name",mOutputName,pAllocator);
-	jsonConfig.AddMember("standard",mCppStandard,pAllocator);
-	jsonConfig.AddMember("optimisation",mOptimisation,pAllocator);
-	jsonConfig.AddMember("debug_level",mDebugLevel,pAllocator);
-	jsonConfig.AddMember("warnings_as_errors",mWarningsAsErrors,pAllocator);
-	jsonConfig.AddMember("enable_all_warnings",mEnableAllWarnings,pAllocator);
-	jsonConfig.AddMember("fatal_errors",mFatalErrors,pAllocator);
+	jsonConfig["default"] = mIsDefaultConfig;
+	jsonConfig["target"] = std::string(TargetTypeToString(mTargetType));
+	jsonConfig["compiler"] = mComplier;
+	jsonConfig["linker"] = mLinker;
+	jsonConfig["archiver"] = mArchiver;
+	jsonConfig["output_path"] = mOutputPath;
+	jsonConfig["output_name"] = mOutputName;
+	jsonConfig["standard"] = mCppStandard;
+	jsonConfig["optimisation"] = mOptimisation;
+	jsonConfig["debug_level"] = mDebugLevel;
+	jsonConfig["warnings_as_errors"] = mWarningsAsErrors;
+	jsonConfig["enable_all_warnings"] = mEnableAllWarnings;
+	jsonConfig["fatal_errors"] = mFatalErrors;
 	
 	
 
 	if( mGTKVersion.size() > 0 )
 	{
-		jsonConfig.AddMember("gtk_version",mGTKVersion,pAllocator);
+		jsonConfig["gtk_version"] = mGTKVersion;
 	}
 	
 	if( mIncludeSearchPaths.size() > 0 )
 	{	
-		jsonConfig.AddMember("include",BuildStringArray(mIncludeSearchPaths,pAllocator),pAllocator);
+		jsonConfig.Emplace("include",mIncludeSearchPaths);
 	}
 
 	if( mLibrarySearchPaths.size() > 0 )
 	{
-		jsonConfig.AddMember("libpaths",BuildStringArray(mLibrarySearchPaths,pAllocator),pAllocator);
+		jsonConfig.Emplace("libpaths",mLibrarySearchPaths);
 	}
 
 	if( mLibraryFiles.size() > 0 )
 	{
-		jsonConfig.AddMember("libs",BuildStringArray(mLibraryFiles,pAllocator),pAllocator);
+		jsonConfig.Emplace("libs",mLibraryFiles);
 	}
 
 	if( mDefines.size() > 0 )
 	{
-		jsonConfig.AddMember("define",BuildStringArray(mDefines,pAllocator),pAllocator);
+		jsonConfig.Emplace("define",mDefines);
 	}
 
 	if( mExtraCompilerArgs.size() > 0 )
 	{
-		jsonConfig.AddMember("extra_compiler_args",BuildStringArray(mExtraCompilerArgs,pAllocator),pAllocator);
+		jsonConfig.Emplace("extra_compiler_args",mExtraCompilerArgs);
 	}
 
 	if( mDependantProjects.size() > 0 )
 	{
-		jsonConfig.AddMember("dependencies",BuildStringArray(GetKeys(mDependantProjects),pAllocator),pAllocator);
+		jsonConfig.Emplace("dependencies",GetKeys(mDependantProjects));
 	}
 
 	if( mSourceFiles.size() > 0 )
 	{
-		jsonConfig.AddMember("source_files",mSourceFiles.Write(pAllocator),pAllocator);
+		jsonConfig.Emplace("source_files",mSourceFiles.GetFiles());
 	}
 
 	return jsonConfig;
@@ -383,12 +366,12 @@ bool Configuration::RunOutputFile(const std::string& pSharedObjectPaths)const
 		const std::string pathedTargetName = GetPathedTargetName();
 		if( mLoggingMode >= LOG_INFO )
 		{
-			std::clog << "Running command " << pathedTargetName << " ";
+			std::cout << "Running command " << pathedTargetName << " ";
 			if( pSharedObjectPaths.size() > 0 )
 			{
-				std::clog << "LD_LIBRARY_PATH = " << pSharedObjectPaths;
+				std::cout << "LD_LIBRARY_PATH = " << pSharedObjectPaths;
 			}
-			std::clog << '\n';
+			std::cout << '\n';
 		}
 
 		StringMap Env;
@@ -431,6 +414,12 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 	// Add search files from gobal project file settings.
 	includeSearchPaths.insert(includeSearchPaths.end(), pProjectIncludes.begin(), pProjectIncludes.end());	
 
+	if( includeSearchPaths.size() == 0 )
+    {
+   		std::cerr << "Internal error: The \'include\' object in the \'settings\' " << mConfigName << " is missing! What happened to our defaults?\n";
+        return false; // We're done, no need to continue.
+    }	
+
 	for( const auto& filename : pSourceFiles )
 	{
 		// Later on in the code we deal with duplicate file names with a nice little sneaky trick.
@@ -454,7 +443,7 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 
 			if(mLoggingMode >= LOG_VERBOSE)
 			{
-				std::clog << mOutputPath << "\n";
+				std::cout << mOutputPath << "\n";
 			}
 
 			// Makes an output file name that is in the bin folder using the passed in folder and filename. Deals with the filename having '../..' stuff in the path. Just stripped it.
@@ -480,7 +469,7 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 			{
 				if(mLoggingMode >= LOG_VERBOSE)
 				{
-					std::clog << "Creating " << OutputFilename << " from file " << InputFilename << "\n";
+					std::cout << "Creating " << OutputFilename << " from file " << InputFilename << "\n";
 				}
 
 
@@ -541,7 +530,7 @@ bool Configuration::AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuil
 	return true;
 }
 
-bool Configuration::AddDefines(const rapidjson::Value& pDefines)
+bool Configuration::AddDefines(const tinyjson::JsonValue& pDefines)
 {
 	if( pDefines.IsArray() )
 	{
@@ -559,7 +548,7 @@ void Configuration::AddDefine(const std::string& pDefine)
 	mDefines.push_back(pDefine);
 }
 
-bool Configuration::AddDependantProjects(const rapidjson::Value& pLibs)
+bool Configuration::AddDependantProjects(const tinyjson::JsonValue& pLibs)
 {
 	if( pLibs.IsArray() )
 	{
@@ -611,7 +600,7 @@ const std::string Configuration::PreparePath(const std::string& pPath)
 bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const
 {
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::clog << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search \n";
+		std::cout << "Calling \"pkg-config --cflags " << pVersion << "\" to add folders to include search \n";
 
 	StringVec args;
 	args.push_back("--cflags");
@@ -634,12 +623,12 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 					FoundIncludes = true;
 					if(mLoggingMode >= LOG_VERBOSE)
 					{
-						std::clog << "pkg-config adding folder to include search " << theFolder << '\n';
+						std::cout << "pkg-config adding folder to include search " << theFolder << '\n';
 					}
 				}
 				else if(mLoggingMode >= LOG_VERBOSE)
 				{
-					std::clog << "pkg-config proposed folder not found, NOT added to include search " << theFolder << '\n';
+					std::cout << "pkg-config proposed folder not found, NOT added to include search " << theFolder << '\n';
 				}
 			}
 		}
@@ -660,7 +649,7 @@ bool Configuration::AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,cons
 bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std::string& pVersion)const
 {
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::clog << "Calling \"pkg-config --libs " << pVersion << "\" to add library dependencies to the linker \n";
+		std::cout << "Calling \"pkg-config --libs " << pVersion << "\" to add library dependencies to the linker \n";
 
 	StringVec args;
 	args.push_back("--libs");
@@ -679,7 +668,7 @@ bool Configuration::AddLibrariesFromPKGConfig(StringVec& pLibraryFiles,const std
 				pLibraryFiles.push_back(theFolder);
 				FoundLibraries = true;
 				if(mLoggingMode >= LOG_VERBOSE)
-					std::clog << "pkg-config adding library " << theFolder << '\n';
+					std::cout << "pkg-config adding library " << theFolder << '\n';
 
 			}
 		}

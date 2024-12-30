@@ -17,15 +17,16 @@
 #ifndef _BUILD_TASK_RESOURCE_FILES_H_
 #define _BUILD_TASK_RESOURCE_FILES_H_
 
+#include "json.h"
+#include "build_task.h"
+#include "mem_buffer.h"
+#include "string_types.h"
+
 #include <assert.h>
 #include <atomic>
 #include <thread>
 #include <list>
 #include <stack>
-
-#include "json.h"
-#include "build_task.h"
-#include "mem_buffer.h"
 
 //////////////////////////////////////////////////////////////////////////
 // Holds the information for each build task.

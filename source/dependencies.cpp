@@ -166,7 +166,7 @@ bool Dependencies::GetIncludesFromFile(const std::string& pFilename,const String
 		return true;
 	}
 
-//	std::cout << "GetIncludesFromFile(" << pFilename << ")" << std::endl;
+//	std::cout << "GetIncludesFromFile(" << pFilename << ")\n";
 
 
 	assert(mDependencies.size() < 1000 );

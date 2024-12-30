@@ -23,6 +23,8 @@
 
 #include "string_types.h"
 
+#define THROW_APPBUILD_EXCEPTION(THE_MESSAGE__)	{throw std::runtime_error("APPBUILD EXCEPTION At: " + std::to_string(__LINE__) + " In " + std::string(__FILE__) + " : " + std::string(THE_MESSAGE__));}
+
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
 bool FileExists(const char* pFilename);	//Will return false if file name is a path! We want to know if the file exists!

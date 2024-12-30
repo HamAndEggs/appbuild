@@ -19,6 +19,7 @@
 #include <getopt.h>
 #include <string>
 #include <vector>
+#include <cstring>
 
 #include "command_line_options.h"
 #include "project.h"
@@ -44,8 +45,7 @@ namespace appbuild{
 		DEF_ARG(ARG_SHEBANG,no_argument,						'#',"she-bang","Makes the c/c++ file with appbuild defined as a shebang run as if it was an executable. JIT Compiled.") \
 		DEF_ARG(ARG_NEW_PROJECT,required_argument,				'P',"new-project","Where arg is the new project name, makes a folder in the current working directory of the passed name with a simple hello world cpp file\nand a default project file with release and debug configurations.\nIf the folder already exists searches folder for source files and adds them to a new project file.\nIf a project file already exists then it will fail.") \
 		DEF_ARG(ARG_INTERACTIVE,no_argument,					'i',"interactive","If the project has multiple configurations then a menu will allow you to select which to build.\nThe default configuration, if marked, will be selected by default.")	\
-		DEF_ARG(ARG_DISPLAY_PROJECT_SCHEMA,optional_argument,	'S',"show-schema","Displays the schema of the project json. Arg is an optional filename, if not given then will output to std::cout.\nIf arg is specfied will save the schema to the file.")						\
-		DEF_ARG(ARG_EMBEDDED_PROJECT,required_argument,			'e',"embedded-project","A project can be in the root of other json data, that is embedded in the json file of another application.\nThis allows you to state the key name in the root document where to find the appbuild proect.") \
+		DEF_ARG(ARG_DISPLAY_PROJECT_SCHEMA,optional_argument,	'S',"show-schema","Displays the schema of the project json. Arg is an optional filename, if not given then will output to std::cout.\nIf arg is specfied will save the schema to the file.")
 
 
 enum eArguments
@@ -90,7 +90,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			if( optarg )
 				mNumThreads = std::atoi(optarg);
 			else
-				std::cout << "Option -n (num-threads) was not passed correct value. -n 4 or --num-threads=4" << std::endl;
+				std::cout << "Option -n (num-threads) was not passed correct value. -n 4 or --num-threads=4\n";
 			break;
 
 		case ARG_HELP:
@@ -137,23 +137,13 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			}
 			break;
 
-		case ARG_EMBEDDED_PROJECT:
-			if( optarg )
-				mProjectJsonKey = optarg;
-			else
-			{
-				mShowHelp = true;
-				std::cout << "Option -e (embedded-project) was not passed correct value. -e keyname or -embedded-project=keyname where keyname is the object key in the root document." << std::endl;
-			}
-			break;
-
 		case ARG_ACTIVE_CONFIG:
 			if( optarg )
 				mActiveConfig = optarg;
 			else
 			{
 				mShowHelp = true;
-				std::cout << "Option -c (active-config) was not passed correct value. -c release or --active-config=release" << std::endl;
+				std::cout << "Option -c (active-config) was not passed correct value. -c release or --active-config=release\n";
 			}
 			break;
 
@@ -163,7 +153,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			else
 			{
 				mShowHelp = true;
-				std::cout << "Option -u (update-project) requires an ouput file name. -u file.proj or --active-config=file.proj" << std::endl;
+				std::cout << "Option -u (update-project) requires an ouput file name. -u file.proj or --active-config=file.proj\n";
 			}
 			break;
 
@@ -171,11 +161,11 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			if( optarg )
 				mTruncateOutput = std::atoi(optarg);
 			else
-				std::cout << "Option -t (truncate-output) was not passed correct value. -t 10 or --num-threads=10 to show the first 10 lines of errors for each source file." << std::endl;
+				std::cout << "Option -t (truncate-output) was not passed correct value. -t 10 or --num-threads=10 to show the first 10 lines of errors for each source file.\n";
 			break;
 
         case ARG_SHEBANG:
-    		std::cout << "-# (she-bang) must be the first and only option, it can not be used with other options." << std::endl;
+    		std::cout << "-# (she-bang) must be the first and only option, it can not be used with other options.\n";
             mShowHelp = true;
 			break;
 
@@ -186,7 +176,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			}
 			else
 			{
-	    		std::cout << "--new-project was not passed a valid project name." << std::endl;
+	    		std::cout << "--new-project was not passed a valid project name.\n";
 				mShowHelp = true;
 			}
 			break;
@@ -209,7 +199,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 			mProjectFiles.push_back(ProfileFile);
 		else
 		{
-			std::cout << "Error: Project file " << ProfileFile << " is not found." << std::endl << "Current working dir " << appbuild::GetCurrentWorkingDirectory() << std::endl;
+			std::cout << "Error: Project file " << ProfileFile << " is not found.\n" << "Current working dir " << appbuild::GetCurrentWorkingDirectory() << std::endl;
 		}
 	}
 
@@ -226,7 +216,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 		}
 		else if( ProjFiles.size() > 1 )
 		{
-			std::cout << "No project file specified, more than one in current working folder, can not continue. Please specify which projects to build." << std::endl;
+			std::cout << "No project file specified, more than one in current working folder, can not continue. Please specify which projects to build.\n";
 			for(auto f : ProjFiles )
 				std::cout << "    " << f << std::endl;
 		}
@@ -234,7 +224,7 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 	if( GetRunAfterBuild() && mProjectFiles.size() > 1 )
 	{
-		std::cout << "Run after build option is only valid with one project file, ignoring" << std::endl;
+		std::cout << "Run after build option is only valid with one project file, ignoring\n";
 		mRunAfterBuild = false;
 	}
 }
@@ -242,9 +232,9 @@ CommandLineOptions::CommandLineOptions(int argc, char *argv[]):
 
 void CommandLineOptions::PrintHelp()const
 {
-	std::cout << "Usage: appbuild [OPTION]... [PROJECT FILE]..." << std::endl;
-	std::cout << "Build one or more applications using the supplied project files." << std::endl << std::endl;
-	std::cout << "Mandatory arguments to long options are mandatory for short options too." << std::endl << "Options:" << std::endl;
+	std::cout << "Usage: appbuild [OPTION]... [PROJECT FILE]...\n";
+	std::cout << "Build one or more applications using the supplied project files.\n" << std::endl;
+	std::cout << "Mandatory arguments to long options are mandatory for short options too.\n" << "Options:\n";
 
 	// I build three vectors of strings for all options. So I can measure and then line up the text with spaces. Makes life easier when adding new options.
 	appbuild::StringVec ShortArgs;
@@ -327,7 +317,7 @@ void CommandLineOptions::PrintVersion()const
 
 void CommandLineOptions::PrintTypeSizes()const
 {
-	std::cout  << std::endl << "***** Type size info at build time *****" << std::endl;
+	std::cout  << std::endl << "***** Type size info at build time *****\n";
 #define SHOW_TYPE_SIZE(__TYPE__) std::cout << "sizeof(" << #__TYPE__ << ") = " << sizeof(__TYPE__)  << std::endl;
 	SHOW_TYPE_SIZE(void*);
 	SHOW_TYPE_SIZE(char*);
@@ -389,7 +379,7 @@ void CommandLineOptions::PrintProjectSchema()const
 
 bool CommandLineOptions::ProcessInteractiveMode(appbuild::Project& pTheProject)
 {
-	std::cout << "Choose the configuration to build or just enter for the default." << std::endl;
+	std::cout << "Choose the configuration to build or just enter for the default.\n";
 	const appbuild::StringVec Configs = pTheProject.GetConfigurationNames();
 	const std::string defaultName = pTheProject.FindDefaultConfigurationName();
 	
@@ -422,7 +412,7 @@ bool CommandLineOptions::ProcessInteractiveMode(appbuild::Project& pTheProject)
 		choice -= '1';
 		if( choice >= 1 && choice <= index  )
 		{
-			std::cout << Configs[choice] << " chosen" << std::endl;
+			std::cout << Configs[choice] << " chosen\n";
 			mActiveConfig = Configs[choice];
 		}
 		else

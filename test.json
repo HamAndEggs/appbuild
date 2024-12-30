@@ -7,48 +7,33 @@
             "archiver":"ar",
             "compiler":"gcc",
             "debug_level":"2",
-            "default":false,
+            "default":true,
             "define":
             [
-                "DEBUG_BUILD"
+                "DEBUG_BUILD",
+                "ALLOW_INCLUDE_OF_SCHEMA"
             ],
-            "dependencies":
-            [
-                "../hello_lib/hello.proj"
-            ],
-            "enable_all_warnings":false,
+            "enable_all_warnings":true,
             "fatal_errors":false,
-            "include":
-            [
-                "../hello_lib"
-            ],
             "linker":"gcc",
             "optimisation":"0",
             "standard":"c++17",
             "target":"executable",
-            "warnings_as_errors":false
+            "warnings_as_errors":true
         },
         "release":
         {
             "archiver":"ar",
             "compiler":"gcc",
             "debug_level":"0",
-            "default":true,
+            "default":false,
             "define":
             [
-                "NDEBUG",
-                "RELEASE_BUILD"
-            ],
-            "dependencies":
-            [
-                "../hello_lib/hello.proj"
+                "RELEASE_BUILD",
+                "ALLOW_INCLUDE_OF_SCHEMA"
             ],
             "enable_all_warnings":true,
             "fatal_errors":true,
-            "include":
-            [
-                "../hello_lib"
-            ],
             "linker":"gcc",
             "optimisation":"2",
             "standard":"c++17",
@@ -69,7 +54,21 @@
     ],
     "source_files":
     [
-        "./main.cpp"
+        "./source/shell.cpp",
+        "./source/arg_list.cpp",
+        "./source/build_task.cpp",
+        "./source/build_task_compile.cpp",
+        "./source/build_task_resource_files.cpp",
+        "./source/configuration.cpp",
+        "./source/dependencies.cpp",
+        "./source/lz4/lz4.c",
+        "./source/main.cpp",
+        "./source/misc.cpp",
+        "./source/project.cpp",
+        "./source/source_files.cpp",
+        "./source/new_project.cpp",
+        "./source/json.cpp",
+        "./source/command_line_options.cpp"
     ],
     "version":"0.0.1"
 }

@@ -144,7 +144,7 @@ bool BuildTaskResourceFiles::Main()
 	}
 	
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "Checking to see if resources need to be rebuilt." << std::endl;
+		std::cout << "Checking to see if resources need to be rebuilt.\n";
 
 	const std::string ResourceOutputFilename = CleanPath(mOutputPath + "/resources.cpp");
 	mGeneratedResourceFiles.push_back(ResourceOutputFilename);
@@ -152,17 +152,17 @@ bool BuildTaskResourceFiles::Main()
 	{
 		// Get here we're all upto date and so does not need rebuilding.	
 		if(mLoggingMode >= LOG_VERBOSE)
-			std::cout << "resources.cpp is upto date, no need to rebuild resources." << std::endl;
+			std::cout << "resources.cpp is upto date, no need to rebuild resources.\n";
 		return true;// All good.
 	}
 	else if(mLoggingMode >= LOG_VERBOSE)
 	{
-		std::cout << "resources.cpp not found or is out of date, rebuilding." << std::endl;
+		std::cout << "resources.cpp not found or is out of date, rebuilding.\n";
 	}
 
 
 	if(mLoggingMode >= LOG_VERBOSE)
-		std::cout << "Gathering resource files and compressing..." << std::endl;
+		std::cout << "Gathering resource files and compressing...\n";
 	
 	int numFiles = 0;
 	int uncompressedSize = 0;
@@ -243,7 +243,7 @@ bool BuildTaskResourceFiles::Main()
 		else
 		{
 			if(mLoggingMode >= LOG_VERBOSE)
-				std::cout << "  " << filename << " already been added, skipping." << std::endl;
+				std::cout << "  " << filename << " already been added, skipping.\n";
 		}
 	}
 
@@ -297,24 +297,24 @@ bool BuildTaskResourceFiles::Main()
 			cpp << beforeCodeBlock << std::endl << std::endl;
 
 			// Write out the table of contents.
-			cpp << "static const ResourceFilesTOC table_of_contents[] =" << std::endl;
-			cpp << "{" << std::endl;
+			cpp << "static const ResourceFilesTOC table_of_contents[] =\n";
+			cpp << "{\n";
 			bool first = true;
 			for( const auto& f : files )
 			{
 				if( !first )
 				{
-					cpp << "," << std::endl;
+					cpp << ",\n";
 				}
 				first = false;
 				cpp << "  {\"" << f.first << "\","<< f.second->mOffset << "," << f.second->mCompressedSize << "," << f.second->mFileSize << "}";
 			}
-			cpp << std::endl << "};" << std::endl << std::endl;
+			cpp << std::endl << "};\n" << std::endl;
 
 			// Now write out the data.
 			int LineLength = 0xfffff;
-			cpp << "static const uint8_t resource_file_data[] =" << std::endl;
-			cpp << "{" << std::endl;
+			cpp << "static const uint8_t resource_file_data[] =\n";
+			cpp << "{\n";
 			for( int n = 0 ; n < compressedSize ; n++ )
 			{
 				if( LineLength >= 2000 )
@@ -330,7 +330,7 @@ bool BuildTaskResourceFiles::Main()
 				}
 				LineLength += (CompressData[n]<10?1:(CompressData[n]<100?2:3));			
 			}
-			cpp << std::endl << "};" << std::endl << std::endl;
+			cpp << std::endl << "};\n" << std::endl;
 
 			// Now write the rest of the source.
 			cpp << afterCodeBlock << std::endl;
@@ -363,7 +363,7 @@ void BuildTaskResourceFiles::WriteSupportingCodeFile(const ResourceFilesTOC& pFi
 	if( FileExists(fname) )
 	{
 		if(mLoggingMode >= LOG_VERBOSE)
-			std::cout << "Resource file " << fname << " already exists, not generating." << std::endl;
+			std::cout << "Resource file " << fname << " already exists, not generating.\n";
 	}
 	else
 	{

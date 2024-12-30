@@ -104,7 +104,7 @@ METHODDEF(void) my_error_exit (j_common_ptr cinfo)
 * Sample routine for JPEG decompression.  We assume that the source file name
 * is passed in.  We want to return 1 on success, 0 on error.
 */
-GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,tiny2d::FrameBuffer* FB)
+GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,FBIO::FrameBuffer* FB)
 {	
 	/* This struct contains the JPEG decompression parameters and pointers to
 	* working space (which is allocated as needed by the JPEG library).
@@ -193,7 +193,7 @@ GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,tiny2d::FrameBuff
 
 	FB->BlitRGB24(image,(FB->GetWidth()/2) - (cinfo.output_width/2),(FB->GetHeight()/2) - (cinfo.output_height/2),cinfo.output_width,cinfo.output_height);
 	
-	delete image;	
+	delete []image;	
 	
 	/* Step 7: Finish decompression */
 
@@ -217,7 +217,7 @@ GLOBAL(int) read_JPEG_file (uint8_t *MyBuffer,int MyBufferSize,tiny2d::FrameBuff
 
 int main(int argc, char *argv[])
 {
-	tiny2d::FrameBuffer* FB = tiny2d::FrameBuffer::Open(tiny2d::FrameBuffer::VERBOSE_MESSAGES);
+	FBIO::FrameBuffer* FB = FBIO::FrameBuffer::Open(true);
 	if( FB )
 	{
 		int buffersize;

@@ -40,8 +40,7 @@ public:
 	const size_t size()const{return mFiles.size();}
 	const bool IsEmpty()const{return size() == 0;}
 
-	bool Read(const rapidjson::Value& pSourceElement);
-	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
+	bool Read(const tinyjson::JsonValue& pSourceElement);
 
 	bool AddFile(const std::string& pFileName);
 

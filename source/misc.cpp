@@ -224,7 +224,7 @@ StringVec FindFiles(const std::string& pPath,const std::string& pFilter)
     }
     else
     {
-        std::cout << "FindFiles \'" << pPath << "\' was not found or is not a path." << std::endl;
+        std::cout << "FindFiles \'" << pPath << "\' was not found or is not a path.\n";
     }
 
     return FoundFiles;
@@ -462,7 +462,7 @@ bool DoMiscUnitTests()
     assert( GetExtension("test.bmp.jpeg") == "jpeg" );
 
 
-    std::cout << "Unit tests for misc source file passed." << std::endl;
+    std::cout << "Unit tests for misc source file passed.\n";
     return true;
 }
 

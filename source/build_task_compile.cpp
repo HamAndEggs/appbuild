@@ -43,9 +43,9 @@ bool BuildTaskCompile::Main()
 {
 	if(mLoggingMode >= appbuild::LOG_VERBOSE)
 	{
-		std::clog << mCommand << " ";
+		std::cout << mCommand << " ";
 		for( const auto& arg : mArgs )
-			std::clog << arg << " ";
+			std::cout << arg << " ";
 
 		std::cout << std::endl;// We do want flush here...
 	}

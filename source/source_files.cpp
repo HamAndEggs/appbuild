@@ -43,7 +43,7 @@ const SourceFiles& SourceFiles::operator = (const SourceFiles& pOther)
 	return pOther;
 }
 
-bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
+bool SourceFiles::Read(const tinyjson::JsonValue& pSourceElement)
 {
 	if( pSourceElement.IsArray() )
 	{
@@ -54,14 +54,9 @@ bool SourceFiles::Read(const rapidjson::Value& pSourceElement)
 	}
 	else
 	{
-		std::cout << "Source files object tried to pass an element that was not an array. Please correct your project file" << std::endl;
+		std::cout << "Source files object tried to pass an element that was not an array. Please correct your project file\n";
 	}
 	return true;
-}
-
-rapidjson::Value SourceFiles::Write(rapidjson::Document::AllocatorType& pAllocator)const
-{
-	return BuildStringArray(mFiles,pAllocator);
 }
 
 bool SourceFiles::AddFile(const std::string& pFileName)
@@ -88,12 +83,12 @@ bool SourceFiles::AddFile(const std::string& pFileName)
 		}
 		else
 		{
-			std::cout << "Input filename " << pFileName << " not found at " << InputFilename << "" << std::endl;
+			std::cout << "Input filename " << pFileName << " not found at " << InputFilename << "\n";
 		}
 	}
 	else if( mLoggingMode == LOG_INFO )
 	{
-		std::cout << "SourceFiles::AddFile passed with zero length string" << std::endl;
+		std::cout << "SourceFiles::AddFile passed with zero length string\n";
 	}
 	return false;
 }

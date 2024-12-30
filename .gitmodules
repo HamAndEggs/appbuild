@@ -1,0 +1,3 @@
+[submodule "TinyJson"]
+	path = TinyJson
+	url = https://github.com/HamAndEggs/TinyJson.git

@@ -52,7 +52,7 @@ StringVec FindSourceFiles(const std::string& pPath,int pLoggingMode)
             {
                 if( pLoggingMode == LOG_VERBOSE )
                 {
-                    std::cout << "FindFiles \'" << fname << "\' found" << std::endl;
+                    std::cout << "FindFiles \'" << fname << "\' found\n";
                 }
                 if( ent->d_type == DT_DIR )
                 {
@@ -81,7 +81,7 @@ StringVec FindSourceFiles(const std::string& pPath,int pLoggingMode)
     }
     else if( pLoggingMode == LOG_VERBOSE )
     {
-        std::cout << "FindFiles \'" << pPath << "\' was not found or is not a path." << std::endl;
+        std::cout << "FindFiles \'" << pPath << "\' was not found or is not a path.\n";
     }
 
     return FoundFiles;
@@ -92,7 +92,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     // Check name does not use any pathing characters.
     if( pNewProjectName.find('/') != std::string::npos )
     {
-        std::cout << "--new-project arg contained the disallowed character '/'" << std::endl;
+        std::cout << "--new-project arg contained the disallowed character '/'\n";
         return EXIT_FAILURE;
     }
 
@@ -130,7 +130,7 @@ int CreateNewProject(const std::string& pNewProjectName,int pLoggingMode)
     {
         if( MakeDir(projectPath) == false )
         {
-            std::cout << "Failed to create path for the new project to reside in, [" << projectPath << "]" << std::endl;
+            std::cout << "Failed to create path for the new project to reside in, [" << projectPath << "]\n";
             return EXIT_FAILURE;
         }
 
@@ -168,32 +168,32 @@ int main(int argc, char *argv[])
             // Now the file has been written we can add it. Would fail if done before.
             if( SourceFiles.AddFile(defaultMainName) == false )
             {
-                std::cout << "Failed to add default cpp file to the project, [" << defaultMainName << "]" << std::endl;
+                std::cout << "Failed to add default cpp file to the project, [" << defaultMainName << "]\n";
                 return EXIT_FAILURE;
             }
 
         }
         else
         {
-            std::cout << "Failed to create default source file for new project, [" << pathedSourceFilename << "]" << std::endl;
+            std::cout << "Failed to create default source file for new project, [" << pathedSourceFilename << "]\n";
             return EXIT_FAILURE;
         }
     }
 
-    rapidjson::Document newProject;
-    newProject.SetObject(); // Root object is an object not an array.
-  	rapidjson::Document::AllocatorType& alloc = newProject.GetAllocator();
-	newProject.AddMember("source_files",SourceFiles.Write(alloc),alloc);
+    tinyjson::JsonValue root(tinyjson::JsonValueType::OBJECT);
+    root.Emplace("source_files",SourceFiles.GetFiles());
 
-    UpdateJsonProjectWithDefaults(newProject);
 
-    if( appbuild::SaveJson(pathedProjectFilename,newProject) )
+    std::ofstream file(pathedProjectFilename);
+    if( file.is_open() )
     {
-        std::cout << "New project file saved" << std::endl;
+        tinyjson::JsonValue jsonOutput;
+        tinyjson::JsonWriter(file,root,true);
     }
     else
     {
-        std::cout << "Failed to write to the destination file, [" << pathedProjectFilename << "]" << std::endl;
+        std::cout << "Failed to open json file  " << pathedProjectFilename << " for writing\n";
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;    

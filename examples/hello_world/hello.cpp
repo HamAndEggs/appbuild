@@ -2,6 +2,6 @@
 
 int main(int argc, char *argv[])
 {
-    std::cout << "Hello world, an app compiled with appbuild." << std::endl;
+    std::cout << "Hello world, an app compiled with appbuild.\n";
     return 0;
 }

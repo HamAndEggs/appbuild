@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "shell.h"
+#include "misc.h"
 
 namespace appbuild{
 //////////////////////////////////////////////////////////////////////////
@@ -90,7 +91,7 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
     pid_t pid = fork();
     if (pid < 0)
     {
-        std::cout << "ExecuteShellCommand Fork failed" << std::endl;
+        std::cout << "ExecuteShellCommand Fork failed\n";
         return false;
     }
 
@@ -163,7 +164,7 @@ bool ExecuteShellCommand(const std::string& pCommand,const std::vector<std::stri
     bool Worked = false;
     if( wait(&status) == -1 )
     {
-        std::cout << "Failed to wait for child process." << std::endl;
+        std::cout << "Failed to wait for child process.\n";
     }
     else
     {
@@ -207,7 +208,7 @@ void ExecuteCommand(const std::string& pCommand,const std::vector<std::string>& 
     std::cerr << "ExecuteCommand execvp() failure!\n" << "    Error: " << errorString << "\n    This print is after execvp() and should not have been executed if execvp were successful!\n";
 
     // Should never get here!
-    throw std::runtime_error("Command execution failed! Should not have returned! " + pCommand + " Error: " + errorString);
+    THROW_APPBUILD_EXCEPTION("Command execution failed! Should not have returned! " + pCommand + " Error: " + errorString);
     // Really make sure the process is gone...
     _exit(1);
 }

@@ -30,13 +30,14 @@
 #include "build_task_resource_files.h"
 #include "logging.h"
 #include "version_tools.h"
+#include "json.h"
 
 namespace appbuild{
 
 StringSet Project::sLoadedProjects;
 
 //////////////////////////////////////////////////////////////////////////
-Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
+Project::Project(const tinyjson::JsonValue& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput):
 		mNumThreads(pNumThreads>0?pNumThreads:1),
 		mLoggingMode(pLoggingMode),
 		mRebuild(pRebuild),
@@ -62,7 +63,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	// Is the project file already loaded, if so then there is a dependency loop, we have to fail else will compile for ever.
 	if( sLoadedProjects.find(mProjectName) != sLoadedProjects.end() )
 	{
-		std::cout << "Dependency loop detected, the project \'" << mProjectName << "\' has already been referenced as a dependency." << std::endl;
+		std::cout << "Dependency loop detected, the project \'" << mProjectName << "\' has already been referenced as a dependency.\n";
 		return;
 	}
 
@@ -70,21 +71,21 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	sLoadedProjects.insert(mProjectName);
 
 	// Read the configs.
-	if( pProjectJson.HasMember("configurations") )
+	if( pProjectJson.HasValue("configurations") )
 	{
 		if( !ReadConfigurations(pProjectJson["configurations"]) )
 			return;
 	}
 	else
 	{
-		std::cout << "No configurations found in the project \'" << mProjectName << "\' What happened to our defaults?" << std::endl;
+		std::cout << "No configurations found in the project \'" << mProjectName << "\' What happened to our defaults?\n";
 		return;
 	}
 	
 	assert( mBuildConfigurations.size() > 0 );
 
 	// Add the source files
-	if( pProjectJson.HasMember("source_files") )
+	if( pProjectJson.HasValue("source_files") )
 	{
 		mSourceFiles.Read(pProjectJson["source_files"]);
 	}
@@ -95,13 +96,13 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 	}
 
 	// Add the source files
-	if( pProjectJson.HasMember("resource_files") )
+	if( pProjectJson.HasValue("resource_files") )
 	{
 		mResourceFiles.Read(pProjectJson["resource_files"]);
 	}
 
 	// Add the global include folders, these are the folders used for all configurations.
-	if( pProjectJson.HasMember("include") )
+	if( pProjectJson.HasValue("include") )
 	{
         if( mIncludeSearchPaths.AddPaths(pProjectJson["include"]) == false )
         {
@@ -110,7 +111,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
         }
     }
 
-	if( pProjectJson.HasMember("libpaths") )
+	if( pProjectJson.HasValue("libpaths") )
     {
         if( mLibrarySearchPaths.AddPaths(pProjectJson["libpaths"]) == false )
         {
@@ -119,7 +120,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
         }
     }
 
-	if( pProjectJson.HasMember("libs") )
+	if( pProjectJson.HasValue("libs") )
 	{
 		if( mLibraryFiles.Add(pProjectJson["libs"]) == false  )
 		{
@@ -128,7 +129,7 @@ Project::Project(const rapidjson::Value& pProjectJson,const std::string& pProjec
 		}
 	}
 
-	if( pProjectJson.HasMember("version") )
+	if( pProjectJson.HasValue("version") )
 	{
 		if( pProjectJson["version"].IsString() )
 		{		
@@ -164,6 +165,7 @@ Project::~Project()
 
 bool Project::Build(const std::string& pConfigName)
 {
+	const bool verbose = mLoggingMode >= appbuild::LOG_VERBOSE;
 	ConfigurationPtr activeConfig = GetConfiguration(pConfigName);
 
 	if(activeConfig == nullptr)
@@ -176,70 +178,78 @@ bool Project::Build(const std::string& pConfigName)
 	for( auto& proj : DependantProjects )
 	{
 		const std::string ProjectFile = proj.first;
-		std::cout << "Checking dependency \'" << ProjectFile << "\'" << std::endl;
+		std::cout << "Checking dependency \'" << ProjectFile << "\'\n";
 
-		rapidjson::Document ProjectJson;
-
-		if( ReadJson(ProjectFile,ProjectJson,mLoggingMode >= LOG_VERBOSE) )
+		std::ifstream jsonFile(ProjectFile);
+		if( !jsonFile.is_open() )
 		{
-			if( ValidateJsonAgainstSchema(ProjectJson,mLoggingMode == appbuild::LOG_VERBOSE) == false )
+			if( verbose )
+			{
+				std::cout << "The project dependancy file \'" << ProjectFile << "\' could not be loaded\n";
+			}
+			return false;
+		}
+
+		std::stringstream jsonStream;
+		jsonStream << jsonFile.rdbuf();// Read the whole file in...
+
+		tinyjson::JsonProcessor projectFile(jsonStream.str());
+		tinyjson::JsonValue projectRoot = projectFile.GetRoot();
+		appbuild::UpdateJsonProjectWithDefaults(projectRoot,verbose);
+
+
+		if( ValidateJsonAgainstSchema(projectRoot,verbose) == false )
+		{
+			return false;
+		}
+
+		const std::string projectPath = appbuild::GetPath(ProjectFile);
+
+		Project TheProject(projectRoot,ProjectFile,projectPath,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
+		if( TheProject )
+		{
+			std::string configname = proj.second;
+			if( configname.empty() )
+				configname = activeConfig->GetName();
+
+			if( TheProject.Build(configname) == false )
 			{
 				return false;
 			}
 
-			const std::string projectPath = appbuild::GetPath(ProjectFile);
-
-			Project TheProject(ProjectJson,ProjectFile,projectPath,mNumThreads,mLoggingMode,mRebuild,mTruncateOutput);
-			if( TheProject )
+			// That worked, lets add it's output file to our input libs.
+			ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
+			assert( DepConfig != nullptr );// Should not happen, it was built ok...		
+			if( DepConfig->GetTargetType() == TARGET_LIBRARY || DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
 			{
-				std::string configname = proj.second;
-				if( configname.empty() )
-					configname = activeConfig->GetName();
+				const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
+				mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
+				mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
 
-				if( TheProject.Build(configname) == false )
+				if( DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
 				{
-					return false;
-				}
-
-				// That worked, lets add it's output file to our input libs.
-				ConfigurationPtr DepConfig = TheProject.GetConfiguration(configname);
-				assert( DepConfig != nullptr );// Should not happen, it was built ok...		
-				if( DepConfig->GetTargetType() == TARGET_LIBRARY || DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
-				{
-					const std::string RelativeOutputpath = GetPath(DepConfig->GetPathedTargetName());
-					mDependencyLibraryFiles.push_back(DepConfig->GetOutputName());
-					mDependencyLibrarySearchPaths.push_back(RelativeOutputpath);
-
-					if( DepConfig->GetTargetType() == TARGET_SHARED_OBJECT )
+					if( mSharedObjectPaths.size() > 0 )
 					{
-						if( mSharedObjectPaths.size() > 0 )
-						{
-							mSharedObjectPaths += ":";
-						}
-						mSharedObjectPaths += RelativeOutputpath;
+						mSharedObjectPaths += ":";
 					}
-
-					if( mLoggingMode >= LOG_VERBOSE )
-						std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'" << std::endl;
+					mSharedObjectPaths += RelativeOutputpath;
 				}
+
+				if( verbose )
+					std::cout << "Adding dependency for lib \'" << DepConfig->GetOutputName() << "\' located at \'" << RelativeOutputpath << "\'\n";
 			}
-			else
-			{
-				std::cout << "There was an error in the project file \'" << ProjectFile << "\'" << std::endl;
-				return false;
-			}		
 		}
 		else
 		{
-			std::cout << "Error: Project file " << ProjectFile << " is not found." << std::endl << "Current working dir " << GetCurrentWorkingDirectory() << std::endl;
+			std::cout << "There was an error in the project file \'" << ProjectFile << "\'\n";
 			return false;
-		}
+		}		
 	}
 
 	// We know what config to build with, lets go.
     if( mLoggingMode >= LOG_INFO )
     {
-    	std::clog << "Compiling configuration \'" << activeConfig->GetName() << "\'\n";
+    	std::cout << "Compiling configuration \'" << activeConfig->GetName() << "\'\n";
     }
 
 	BuildTaskStack BuildTasks;
@@ -298,13 +308,13 @@ bool Project::Build(const std::string& pConfigName)
 			return LinkSharedObject(activeConfig,OutputFiles);
 
 		case TARGET_NOT_SET:
-			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
+			std::cerr << "Target type not set, unable to compile configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'\n";
 			break;
 		}
 	}
 	else
 	{
-		std::cerr << "Unable to create build tasks for the configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'" << std::endl;
+		std::cerr << "Unable to create build tasks for the configuration \'" << activeConfig->GetName() << "\' in project \'" << mProjectName << "\'\n";
 	}
 
 	return false;
@@ -321,25 +331,25 @@ bool Project::RunOutputFile(const std::string& pConfigName)const
 	return activeConfig->RunOutputFile(mSharedObjectPaths);
 }
 
-void Project::Write(rapidjson::Document& pDocument)const
+void Project::Write(tinyjson::JsonValue& pDocument)const
 {
-	rapidjson::Document::AllocatorType& alloc = pDocument.GetAllocator();
-
-	rapidjson::Value configurations = rapidjson::Value(rapidjson::kObjectType);
+	tinyjson::JsonValue configurations(tinyjson::JsonValueType::OBJECT);
 
 	for( const auto& conf : mBuildConfigurations )
 	{
-		AddMember(configurations,conf.first,conf.second->Write(alloc),alloc);
+		configurations.Emplace(conf.first,conf.second->Write());
 	}
-	pDocument.AddMember("configurations",configurations,alloc);
-	pDocument.AddMember("source_files",mSourceFiles.Write(alloc),alloc);
-	pDocument.AddMember("include",mIncludeSearchPaths.Write(alloc),alloc);
-	pDocument.AddMember("libpaths",mLibrarySearchPaths.Write(alloc),alloc);
-	pDocument.AddMember("libs",mLibraryFiles.Write(alloc),alloc);
+
+	pDocument.Emplace("configurations",configurations);
+	pDocument.Emplace("source_files",mSourceFiles.GetFiles());
+	pDocument.Emplace("include",mIncludeSearchPaths);
+	pDocument.Emplace("libpaths",mLibrarySearchPaths);
+	pDocument.Emplace("libs",mLibraryFiles);
 
 	if( mResourceFiles.size() > 0 )
-		pDocument.AddMember("resource_files",mResourceFiles.Write(alloc),alloc);
-
+	{
+		pDocument.Emplace("resource_files",mResourceFiles.GetFiles());
+	}
 }
 
 std::string Project::FindDefaultConfigurationName()const
@@ -366,12 +376,12 @@ std::string Project::FindDefaultConfigurationName()const
 		return mBuildConfigurations.begin()->first;
 	}
 
-	std::cerr << "No configuration was specified to build, your choices are:-" << std::endl;
+	std::cerr << "No configuration was specified to build, your choices are:-\n";
 	for(auto conf : mBuildConfigurations )
 	{
 		std::cout << conf.first << std::endl;
 	}
-	std::cerr << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier." << std::endl;
+	std::cerr << "Use -c [config name] to specify which to build. Consider using \"default\":true in the configuration that you build the most to make life easier.\n";
 
 	return "";
 }
@@ -400,13 +410,13 @@ ConfigurationPtr Project::GetConfiguration(const std::string& pName)const
 		{
 			return FoundConfig->second;
 		}
-		std::cerr << "The configuration \'" << pName << "\' to build was not found in the project \'" << mProjectName << "\'" << std::endl;
+		std::cerr << "The configuration \'" << pName << "\' to build was not found in the project \'" << mProjectName << "\'\n";
 	}
 
 	return nullptr;
 }
 
-bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
+bool Project::ReadConfigurations(const tinyjson::JsonValue& pConfigs)
 {
 	assert(pConfigs.IsObject());
 
@@ -414,8 +424,8 @@ bool Project::ReadConfigurations(const rapidjson::Value& pConfigs)
 	{
 		for(auto& configs : pConfigs.GetObject() )
 		{
-			const std::string name = configs.name.GetString();
-			const rapidjson::Value& val = configs.value;
+			const std::string name = configs.first;
+			const tinyjson::JsonValue& val = configs.second;
 
 			if( mBuildConfigurations.find(name) == mBuildConfigurations.end() )
 			{
@@ -561,7 +571,7 @@ bool Project::CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks
 	};
 
     if( mLoggingMode >= LOG_INFO )
-	    std::cout << "Build finished" << std::endl;
+	    std::cout << "Build finished\n";
 
 	return CompileOk;
 }
@@ -607,7 +617,7 @@ bool Project::LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles)
     if( Results.size() < 1 )
     {
         if( mLoggingMode >= LOG_INFO )
-            std::cout << "Linked ok" << std::endl;
+            std::cout << "Linked ok\n";
     }
     else
     {
@@ -654,7 +664,7 @@ bool Project::ArchiveLibrary(ConfigurationPtr pConfig,const StringVec& pOutputFi
     if( Results.size() < 1 )
     {
         if( mLoggingMode >= LOG_INFO )
-            std::cout << "Linked ok" << std::endl;
+            std::cout << "Linked ok\n";
     }
     else
     {
@@ -706,7 +716,7 @@ bool Project::LinkSharedObject(ConfigurationPtr pConfig,const StringVec& pOutput
     if( Results.size() < 1 )
     {
         if( mLoggingMode >= LOG_INFO )
-            std::cout << "Linked ok" << std::endl;
+            std::cout << "Linked ok\n";
     }
     else
     {

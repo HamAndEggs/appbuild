@@ -20,7 +20,7 @@ struct SearchPaths : public StringVec
       }
    }
 
-   bool AddPaths(const rapidjson::Value& pPaths)
+   bool AddPaths(const tinyjson::JsonValue& pPaths)
    {
       if( pPaths.IsArray() )
       {
@@ -33,7 +33,7 @@ struct SearchPaths : public StringVec
       return false;
    }
 
-   bool Add(const rapidjson::Value& pLibs)
+   bool Add(const tinyjson::JsonValue& pLibs)
    {
       if( pLibs.IsArray() )
       {
@@ -44,11 +44,6 @@ struct SearchPaths : public StringVec
          return true;
       }
       return false;
-   }
-
-   rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const
-   {
-      return BuildStringArray(*this,pAllocator);
    }
 
 private:

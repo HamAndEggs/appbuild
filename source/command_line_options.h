@@ -38,7 +38,6 @@ public:
 	bool GetUpdatedProject()const{return GetUpdatedOutputFileName().size() > 0;}
 	bool GetCreateNewProject()const{return mNewProjectName.size() > 0;}
 	bool GetInteractiveMode()const{return mInteractiveMode;}
-	bool GetProjectIsEmbedded()const{return GetProjectJsonKey().size() > 0;}
 	bool GetDisplayProjectSchema()const{return mDisplayProjectSchema;}
 	bool GetWriteSchemaToFile()const{return GetSchemaSaveFilename().size() > 0;}
 
@@ -61,7 +60,6 @@ public:
 	const std::string& GetUpdatedOutputFileName()const{return mUpdatedOutputFileName;}
 	const std::string& GetNewProjectName()const{return mNewProjectName;}
 
-	const std::string& GetProjectJsonKey()const{return mProjectJsonKey;}
 	const std::string& GetSchemaSaveFilename()const{return mSchemaSaveFilename;}
 
 	void PrintHelp()const;
@@ -95,7 +93,6 @@ private:
 	std::string mActiveConfig;
 	std::string mUpdatedOutputFileName;
 	std::string mNewProjectName;
-	std::string mProjectJsonKey; //!< If set then the code is looking for a project embedded in other json. This is the key it will look for in the ROOT document.
 	std::string mSchemaSaveFilename;	//!< The name of the file with write the project schema too, can be null, if so schema is written to standard out.
 };
 

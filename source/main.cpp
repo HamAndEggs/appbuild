@@ -14,21 +14,19 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include <string>
-#include <vector>
-
 #include "command_line_options.h"
 #include "json.h"
 #include "string_types.h"
 #include "project.h"
 #include "misc.h"
-#include "she_bang.h"
 #include "new_project.h"
 #include "logging.h"
 
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <string>
+#include <vector>
 
 /**
  * @brief Will read the file and attempt to build it.
@@ -39,55 +37,42 @@
  */
 static int BuildProjectFile(const std::string& a_ProjectFilename,appbuild::CommandLineOptions& a_Args)
 {
-	// Options read ok, now parse the project.
-	// Read the project file.
-	rapidjson::Document ProjectJson;
+	const bool verbose = a_Args.GetLoggingMode() >= appbuild::LOG_VERBOSE;
 
-	if( appbuild::ReadJson(a_ProjectFilename,ProjectJson,a_Args.GetLoggingMode()>=appbuild::LOG_VERBOSE) == false )
+	if( verbose ){std::cout << "Loading project file " << a_ProjectFilename << "\n";}
+
+    std::ifstream jsonFile(a_ProjectFilename);
+    if( !jsonFile.is_open() )
+    {
+		if( verbose )
+		{
+			std::cout << "The project file \'" << a_ProjectFilename << "\' could not be loaded\n";
+		}
+		return EXIT_FAILURE;
+    }
+
+    std::stringstream jsonStream;
+    jsonStream << jsonFile.rdbuf();// Read the whole file in...
+
+	if( verbose ){std::cout << "Parsing project file " << a_ProjectFilename << "\n";}
+	tinyjson::JsonProcessor projectFile(jsonStream.str());
+
+	tinyjson::JsonValue projectRoot = projectFile.GetRoot();
+
+	if( verbose ){std::cout << "Adding defaults to project file " << a_ProjectFilename << "\n";}
+	appbuild::UpdateJsonProjectWithDefaults(projectRoot,verbose);
+
+	// Validate the json.
+	if( verbose ){std::cout << "Checking project file " << a_ProjectFilename << " against schema\n";}
+	if( appbuild::ValidateJsonAgainstSchema(projectRoot,verbose) == false )
 	{
-		std::cout << "The project file \'" << a_ProjectFilename << "\' could not be loaded" << std::endl;
+		std::cout << "Project failed validation.\n";
 		return EXIT_FAILURE;
 	}
 
-	rapidjson::Value& projectRoot = ProjectJson;
-
-	// Is the project settings embedded in another file?
-	if( a_Args.GetProjectIsEmbedded() )
-	{
-		if( projectRoot.HasMember(a_Args.GetProjectJsonKey()) )
-		{
-			projectRoot = projectRoot[a_Args.GetProjectJsonKey()];
-		}
-		else
-		{
-			std::cout << "The project was not found in Json object \'" << a_Args.GetProjectJsonKey() << "\' inside the file \'" << a_ProjectFilename << "\'" << std::endl;
-			return EXIT_FAILURE;
-		}
-	}
-
-	// Validate the json.
-	if( appbuild::ValidateJsonAgainstSchema(projectRoot,a_Args.GetLoggingMode() == appbuild::LOG_VERBOSE ) == false )
-	{
-		// The validation failed, I wonder if they are using an embedded project?
-		// If they are they should have added the option.
-		// What I will do, to make life easier, see if they have a key called `appbuid`.
-		// If they do then try again, if it still fails time to give up.
-		if( projectRoot.HasMember("appbuild") && appbuild::ValidateJsonAgainstSchema(projectRoot["appbuild"],a_Args.GetLoggingMode() == appbuild::LOG_VERBOSE) )
-		{
-			std::cout << "Embedded project found on key 'appbuild' in the json file, using that. The root json file had filed the schema." << std::endl;
-			std::cout << "Please consider using the --e or embedded-project option to silence this message." << std::endl;
-			projectRoot = projectRoot["appbuild"];
-		}
-		else
-		{// Did not find an embedded project, if there is one they need to tell us the key that they are using.
-			std::cout << "A project can be in the root of other json data, that is embedded in the json file of another application." << std::endl;
-			std::cout << "This allows you to state the key name in the root document where to find the appbuild project." << std::endl;
-			std::cout << "Did you forget the --e or embedded-project option?" << std::endl;
-			return EXIT_FAILURE;
-		}
-	}
-
 	const std::string projectPath = appbuild::GetPath(a_ProjectFilename);
+
+	if( verbose ){std::cout << "Creating the project from file " << a_ProjectFilename << "\n";}
 	appbuild::Project TheProject(projectRoot,a_ProjectFilename,projectPath,a_Args.GetNumThreads(),a_Args.GetLoggingMode(),a_Args.GetReBuild(),a_Args.GetTruncateOutput());
 	if( TheProject )
 	{
@@ -105,18 +90,18 @@ static int BuildProjectFile(const std::string& a_ProjectFilename,appbuild::Comma
 
 		if( a_Args.GetUpdatedProject() )
 		{
-			std::cout << "Updating project file and writing the results too \'" << a_Args.GetUpdatedOutputFileName() << "\'" << std::endl;
+			std::cout << "Updating project file and writing the results too \'" << a_Args.GetUpdatedOutputFileName() << "\'\n";
 
-			rapidjson::Document jsonOutput;
-			jsonOutput.SetObject(); // Root object is an object not an array.
-			TheProject.Write(jsonOutput);
-			if( appbuild::SaveJson(a_Args.GetUpdatedOutputFileName(),jsonOutput) )
+			std::ofstream file(a_Args.GetUpdatedOutputFileName());
+			if( file.is_open() )
 			{
-				std::cout << "Project file updated" << std::endl;
+				tinyjson::JsonValue jsonOutput;
+				TheProject.Write(jsonOutput);
+				tinyjson::JsonWriter(file,jsonOutput,true);
 			}
 			else
 			{
-				std::cout << "Failed to write to the destination file." << std::endl;
+				std::cout << "Failed to open json file  " << a_Args.GetUpdatedOutputFileName() << " for writing\n";
 				return EXIT_FAILURE;
 			}
 		}// This is an if else as after loading, if the project is to be updated with the defaults, then we do not want to then also build.
@@ -137,19 +122,19 @@ static int BuildProjectFile(const std::string& a_ProjectFilename,appbuild::Comma
 			}
 			else
 			{
-				std::cout << "Build failed for project file \'" << a_ProjectFilename << "\'" << std::endl;
+				std::cout << "Build failed for project file \'" << a_ProjectFilename << "\'\n";
 				return EXIT_FAILURE;
 			}
 		}
 		else
 		{
-			std::cout << "No configuration found in the project file \'" << a_ProjectFilename << "\'" << std::endl;
+			std::cout << "No configuration found in the project file \'" << a_ProjectFilename << "\'\n";
 			return EXIT_FAILURE;
 		}
 	}
 	else
 	{
-		std::cout << "There was an error in the project file \'" << a_ProjectFilename << "\'" << std::endl;
+		std::cout << "There was an error in the project file \'" << a_ProjectFilename << "\'\n";
 		return EXIT_FAILURE;
 	}
 
@@ -173,25 +158,12 @@ int main(int argc, char *argv[])
 		std::cout << "argv[" << n << "] " << argv[n] << std::endl;
     }
 
-    std::cout << std::endl << "Runtime debug only unit tests." << std::endl;
+    std::cout << std::endl << "Runtime debug only unit tests.\n";
 	assert( appbuild::DoMiscUnitTests() );
 	std::cout << std::endl;
 	std::cout << std::endl;
 
 #endif
-
-    // We have to special case the arg for using the app as a shebang.
-    // This is because the getopt_long reorders commandline options.
-    // So we have to see if argv[1] is set to -# and if so not call the CommandLineOptions class.
-    // This code will assume that any args from index 3 onwards is for the exec.
-    // argv[0] is the exec, argv[1] is the shebang option, argv[2] is the source file, added by the shell.
-    if( argc > 2 && argv[1] && strcmp(argv[1],"-#") == 0 )
-    {
-#ifdef DEBUG_BUILD
-		std::cout << "Running as a shebang!" << std::endl;
-#endif
-        return appbuild::BuildFromShebang(argc,argv);
-    }
 
 	appbuild::CommandLineOptions Args(argc,argv);
 

@@ -1,6 +1,0 @@
-To build this you need to specify the object name that holds the appbuild project and the file name that the project is embedded into.
-I used the key name appbuild but it can be anything you like.
-The usecase is for an IDE to embedded the settings to build an app into it's own solution / project file.
-
-appbuild -e appbuild embedded-project.example
-

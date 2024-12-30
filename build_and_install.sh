@@ -17,7 +17,6 @@ SOURCE_FILES=(
 		"./source/misc.cpp"
 		"./source/project.cpp"
 		"./source/source_files.cpp"
-		"./source/she_bang.cpp"
         "./source/new_project.cpp"
         "./source/json.cpp"
         "./source/command_line_options.cpp")
@@ -139,10 +138,6 @@ OBJECT_FILES=""
 Message "Compiling with $MAX_THREADS threads, output file $EXEC_OUTPUT_FILE"
 Message $YELLOW "  C FLAGS ARE $COMPILE_FLAGS_C"
 echo
-
-Message "Creating schema file and default project files"
-echo "R\"($(cat ./source/project-schema.json) )\";" > ./source/project-schema.json.string
-echo "R\"($(cat ./source/project-default.json) )\";" > ./source/project-default.json.string
 
 
 # Do the compile

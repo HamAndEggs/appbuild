@@ -44,14 +44,14 @@ FrameBuffer* FrameBuffer::Open(bool pVerbose)
 	if(File)
 	{
 		if(pVerbose)
-			std::cout << "The framebuffer device was opened successfully." << std::endl;
+			std::cout << "The framebuffer device was opened successfully.\n";
 
 		// Get fixed screen information
 		struct fb_fix_screeninfo finfo;
 		if( ioctl(File, FBIOGET_FSCREENINFO, &finfo) )
 		{
 			if(pVerbose)
-				std::cout << "Error reading fixed information.\n" << std::endl;
+				std::cout << "Error reading fixed information.\n\n";
 		}
 		else
 		{
@@ -60,13 +60,13 @@ FrameBuffer* FrameBuffer::Open(bool pVerbose)
 			if( ioctl(File, FBIOGET_VSCREENINFO, &vinfo) )
 			{
 				if(pVerbose)
-					std::cout << "Error reading variable information." << std::endl;
+					std::cout << "Error reading variable information.\n";
 			}
 			else
 			{
 				if(pVerbose)
 				{
-					std::cout << "Display size: " << vinfo.xres << "x" << vinfo.yres << ", " << vinfo.bits_per_pixel << "bpp" << std::endl;
+					std::cout << "Display size: " << vinfo.xres << "x" << vinfo.yres << ", " << vinfo.bits_per_pixel << "bpp\n";
 
 					std::cout << "Red bitfield: offset " << vinfo.red.offset << " length " << vinfo.red.length << " msb_right " << vinfo.red.msb_right << std::endl;
 					std::cout << "Green bitfield: offset " << vinfo.green.offset << " length " << vinfo.green.length << " msb_right " << vinfo.green.msb_right << std::endl;
@@ -85,7 +85,7 @@ FrameBuffer* FrameBuffer::Open(bool pVerbose)
 	{
 		close(File);
 		if(pVerbose)
-			std::cout << "Error: cannot open framebuffer device." << std::endl;
+			std::cout << "Error: cannot open framebuffer device.\n";
 	}
 
 	return newFrameBuffer;
@@ -107,7 +107,7 @@ FrameBuffer::FrameBuffer(int pFile,uint8_t* pFrameBuffer,struct fb_fix_screeninf
 FrameBuffer::~FrameBuffer()
 {
 	if(mVerbose)
-		std::cout << "Free'ing frame buffer resources, frame buffer object will be invalid and not unusable." << std::endl;
+		std::cout << "Free'ing frame buffer resources, frame buffer object will be invalid and not unusable.\n";
 
 	munmap((void*)mFrameBuffer,mFrameBufferSize);
 	close(mFrameBufferFile);

@@ -50,10 +50,10 @@ class SourceFiles;
 class Configuration
 {
 public:
-	Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const rapidjson::Value& pConfig);
+	Configuration(const std::string& pConfigName,const Project* pParentProject,int pLoggingMode,const tinyjson::JsonValue& pConfig);
 	~Configuration();
 
-	rapidjson::Value Write(rapidjson::Document::AllocatorType& pAllocator)const;
+	tinyjson::JsonValue Write()const;
 
 	bool GetIsDefaultConfig()const{return mIsDefaultConfig;}
 	bool GetOk()const{return mOk;}
@@ -100,9 +100,9 @@ private:
 	 */
 	bool AddCompileTasks(const SourceFiles& pSourceFiles,bool pRebuildAll,const ArgList& pAdditionalArgs,StringVec& pProjectIncludes,BuildTaskStack& rBuildTasks,Dependencies& rDependencies,StringVec& rOutputFiles,StringSet& rInputFilesSeen)const;
 
-	bool AddDefines(const rapidjson::Value& pDefines);
+	bool AddDefines(const tinyjson::JsonValue& pDefines);
 
-	bool AddDependantProjects(const rapidjson::Value& pLibs);
+	bool AddDependantProjects(const tinyjson::JsonValue& pLibs);
 
 	const std::string PreparePath(const std::string& pPath);// Makes the path relative to the project if it is not absolute. Cleans it up a bit too.
 	bool AddIncludesFromPKGConfig(StringVec& pIncludeSearchPaths,const std::string& pVersion)const;

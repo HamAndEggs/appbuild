@@ -12,7 +12,7 @@
 			"default":false,
 			"optimisation":"2",
 			"debug_level":"0",
-			"standard":"c++14"
+			"standard":"c++17"
 		},
 		"debug":
 		{
@@ -26,14 +26,13 @@
 			"debug_level":"2",
 			"warnings_as_errors":true,
 			"enable_all_warnings":true,
-			"standard":"c++14"
+			"standard":"c++17"
 		}
 
 	},
-	"libs": [
-		"m",
-		"stdc++",
-		"pthread"
+	"include":
+	[
+		"./TinyJson/"
 	],
 	"source_files":
 	[
@@ -49,7 +48,6 @@
 		"./source/misc.cpp",
 		"./source/project.cpp",
 		"./source/source_files.cpp",
-		"./source/she_bang.cpp",
 		"./source/new_project.cpp",
 		"./source/json.cpp",
 		"./source/command_line_options.cpp"

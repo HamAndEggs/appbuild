@@ -2,7 +2,3 @@
 bin/
 
 \.vscode/
-
-# Ignore the auto generated file. This file is done so that the schema can be edited with a json aware editor.
-# The script just adds R(" at the start and ") at the end allowing the file to be included as a string into the source.
-./source/project-schema.json.string

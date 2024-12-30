@@ -51,7 +51,7 @@ public:
 	 * @param pRebuild If true then the build process will be a full rebuild.
 	 * @param pTruncateOutput Sometimes the errors from the compiler can be too long, this will cause these errors to be truncated.
 	 */
-	Project(const rapidjson::Value& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
+	Project(const tinyjson::JsonValue& pProjectJson,const std::string& pProjectName,const std::string& pProjectPath,size_t pNumThreads,int pLoggingMode,bool pRebuild,size_t pTruncateOutput);
 
 	/**
 	 * @brief Destroy the Project object
@@ -63,7 +63,7 @@ public:
 
 	bool Build(const std::string& pConfigName);
 	bool RunOutputFile(const std::string& pConfigName)const;
-	void Write(rapidjson::Document& pDocument)const;
+	void Write(tinyjson::JsonValue& pDocument)const;
 
 	/**
 	 * @brief Tries to find a configuration that can be used if the user did not specify one.
@@ -105,7 +105,7 @@ private:
 
 	ConfigurationPtr GetConfiguration(const std::string& pName)const;
 
-	bool ReadConfigurations(const rapidjson::Value& pConfigs);
+	bool ReadConfigurations(const tinyjson::JsonValue& pConfigs);
 
 	bool CompileSource(ConfigurationPtr pConfig,BuildTaskStack& pBuildTasks);
 	bool LinkTarget(ConfigurationPtr pConfig,const StringVec& pOutputFiles);
