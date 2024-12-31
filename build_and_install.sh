@@ -128,7 +128,7 @@ done
 PrepareBuildFolder
 
 COMPILE_FLAGS_CPP="-std=c++14 $COMPILE_FLAGS_C"
-COMPILE_INCLUDES="-I/usr/include -I./"
+COMPILE_INCLUDES="-I/usr/include -I./ -I./TinyJson"
 LINKER_FLAGS="-lstdc++ -lpthread -lrt -lm"
 EXEC_OUTPUT_PATH=$(GetAbsFolder "./bin")
 EXEC_OUTPUT_FILE="$EXEC_OUTPUT_PATH/appbuild"
